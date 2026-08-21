@@ -1,10 +1,20 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" style="overscroll-behavior: none; -webkit-overflow-scrolling: touch;">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/icon-192.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>EduFlow — Platform Pembelajaran Adaptif AI &amp; Blockchain Vault</title>
+    <meta name="theme-color" content="#1C1E26" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Adaptika" />
+    <meta name="description" content="Platform Pembelajaran Adaptif Berbasis AI & Dynamic Difficulty Adjustment" />
+
+    <title>Adaptika — Platform Pembelajaran Adaptif AI</title>
     
     <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,8 +24,8 @@
       rel="stylesheet"
     />
   </head>
-  <body class="bg-[#F4F6FA] text-[#1C1E26] antialiased overflow-x-hidden">
-    <div id="root" class="overflow-x-hidden min-h-screen"></div>
+  <body class="bg-[#F8F9FD] text-[#1C1E26] antialiased overflow-x-hidden" style="overscroll-behavior: none; -webkit-overflow-scrolling: touch; touch-action: pan-y;">
+    <div id="root" class="overflow-x-hidden min-h-screen" style="overscroll-behavior: none;"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

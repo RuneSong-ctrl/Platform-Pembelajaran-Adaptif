@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
-import BottomNav from "@/components/layout/BottomNav";
 import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
 import {
@@ -59,7 +58,7 @@ export default function StudentAIPage() {
     "Bagaimana lambung memecah protein?",
     "Fungsi struktur vili pada usus halus?",
     "Apa peran empedu dalam mencerna lemak?",
-    "Jelaskan mekanisme kerja enzim pepsin & renin!",
+    "Jelaskan mekanisme enzim pepsin & renin!",
   ];
 
   const scrollToBottom = () => {
@@ -129,88 +128,72 @@ export default function StudentAIPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8 overflow-x-hidden">
-      <Navbar />
+    <div className="h-[100dvh] w-full bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
+      {/* 1. FIXED TOP NAVBAR */}
+      <div className="shrink-0">
+        <Navbar />
+      </div>
 
-      <div className="flex flex-1 min-h-[calc(100vh-4rem)]">
+      {/* 2. BODY CONTAINER (STRICTLY NO WINDOW SCROLLING) */}
+      <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Desktop Sidebar */}
         <StudentSidebar />
 
-        {/* Expanded Desktop AI Tutor Main Content */}
-        <main className="flex-1 w-full max-w-5xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-4">
-          {/* Header Card */}
-          <div className="clay-card clay-white p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+        {/* Fixed Viewport AI Tutor Main Content */}
+        <main className="flex-1 w-full max-w-5xl lg:max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-4 flex flex-col gap-2.5 sm:gap-3.5 h-full overflow-hidden min-h-0">
+          {/* Header Bar (Ultra Slim & Compact on Mobile) */}
+          <div className="bg-white rounded-2xl p-2 sm:p-3.5 border border-[rgba(28,30,38,0.06)] shadow-2xs flex items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
               <Link
                 to="/student"
                 onClick={() => audioSynth.playClickSound()}
-                className="clay-pill clay-white p-2 text-[#5A5E70] hover:text-[#010105] md:hidden cursor-pointer"
-                title="Kembali"
+                className="w-7 h-7 rounded-xl bg-[#F0EEF6] hover:bg-[#E3DBF8] text-[#4B3B7A] flex items-center justify-center md:hidden cursor-pointer shrink-0"
+                title="Kembali ke Beranda"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="w-3.5 h-3.5" />
               </Link>
 
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white flex items-center justify-center shrink-0 shadow-md">
-                <Bot className="w-6 h-6" />
+              <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
 
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-base sm:text-lg font-black text-[#010105]">
-                    Asisten Belajar AI Tutor
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h1 className="text-xs sm:text-sm font-black text-[#010105] truncate">
+                    AI Tutor
                   </h1>
-                  <span className="clay-pill clay-mint text-[10px] font-extrabold text-[#1D5E4D] px-2.5 py-0.5 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#1D5E4D] animate-pulse"></span>
-                    Online
-                  </span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#1D5E4D]"></span>
                 </div>
-                <p className="text-xs text-[#5A5E70] font-medium">
-                  Grounded 100% pada Modul Biologi Kelas 10-A • Zero Hallucination
+                <p className="text-[9px] sm:text-[11px] text-[#5A5E70] font-medium truncate">
+                  Bab 3: Sistem Pencernaan &amp; Enzim
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <span className="clay-pill clay-lavender text-[10px] font-extrabold text-[#4B3B7A] px-3 py-1 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>RAG Guard Aktif</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="bg-[#EBF6F2] text-[#1D5E4D] text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1">
+                <ShieldCheck className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                <span>RAG Verified</span>
               </span>
             </div>
           </div>
 
-          {/* Prompt Chips Bar */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-            <span className="text-[10px] font-black uppercase tracking-wider text-[#9195A8] shrink-0 hidden sm:inline-block">
-              Pertanyaan Cepat:
-            </span>
-            {quickQuestions.map((q, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleSendMessage(q)}
-                className="clay-pill clay-white hover:bg-[#F2EFFC] text-[#4B3B7A] px-3.5 py-1.5 text-xs font-bold shrink-0 transition-transform hover:scale-105 flex items-center gap-1.5 cursor-pointer shadow-2xs"
-              >
-                <Sparkles className="w-3 h-3 text-[#4B3B7A]" />
-                <span>{q}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Large Chat Workspace Card */}
-          <div className="clay-card clay-white p-4 sm:p-6 flex-1 min-h-[480px] max-h-[620px] flex flex-col justify-between gap-4 overflow-hidden">
-            {/* Scrollable Message List */}
-            <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+          {/* Chat Workspace Card (Fills Full Remaining Space) */}
+          <div className="clay-card clay-white p-3 sm:p-5 flex-1 flex flex-col justify-between gap-2.5 sm:gap-3 overflow-hidden min-h-0 shadow-sm">
+            {/* Scrollable Message History Stream */}
+            <div className="flex-1 overflow-y-auto space-y-3.5 pr-1 min-h-0">
               {messages.map((msg) => {
                 const isAI = msg.sender === "ai";
                 return (
                   <div
                     key={msg.id}
-                    className={`flex gap-3 max-w-[90%] sm:max-w-[80%] ${
+                    className={`flex gap-2.5 sm:gap-3 max-w-[92%] sm:max-w-[80%] ${
                       isAI ? "self-start" : "self-end ml-auto flex-row-reverse"
                     }`}
                   >
                     {/* Avatar */}
                     <div
-                      className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold ${
+                      className={`w-8 h-8 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold ${
                         isAI
                           ? "bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white shadow-sm"
                           : "clay-card clay-lavender text-[#4B3B7A]"
@@ -219,9 +202,9 @@ export default function StudentAIPage() {
                       {isAI ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
                     </div>
 
-                    {/* Bubble */}
+                    {/* Message Bubble */}
                     <div
-                      className={`p-4 rounded-3xl text-xs sm:text-sm leading-relaxed ${
+                      className={`p-3.5 rounded-3xl text-xs sm:text-sm leading-relaxed ${
                         isAI
                           ? "clay-card bg-[#FDFCFE] border border-[rgba(28,30,38,0.06)] text-[#1C1E26]"
                           : "clay-card clay-lavender text-[#2D2152] font-semibold"
@@ -231,13 +214,13 @@ export default function StudentAIPage() {
 
                       {/* Citation Pill */}
                       {msg.citation && (
-                        <div className="mt-3 pt-2.5 border-t border-[rgba(28,30,38,0.08)] flex items-start gap-2 text-[11px] text-[#1D5E4D] font-bold bg-[#EBF6F2] -mx-2 -mb-2 p-2.5 rounded-b-2xl">
+                        <div className="mt-2.5 pt-2 border-t border-[rgba(28,30,38,0.08)] flex items-start gap-1.5 text-[10px] sm:text-[11px] text-[#1D5E4D] font-bold bg-[#EBF6F2] -mx-1.5 -mb-1.5 p-2 rounded-b-2xl">
                           <BookOpen className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                           <span>{msg.citation}</span>
                         </div>
                       )}
 
-                      <span className="block text-[10px] text-[#9195A8] mt-1.5 text-right font-medium">
+                      <span className="block text-[9px] text-[#9195A8] mt-1 text-right font-medium">
                         {msg.timestamp}
                       </span>
                     </div>
@@ -247,15 +230,15 @@ export default function StudentAIPage() {
 
               {/* Typing Animation */}
               {isTyping && (
-                <div className="flex gap-3 max-w-[80%] self-start">
-                  <div className="w-9 h-9 rounded-2xl bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white flex items-center justify-center shrink-0 shadow-sm">
+                <div className="flex gap-2.5 max-w-[85%] self-start">
+                  <div className="w-8 h-8 rounded-2xl bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white flex items-center justify-center shrink-0 shadow-sm">
                     <Bot className="w-4 h-4" />
                   </div>
-                  <div className="clay-card clay-white p-3.5 rounded-3xl flex items-center gap-2">
+                  <div className="clay-card clay-white p-3 rounded-2xl flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-[#3B82F6] animate-bounce"></div>
                     <div className="w-2 h-2 rounded-full bg-[#3B82F6] animate-bounce [animation-delay:0.2s]"></div>
                     <div className="w-2 h-2 rounded-full bg-[#3B82F6] animate-bounce [animation-delay:0.4s]"></div>
-                    <span className="text-xs text-[#9195A8] ml-1.5 font-semibold">
+                    <span className="text-xs text-[#9195A8] ml-1 font-semibold">
                       Mencari jawaban di modul guru...
                     </span>
                   </div>
@@ -265,8 +248,22 @@ export default function StudentAIPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Bar Inside Card */}
-            <div className="pt-3 border-t border-black/5 flex items-center gap-2">
+            {/* Quick Prompt Chips Slider (Placed directly above input for max chat area) */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 shrink-0">
+              {quickQuestions.map((q, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSendMessage(q)}
+                  className="bg-[#F2EFFC] hover:bg-[#E3DBF8] text-[#4B3B7A] px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-bold shrink-0 transition-transform hover:scale-105 flex items-center gap-1 cursor-pointer shadow-2xs whitespace-nowrap"
+                >
+                  <Sparkles className="w-3 h-3 text-[#4B3B7A]" />
+                  <span>{q}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Pinned Input Bar Inside Card (Shrink-0) */}
+            <div className="pt-1.5 border-t border-black/5 flex items-center gap-2 shrink-0">
               <input
                 type="text"
                 value={inputText}
@@ -275,12 +272,12 @@ export default function StudentAIPage() {
                   if (e.key === "Enter") handleSendMessage();
                 }}
                 placeholder="Tanyakan konsep Bab 3, enzim, atau materi yang sulit dipahami..."
-                className="flex-1 px-4 py-3 text-xs sm:text-sm bg-[#F8F9FD] rounded-2xl border border-[rgba(28,30,38,0.08)] outline-hidden text-[#1C1E26] placeholder-[#9195A8] focus:border-[#3B82F6] focus:bg-white transition-all shadow-inner"
+                className="flex-1 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm bg-[#F8F9FD] rounded-2xl border border-[rgba(28,30,38,0.08)] outline-hidden text-[#1C1E26] placeholder-[#9195A8] focus:border-[#3B82F6] focus:bg-white transition-all shadow-inner"
               />
               <button
                 onClick={() => handleSendMessage()}
                 disabled={!inputText.trim()}
-                className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                   inputText.trim()
                     ? "clay-btn clay-btn-dark text-white shadow-md hover:scale-105 active:scale-95"
                     : "bg-[#F0EEF6] text-[#9195A8] cursor-not-allowed"
@@ -293,8 +290,6 @@ export default function StudentAIPage() {
           </div>
         </main>
       </div>
-
-      <BottomNav />
     </div>
   );
 }

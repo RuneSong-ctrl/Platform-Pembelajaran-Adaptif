@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1C1E26"/>
+      <stop offset="100%" stop-color="#2D313E"/>
+    </linearGradient>
+    <linearGradient id="brainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60A5FA"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+    <linearGradient id="sparkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+  </defs>
+  <!-- Background with rounded clay effect -->
+  <rect width="192" height="192" rx="44" fill="url(#bgGrad)"/>
+  <rect x="6" y="6" width="180" height="180" rx="38" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+  
+  <!-- Stylized Brain / Node Emblem -->
+  <g transform="translate(40, 40)">
+    <!-- Circuit lines -->
+    <path d="M56 20 L56 40 M20 56 L40 56 M72 56 L92 56 M56 72 L56 92" stroke="rgba(255,255,255,0.2)" stroke-width="3" stroke-linecap="round"/>
+    
+    <!-- Central Core -->
+    <circle cx="56" cy="56" r="28" fill="url(#brainGrad)" filter="drop-shadow(0 4px 12px rgba(59,130,246,0.5))"/>
+    <circle cx="56" cy="56" r="18" fill="#FFFFFF" opacity="0.95"/>
+    <circle cx="56" cy="56" r="8" fill="#1C1E26"/>
+    
+    <!-- Nodes -->
+    <circle cx="56" cy="16" r="7" fill="url(#sparkGrad)"/>
+    <circle cx="96" cy="56" r="7" fill="url(#sparkGrad)"/>
+    <circle cx="56" cy="96" r="7" fill="url(#sparkGrad)"/>
+    <circle cx="16" cy="56" r="7" fill="url(#sparkGrad)"/>
+  </g>
+</svg>

@@ -54,6 +54,7 @@ export {
   RotateCcw,
   Volume2,
   Trophy,
+  Download,
   DownloadCloud,
   SlidersHorizontal,
   SlidersHorizontal as Sliders,

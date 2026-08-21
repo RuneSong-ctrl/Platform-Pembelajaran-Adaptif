@@ -12,7 +12,12 @@ export default defineConfig({
     },
   },
   server: {
+    host: true, // Listen on all network addresses (0.0.0.0 / local IP)
     port: 3000,
     open: false,
+  },
+  preview: {
+    host: true,
+    port: 3000,
   },
 });
