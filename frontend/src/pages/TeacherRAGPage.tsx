@@ -2,15 +2,15 @@ import React, { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
 import TeacherSidebar from "@/components/layout/TeacherSidebar";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { audioSynth } from "@/services/audioSynth";
 import {
   UploadCloud,
   Lock,
   FileText,
   Trash2,
+  Database,
+  ShieldCheck,
+  CheckCircle2,
 } from "@/components/ui/icons";
 
 export default function TeacherRAGPage() {
@@ -37,42 +37,42 @@ export default function TeacherRAGPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FBF9F4] text-[#1B1C19]">
+    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26]">
       <Navbar />
 
       <div className="flex">
         <TeacherSidebar />
 
-        <main className="flex-1 p-6 sm:p-10 max-w-6xl space-y-8">
+        <main className="flex-1 p-6 sm:p-10 max-w-7xl space-y-8 overflow-x-hidden">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="lavender" className="text-xs">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="clay-pill clay-lavender px-3 py-0.5 text-xs font-extrabold text-[#4B3B7A]">
                   ChromaDB Vector Store
-                </Badge>
-                <Badge variant="mint" className="text-xs">
+                </span>
+                <span className="clay-pill clay-mint px-3 py-0.5 text-xs font-bold text-[#1D5E4D]">
                   Zero Hallucination Guard
-                </Badge>
+                </span>
               </div>
-              <h1 className="text-2xl sm:text-4xl font-bold text-[#010105]">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#010105] tracking-tight">
                 Knowledge Base &amp; RAG Ingestion Center
               </h1>
-              <p className="text-xs sm:text-sm text-[#5A5E70] font-medium mt-0.5">
+              <p className="text-xs sm:text-sm text-[#5A5E70] font-medium mt-1">
                 Unggah modul PDF dan buku ajar. AI hanya menghasilkan materi dan kuis yang ter-grounding 100% dari sumber ini.
               </p>
             </div>
           </div>
 
           {/* STRICT GROUNDING TOGGLE & CLASS SELECTOR */}
-          <Card className="p-6 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs space-y-4">
+          <div className="clay-card clay-white p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <span className="text-xs font-bold text-[#5A5E70] block">Rombongan Belajar Target:</span>
                 <select
                   value={selectedClassId}
                   onChange={(e) => setSelectedClassId(e.target.value)}
-                  className="mt-1 p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#FBF9F4] focus:outline-none"
+                  className="mt-1.5 p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#F8F9FD] focus:outline-none cursor-pointer"
                 >
                   {classrooms.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -83,10 +83,12 @@ export default function TeacherRAGPage() {
               </div>
 
               {/* Strict Grounding Switch */}
-              <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#E0DAF5] border border-[rgba(75,59,122,0.15)]">
-                <Lock className="w-5 h-5 text-[#4B3B7A] shrink-0" />
+              <div className="clay-card clay-lavender p-4 flex items-center gap-3.5">
+                <div className="w-9 h-9 rounded-xl bg-white text-[#4B3B7A] flex items-center justify-center shrink-0">
+                  <Lock className="w-5 h-5" />
+                </div>
                 <div>
-                  <h4 className="text-xs font-bold text-[#4B3B7A]">
+                  <h4 className="text-xs font-black text-[#4B3B7A]">
                     Strict School Grounding Lock
                   </h4>
                   <p className="text-[10px] text-[#4B3B7A]/80 font-medium">
@@ -110,16 +112,16 @@ export default function TeacherRAGPage() {
                 </button>
               </div>
             </div>
-          </Card>
+          </div>
 
           {/* UPLOAD SIMULATION DROPZONE */}
-          <Card className="p-8 bg-[#FBF9F4] border-2 border-dashed border-[rgba(28,30,38,0.15)] rounded-3xl text-center space-y-4">
-            <div className="w-14 h-14 rounded-3xl bg-white border border-[rgba(28,30,38,0.08)] flex items-center justify-center text-[#4B3B7A] mx-auto shadow-xs">
+          <div className="clay-card p-8 bg-[#FAF8FD] border-2 border-dashed border-[#E0DAF5] rounded-3xl text-center space-y-4">
+            <div className="clay-card clay-white w-14 h-14 rounded-2xl flex items-center justify-center text-[#4B3B7A] mx-auto">
               <UploadCloud className="w-7 h-7" />
             </div>
 
             <div className="max-w-md mx-auto space-y-1">
-              <h3 className="text-base font-bold text-[#010105]">
+              <h3 className="text-base font-black text-[#010105]">
                 Unggah Dokumen PDF Modul Ajar
               </h3>
               <p className="text-xs text-[#5A5E70] font-medium">
@@ -128,7 +130,7 @@ export default function TeacherRAGPage() {
             </div>
 
             <div className="flex flex-wrap justify-center gap-2 pt-2">
-              <Button
+              <button
                 onClick={() =>
                   handleSimulateUpload(
                     "BAB 5 - Sistem Sirkulasi & Jantung.pdf",
@@ -136,47 +138,56 @@ export default function TeacherRAGPage() {
                   )
                 }
                 disabled={isUploading}
-                variant="primary"
-                size="sm"
-                className="font-bold text-xs"
+                className="clay-btn clay-btn-dark px-5 py-2.5 text-xs font-black flex items-center gap-2 cursor-pointer"
               >
-                {isUploading ? "Memproses Chunking..." : "Simulasi Upload: Modul Bab 5 Sirkulasi.pdf"}
-              </Button>
+                <Database className="w-4 h-4" />
+                <span>{isUploading ? "Memproses Chunking..." : "Simulasi Upload: Modul Bab 5 Sirkulasi.pdf"}</span>
+              </button>
             </div>
-          </Card>
+          </div>
 
           {/* INGESTED DOCUMENTS TABLE */}
           <section className="space-y-4">
-            <h2 className="text-lg font-bold text-[#010105]">
-              Daftar Modul Terindeks di ChromaDB
-            </h2>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-black text-[#010105]">
+                  Daftar Modul Terindeks di ChromaDB
+                </h2>
+                <p className="text-xs text-[#5A5E70]">
+                  Dokumen yang aktif menjadi basis data generative AI kuis dan pembelajaran.
+                </p>
+              </div>
+              <span className="clay-pill clay-mint px-3 py-1 text-xs font-extrabold text-[#1D5E4D]">
+                {documents.length} Dokumen Aktif
+              </span>
+            </div>
 
             <div className="space-y-3">
               {documents.map((doc) => (
-                <Card
+                <div
                   key={doc.id}
-                  className="p-5 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  className="clay-card clay-card-hover clay-white p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
                   <div className="flex items-start gap-3.5">
-                    <div className="w-10 h-10 rounded-2xl bg-[#D1EBE1] text-[#1D5E4D] flex items-center justify-center shrink-0">
+                    <div className="clay-card clay-mint w-11 h-11 rounded-2xl flex items-center justify-center text-[#1D5E4D] shrink-0">
                       <FileText className="w-5 h-5" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="mint" className="text-[10px]">
+                        <span className="clay-pill clay-mint text-[10px] font-extrabold px-2.5 py-0.5 text-[#1D5E4D]">
                           {doc.status}
-                        </Badge>
-                        <Badge variant="slate" className="text-[10px] font-mono">
+                        </span>
+                        <span className="clay-pill clay-dark text-[10px] font-mono font-bold px-2 py-0.5">
                           {doc.vectorId}
-                        </Badge>
+                        </span>
                       </div>
-                      <h4 className="text-sm font-bold text-[#010105]">{doc.title}</h4>
+                      <h4 className="text-sm font-black text-[#010105]">{doc.title}</h4>
                       <p className="text-xs text-[#5A5E70] mt-0.5">{doc.summary}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 self-end sm:self-center">
-                    <span className="text-xs font-semibold text-[#9195A8]">
+                    <span className="clay-pill bg-[#F8F9FD] px-3 py-1 text-xs font-bold text-[#5A5E70]">
                       {doc.chunksCount} Semantic Chunks
                     </span>
                     <button
@@ -184,13 +195,13 @@ export default function TeacherRAGPage() {
                         audioSynth.playClickSound();
                         deleteDocument(doc.id);
                       }}
-                      className="p-2 rounded-xl text-[#ba1a1a] hover:bg-[#FCD9D7]/50 transition-colors cursor-pointer"
+                      className="clay-btn clay-btn-white w-9 h-9 rounded-xl text-[#ba1a1a] flex items-center justify-center cursor-pointer"
                       title="Hapus Modul"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
           </section>

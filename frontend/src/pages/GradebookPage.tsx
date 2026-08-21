@@ -2,15 +2,16 @@ import React, { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
 import TeacherSidebar from "@/components/layout/TeacherSidebar";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { audioSynth } from "@/services/audioSynth";
 import confetti from "canvas-confetti";
 import {
   ShieldCheck,
   AlertCircle,
   CheckCircle2,
+  Users,
+  Flame,
+  Award,
+  Sparkles,
 } from "@/components/ui/icons";
 
 export default function GradebookPage() {
@@ -34,93 +35,117 @@ export default function GradebookPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FBF9F4] text-[#1B1C19]">
+    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26]">
       <Navbar />
 
       <div className="flex">
         <TeacherSidebar />
 
-        <main className="flex-1 p-6 sm:p-10 max-w-6xl space-y-8">
+        <main className="flex-1 p-6 sm:p-10 max-w-7xl space-y-8 overflow-x-hidden">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="mint" className="text-xs">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="clay-pill clay-mint px-3 py-0.5 text-xs font-extrabold text-[#1D5E4D]">
                   Buku Nilai &amp; Analitik DDA
-                </Badge>
+                </span>
+                <span className="clay-pill clay-lavender px-3 py-0.5 text-xs font-bold text-[#4B3B7A]">
+                  Smart Contract Blockchain
+                </span>
               </div>
-              <h1 className="text-2xl sm:text-4xl font-bold text-[#010105]">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#010105] tracking-tight">
                 Gradebook &amp; Live Classroom Analytics
               </h1>
-              <p className="text-xs sm:text-sm text-[#5A5E70] font-medium mt-0.5">
+              <p className="text-xs sm:text-sm text-[#5A5E70] font-medium mt-1">
                 Pantau sebaran tingkat penguasaan kompetensi DDA seluruh siswa, deteksi dini siswa butuh bimbingan, dan terbitkan kredensial blockchain massal.
               </p>
             </div>
 
-            <Button
+            <button
               onClick={handleBatchMint}
               disabled={isBatchMinting}
-              variant="primary"
-              className="font-bold shadow-xs self-start sm:self-auto"
+              className="clay-btn clay-btn-dark px-5 py-2.5 text-xs font-black flex items-center gap-2 shadow-sm self-start sm:self-auto cursor-pointer"
             >
-              <ShieldCheck className="w-4 h-4 mr-1.5" />
-              {isBatchMinting ? "Memproses Minting..." : "Batch Minting Paspor Kelas"}
-            </Button>
+              <ShieldCheck className="w-4 h-4" />
+              <span>{isBatchMinting ? "Memproses Minting..." : "Batch Minting Paspor Kelas"}</span>
+            </button>
           </div>
 
           {batchMintSuccess && (
-            <div className="p-4 rounded-3xl bg-[#D1EBE1] border border-[rgba(29,94,77,0.25)] flex items-center justify-between gap-3 animate-in fade-in">
-              <div className="flex items-center gap-2 text-xs font-bold text-[#1D5E4D]">
-                <CheckCircle2 className="w-4 h-4" /> Seluruh sertifikat siswa kelas 10-A berhasil diterbitkan dan dicatat ke dalam ledger blockchain.
+            <div className="clay-card clay-mint p-4 flex items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-center gap-2 text-xs font-black text-[#1D5E4D]">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>Seluruh sertifikat siswa kelas 10-A berhasil diterbitkan dan dicatat ke dalam ledger blockchain.</span>
               </div>
-              <Badge variant="mint">Minted</Badge>
+              <span className="clay-pill clay-white px-3 py-0.5 text-xs font-extrabold text-[#1D5E4D]">
+                Minted
+              </span>
             </div>
           )}
 
           {/* DDA DISTRIBUTION CARDS */}
-          <section className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <Card className="p-5 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs space-y-1">
-              <span className="text-xs font-bold text-[#9195A8] uppercase">Basic Level</span>
-              <p className="text-2xl font-bold text-[#010105]">1 Siswa</p>
-              <span className="text-[10px] text-[#ba1a1a] font-semibold flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" /> Perlu Intervensi
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="clay-card clay-card-hover clay-white p-5 space-y-1">
+              <span className="text-xs font-bold text-[#9195A8] uppercase tracking-wider">
+                Basic Level
               </span>
-            </Card>
+              <p className="text-2xl font-black text-[#010105]">1 Siswa</p>
+              <span className="clay-pill clay-coral text-[10px] text-[#7A2420] font-bold px-2 py-0.5 inline-flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" /> Perlu Bimbingan
+              </span>
+            </div>
 
-            <Card className="p-5 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs space-y-1">
-              <span className="text-xs font-bold text-[#9195A8] uppercase">Medium Level</span>
-              <p className="text-2xl font-bold text-[#010105]">1 Siswa</p>
-              <span className="text-[10px] text-[#785308] font-semibold">Progres Stabil</span>
-            </Card>
+            <div className="clay-card clay-card-hover clay-white p-5 space-y-1">
+              <span className="text-xs font-bold text-[#9195A8] uppercase tracking-wider">
+                Medium Level
+              </span>
+              <p className="text-2xl font-black text-[#010105]">1 Siswa</p>
+              <span className="clay-pill clay-butter text-[10px] text-[#694503] font-bold px-2 py-0.5 inline-block">
+                Progres Stabil
+              </span>
+            </div>
 
-            <Card className="p-5 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs space-y-1">
-              <span className="text-xs font-bold text-[#9195A8] uppercase">Challenging Level</span>
-              <p className="text-2xl font-bold text-[#010105]">1 Siswa</p>
-              <span className="text-[10px] text-[#4B3B7A] font-semibold">Akselerasi Baik</span>
-            </Card>
+            <div className="clay-card clay-card-hover clay-white p-5 space-y-1">
+              <span className="text-xs font-bold text-[#9195A8] uppercase tracking-wider">
+                Challenging Level
+              </span>
+              <p className="text-2xl font-black text-[#010105]">1 Siswa</p>
+              <span className="clay-pill clay-lavender text-[10px] text-[#4B3B7A] font-bold px-2 py-0.5 inline-block">
+                Akselerasi Baik
+              </span>
+            </div>
 
-            <Card className="p-5 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs space-y-1">
-              <span className="text-xs font-bold text-[#9195A8] uppercase">Mastery Level</span>
-              <p className="text-2xl font-bold text-[#010105]">2 Siswa</p>
-              <span className="text-[10px] text-[#1D5E4D] font-semibold">Siap Pengayaan</span>
-            </Card>
+            <div className="clay-card clay-card-hover clay-white p-5 space-y-1">
+              <span className="text-xs font-bold text-[#9195A8] uppercase tracking-wider">
+                Mastery Level
+              </span>
+              <p className="text-2xl font-black text-[#010105]">2 Siswa</p>
+              <span className="clay-pill clay-mint text-[10px] text-[#1D5E4D] font-bold px-2 py-0.5 inline-block">
+                Siap Pengayaan
+              </span>
+            </div>
           </section>
 
           {/* STUDENT GRADEBOOK TABLE */}
-          <Card className="p-6 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs space-y-4">
+          <div className="clay-card clay-white p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-base font-bold text-[#010105]">
-                Daftar Nilai &amp; Profil Kognitif Siswa
-              </h2>
-              <Badge variant="slate" className="text-xs">
+              <div>
+                <h2 className="text-base font-black text-[#010105]">
+                  Daftar Nilai &amp; Profil Kognitif Siswa
+                </h2>
+                <p className="text-xs text-[#5A5E70]">
+                  Pemetaan modalitas belajar dan histori penguasaan topik DDA.
+                </p>
+              </div>
+              <span className="clay-pill clay-lavender px-3 py-1 text-xs font-extrabold text-[#4B3B7A]">
                 Kelas 10-A
-              </Badge>
+              </span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-medium">
                 <thead>
-                  <tr className="border-b border-[rgba(28,30,38,0.06)] text-[#9195A8] uppercase text-[10px]">
+                  <tr className="border-b border-[rgba(28,30,38,0.06)] text-[#9195A8] uppercase text-[10px] font-black">
                     <th className="pb-3">Nama Siswa</th>
                     <th className="pb-3">Modalitas Dominan</th>
                     <th className="pb-3">Level DDA</th>
@@ -133,55 +158,53 @@ export default function GradebookPage() {
                     const hasCert = credentials.some((c) => c.studentId === st.id);
 
                     return (
-                      <tr key={st.id} className="hover:bg-[#FBF9F4]/60 transition-colors">
-                        <td className="py-4 font-bold text-[#010105] flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-[#E0DAF5] text-[#4B3B7A] flex items-center justify-center font-bold">
+                      <tr key={st.id} className="hover:bg-[#F8F9FD] transition-colors">
+                        <td className="py-4 font-black text-[#010105] flex items-center gap-3">
+                          <div className="clay-card clay-lavender w-8 h-8 rounded-full flex items-center justify-center font-black text-xs text-[#4B3B7A] shrink-0">
                             {st.avatar}
                           </div>
                           <span>{st.name}</span>
                         </td>
 
                         <td className="py-4">
-                          <Badge
-                            variant={
+                          <span
+                            className={`clay-pill text-[10px] font-extrabold px-2.5 py-0.5 ${
                               st.learningStyle === "VISUAL"
-                                ? "mint"
+                                ? "clay-mint text-[#1D5E4D]"
                                 : st.learningStyle === "AUDITORI"
-                                ? "lavender"
-                                : "butter"
-                            }
-                            className="text-[10px]"
+                                ? "clay-lavender text-[#4B3B7A]"
+                                : "clay-butter text-[#785308]"
+                            }`}
                           >
                             {st.learningStyle}
-                          </Badge>
+                          </span>
                         </td>
 
                         <td className="py-4">
-                          <Badge
-                            variant={
+                          <span
+                            className={`clay-pill text-[10px] font-extrabold px-2.5 py-0.5 ${
                               st.currentDDALevel === "CHALLENGING"
-                                ? "lavender"
+                                ? "clay-lavender text-[#4B3B7A]"
                                 : st.currentDDALevel === "BASIC"
-                                ? "coral"
-                                : "mint"
-                            }
-                            className="text-[10px]"
+                                ? "clay-coral text-[#7A2420]"
+                                : "clay-mint text-[#1D5E4D]"
+                            }`}
                           >
                             {st.currentDDALevel}
-                          </Badge>
+                          </span>
                         </td>
 
-                        <td className="py-4 font-semibold text-[#5A5E70]">
+                        <td className="py-4 font-bold text-[#5A5E70]">
                           {st.xpTotal} XP • {st.streakDays} Hari
                         </td>
 
                         <td className="py-4">
                           {hasCert ? (
-                            <span className="text-[#1D5E4D] font-bold flex items-center gap-1">
+                            <span className="clay-pill clay-mint text-[10px] font-extrabold px-2.5 py-0.5 text-[#1D5E4D] inline-flex items-center gap-1">
                               <CheckCircle2 className="w-3.5 h-3.5" /> Minted
                             </span>
                           ) : (
-                            <span className="text-[#785308] font-bold">
+                            <span className="clay-pill clay-butter text-[10px] font-extrabold px-2.5 py-0.5 text-[#785308] inline-block">
                               Ready to Mint
                             </span>
                           )}
@@ -192,7 +215,7 @@ export default function GradebookPage() {
                 </tbody>
               </table>
             </div>
-          </Card>
+          </div>
         </main>
       </div>
     </div>

@@ -103,17 +103,17 @@ export default function Navbar() {
         {/* Right Status Indicators (Streak + XP + Notification only, profile removed) */}
         <div className="flex items-center gap-2">
           {/* Streak Pill Badge */}
-          <div className="flex items-center gap-1.5 bg-[#FFF6DF] px-3 py-1 rounded-full border border-[#FEE7B3] shadow-2xs">
+          <div className="clay-pill clay-butter flex items-center gap-1.5 px-3.5 py-1 text-[#694503]">
             <Flame className="w-4 h-4 fill-[#785308] text-[#785308]" />
-            <span className="text-xs font-black text-[#785308]" suppressHydrationWarning>
-              {mounted ? (currentUser.streakDays || 5) : 5} Hari
+            <span className="text-xs font-black" suppressHydrationWarning>
+              {mounted ? (currentUser.streakDays || 14) : 14} Hari
             </span>
           </div>
 
           {/* XP Pill Badge */}
-          <div className="hidden sm:flex items-center gap-1 bg-[#F5F3ED] px-2.5 py-1 rounded-full border border-[rgba(28,30,38,0.06)]">
-            <Star className="w-3.5 h-3.5 fill-[#F2C94C] text-[#F2C94C]" />
-            <span className="text-[11px] font-extrabold text-[#010105]" suppressHydrationWarning>
+          <div className="hidden sm:flex items-center gap-1 clay-pill clay-white px-3 py-1">
+            <Star className="w-3.5 h-3.5 fill-[#21518A] text-[#21518A]" />
+            <span className="text-[11px] font-extrabold text-[#1C1E26]" suppressHydrationWarning>
               {mounted ? (currentUser.xpTotal || 450) : 450} XP
             </span>
           </div>
@@ -121,11 +121,11 @@ export default function Navbar() {
           {/* Notification Bell Button */}
           <button
             onClick={() => triggerSync()}
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white border border-[rgba(28,30,38,0.08)] flex items-center justify-center text-[#010105] relative hover:bg-[#F7F6FA] transition-all cursor-pointer shadow-xs"
+            className="clay-btn clay-btn-white w-9 h-9 rounded-full flex items-center justify-center text-[#1C1E26] relative"
             title="Notifikasi & Sinkronisasi"
           >
             <Bell className="w-4 h-4" />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#ba1a1a] rounded-full"></span>
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#ba1a1a] rounded-full ring-2 ring-white"></span>
           </button>
         </div>
       </div>

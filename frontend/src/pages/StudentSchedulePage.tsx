@@ -19,7 +19,6 @@ import {
   Plus,
   Trash2,
   Check,
-  CheckCircle2,
   Eye,
   Headphones,
   FlaskConical,
@@ -129,7 +128,7 @@ export default function StudentSchedulePage() {
           <Link
             to="/student"
             onClick={() => audioSynth.playClickSound()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[rgba(28,30,38,0.08)] shadow-2xs text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] transition-all cursor-pointer group"
+            className="clay-pill clay-white inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] transition-all cursor-pointer group"
           >
             <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
             <span>Beranda</span>
@@ -140,7 +139,7 @@ export default function StudentSchedulePage() {
               audioSynth.playClickSound();
               setModalOpen(true);
             }}
-            className="clay-btn clay-btn-dark px-3.5 py-1.5 rounded-full text-xs font-black flex items-center gap-1.5 shadow-xs cursor-pointer"
+            className="clay-btn clay-btn-dark px-4 py-2 rounded-full text-xs font-black flex items-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Tambah Jadwal</span>
@@ -150,10 +149,10 @@ export default function StudentSchedulePage() {
         {/* Page Title & Progress Overview */}
         <div>
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#E3DBF8] text-[#4B3B7A]">
+            <span className="clay-pill clay-lavender text-[10px] font-extrabold px-3 py-0.5 text-[#4B3B7A]">
               Self-Regulated Learning
             </span>
-            <span className="text-[10px] font-bold text-[#1D5E4D] bg-[#D1EBE1] px-2 py-0.5 rounded-full">
+            <span className="clay-pill clay-mint text-[10px] font-bold text-[#1D5E4D] px-3 py-0.5">
               {completedCount}/{studentSchedules.length} Selesai
             </span>
           </div>
@@ -165,8 +164,8 @@ export default function StudentSchedulePage() {
           </p>
         </div>
 
-        {/* Day Selector Strip */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+        {/* Day Selector Strip in Clay Pills (Expanded, No Cut-off) */}
+        <div className="flex flex-wrap items-center gap-2 py-1">
           {["Semua", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"].map((d) => (
             <button
               key={d}
@@ -174,10 +173,10 @@ export default function StudentSchedulePage() {
                 audioSynth.playClickSound();
                 setSelectedDayFilter(d);
               }}
-              className={`px-3 py-1.5 rounded-2xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+              className={`px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                 selectedDayFilter === d
-                  ? "bg-[#1C1E26] text-white shadow-xs"
-                  : "bg-white text-[#5A5E70] hover:bg-[#F2EFFC] border border-[rgba(28,30,38,0.06)]"
+                  ? "clay-btn clay-btn-dark text-white font-bold shadow-xs"
+                  : "clay-pill clay-white text-[#5A5E70] hover:text-[#010105]"
               }`}
             >
               {d}
@@ -191,27 +190,27 @@ export default function StudentSchedulePage() {
             Daftar Target ({filteredSchedules.length})
           </span>
 
-          <div className="flex items-center gap-1 bg-[#F0EEF6] p-0.5 rounded-full text-[10px] font-bold">
+          <div className="clay-pill bg-[#F0EEF6] p-1 flex items-center gap-1 text-[10px] font-bold">
             <button
               onClick={() => setStatusFilter("all")}
-              className={`px-2.5 py-0.5 rounded-full transition-all cursor-pointer ${
-                statusFilter === "all" ? "bg-[#1C1E26] text-white" : "text-[#5A5E70]"
+              className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
+                statusFilter === "all" ? "clay-btn clay-btn-dark text-white" : "text-[#5A5E70]"
               }`}
             >
               Semua
             </button>
             <button
               onClick={() => setStatusFilter("active")}
-              className={`px-2.5 py-0.5 rounded-full transition-all cursor-pointer ${
-                statusFilter === "active" ? "bg-[#1C1E26] text-white" : "text-[#5A5E70]"
+              className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
+                statusFilter === "active" ? "clay-btn clay-btn-dark text-white" : "text-[#5A5E70]"
               }`}
             >
               Belum
             </button>
             <button
               onClick={() => setStatusFilter("completed")}
-              className={`px-2.5 py-0.5 rounded-full transition-all cursor-pointer ${
-                statusFilter === "completed" ? "bg-[#1C1E26] text-white" : "text-[#5A5E70]"
+              className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
+                statusFilter === "completed" ? "clay-btn clay-btn-dark text-white" : "text-[#5A5E70]"
               }`}
             >
               Selesai
@@ -220,42 +219,40 @@ export default function StudentSchedulePage() {
         </div>
 
         {/* Schedule Items List */}
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {filteredSchedules.map((sch) => (
             <div
               key={sch.id}
-              className={`p-4 rounded-2xl border transition-all flex items-start justify-between gap-3 ${
+              className={`clay-card clay-card-hover p-4 sm:p-5 flex items-start justify-between gap-3 ${
                 sch.completed
-                  ? "bg-[#F8F9FD] border-[rgba(28,30,38,0.06)] opacity-70"
-                  : "bg-white border-[rgba(28,30,38,0.08)] shadow-xs"
+                  ? "bg-[#F8F9FD] opacity-70"
+                  : "clay-white"
               }`}
             >
               <div className="flex items-start gap-3 min-w-0">
-                {/* Checkbox */}
+                {/* 3D Tactile Clay Checkbox */}
                 <button
                   onClick={() => {
                     audioSynth.playClickSound();
                     toggleLearningSchedule(sch.id);
                   }}
-                  className={`w-6 h-6 rounded-xl flex items-center justify-center transition-colors cursor-pointer shrink-0 mt-0.5 ${
-                    sch.completed
-                      ? "bg-[#1D5E4D] text-white"
-                      : "border-2 border-[#C7C6CB] hover:border-[#1D5E4D] bg-white"
+                  className={`clay-checkbox shrink-0 mt-0.5 ${
+                    sch.completed ? "clay-checkbox-checked" : ""
                   }`}
-                  title={sch.completed ? "Tandai Belum" : "Tandai Selesai"}
+                  title={sch.completed ? "Tandai Belum Selesai" : "Tandai Selesai"}
                 >
                   {sch.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                 </button>
 
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-[#E3DBF8] text-[#4B3B7A]">
+                    <span className="clay-pill clay-lavender text-[9px] font-extrabold px-2.5 py-0.5 text-[#4B3B7A]">
                       {sch.day}
                     </span>
                     <span className="text-[10px] text-[#5A5E70] font-semibold flex items-center gap-0.5">
                       <Clock className="w-3 h-3" /> {sch.time} ({sch.duration})
                     </span>
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-[#D1EBE1] text-[#1D5E4D]">
+                    <span className="clay-pill clay-mint text-[9px] font-extrabold px-2.5 py-0.5 text-[#1D5E4D]">
                       {sch.format}
                     </span>
                   </div>
@@ -273,17 +270,17 @@ export default function StudentSchedulePage() {
                     audioSynth.playClickSound();
                     deleteLearningSchedule(sch.id);
                   }}
-                  className="w-8 h-8 rounded-xl text-[#9195A8] hover:text-[#ba1a1a] hover:bg-[#FDF0EF] flex items-center justify-center transition-colors cursor-pointer"
+                  className="clay-btn clay-btn-white w-8 h-8 rounded-xl text-[#9195A8] hover:text-[#ba1a1a] flex items-center justify-center transition-colors cursor-pointer"
                   title="Hapus Jadwal"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
           ))}
 
           {filteredSchedules.length === 0 && (
-            <div className="p-8 text-center bg-white rounded-2xl border border-[rgba(28,30,38,0.06)] text-xs text-[#5A5E70] space-y-1">
+            <div className="clay-card clay-white p-8 text-center text-xs text-[#5A5E70] space-y-1">
               <p className="font-bold">Tidak ada jadwal belajar pada kategori ini.</p>
               <p className="text-[11px] text-[#9195A8]">Klik tombol Tambah Jadwal untuk menyusun target belajarmu.</p>
             </div>
@@ -293,7 +290,7 @@ export default function StudentSchedulePage() {
 
       {/* MODAL: TAMBAH JADWAL BELAJAR TERKHUSUS MODALITAS */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-sm p-6 bg-white rounded-3xl">
+        <DialogContent className="max-w-sm p-6 bg-white rounded-3xl border-2 border-white shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-base font-black text-[#010105]">
               Buat Rencana Belajar Baru
@@ -317,8 +314,8 @@ export default function StudentSchedulePage() {
                     onClick={() => setDay(d)}
                     className={`py-1.5 text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
                       day === d
-                        ? "bg-[#1C1E26] text-white shadow-xs"
-                        : "bg-[#F0EEF6] text-[#5A5E70] hover:bg-[#E3DBF8]"
+                        ? "clay-btn clay-btn-dark text-white font-bold"
+                        : "clay-pill clay-white text-[#5A5E70] hover:text-[#010105]"
                     }`}
                   >
                     {d}
@@ -337,13 +334,13 @@ export default function StudentSchedulePage() {
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
                   placeholder="Misal: 16:00 - 16:30"
-                  className="rounded-xl text-xs font-medium"
+                  className="rounded-xl text-xs font-medium bg-[#F8F9FD] border border-[rgba(28,30,38,0.08)]"
                 />
                 <Input
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
                   placeholder="Misal: 30 mnt"
-                  className="rounded-xl text-xs font-medium"
+                  className="rounded-xl text-xs font-medium bg-[#F8F9FD] border border-[rgba(28,30,38,0.08)]"
                 />
               </div>
             </div>
@@ -357,7 +354,7 @@ export default function StudentSchedulePage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Contoh: Bab 3: Struktur Vili &amp; Reaksi Enzim"
-                className="rounded-xl text-xs font-medium"
+                className="rounded-xl text-xs font-medium bg-[#F8F9FD] border border-[rgba(28,30,38,0.08)]"
               />
             </div>
 
@@ -375,15 +372,15 @@ export default function StudentSchedulePage() {
                       key={opt.id}
                       type="button"
                       onClick={() => setSpecificFormat(opt.id)}
-                      className={`w-full p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                      className={`w-full p-2.5 rounded-2xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
                         isSelected
-                          ? "bg-[#1C1E26] text-white border-[#1C1E26] shadow-xs"
-                          : "bg-[#F8F9FD] text-[#010105] border-[rgba(28,30,38,0.06)] hover:bg-[#F2EFFC]"
+                          ? "clay-btn clay-btn-dark text-white font-bold"
+                          : "clay-card clay-white text-[#010105] hover:scale-[1.01]"
                       }`}
                     >
                       <div
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                          isSelected ? "bg-white/20 text-white" : "bg-white text-[#4B3B7A] shadow-2xs"
+                        className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                          isSelected ? "clay-pill bg-white/20 text-white" : "clay-pill clay-lavender text-[#4B3B7A]"
                         }`}
                       >
                         <Icon className="w-3.5 h-3.5" />
@@ -399,14 +396,14 @@ export default function StudentSchedulePage() {
           <div className="flex justify-end gap-2 pt-1">
             <button
               onClick={() => setModalOpen(false)}
-              className="clay-btn clay-btn-white px-4 py-2 rounded-xl text-xs font-bold text-[#5A5E70] cursor-pointer"
+              className="clay-btn clay-btn-white px-4 py-2 text-xs font-bold text-[#5A5E70] cursor-pointer"
             >
               Batal
             </button>
             <button
               onClick={handleSave}
               disabled={!title.trim()}
-              className={`clay-btn px-4 py-2 rounded-xl text-xs font-bold ${
+              className={`clay-btn px-4 py-2 text-xs font-bold ${
                 title.trim()
                   ? "clay-btn-dark text-white cursor-pointer"
                   : "bg-[#E4E2DD] text-[#9195A8] cursor-not-allowed"

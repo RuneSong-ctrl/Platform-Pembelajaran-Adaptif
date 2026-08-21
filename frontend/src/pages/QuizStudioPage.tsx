@@ -2,15 +2,16 @@ import React, { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
 import TeacherSidebar from "@/components/layout/TeacherSidebar";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { audioSynth } from "@/services/audioSynth";
 import confetti from "canvas-confetti";
 import {
   Sparkles,
   CheckCircle2,
+  Database,
+  ArrowRight,
+  School,
+  FileText,
 } from "@/components/ui/icons";
 
 export default function QuizStudioPage() {
@@ -93,42 +94,42 @@ export default function QuizStudioPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FBF9F4] text-[#1B1C19]">
+    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26]">
       <Navbar />
 
       <div className="flex">
         <TeacherSidebar />
 
-        <main className="flex-1 p-6 sm:p-10 max-w-6xl space-y-8">
+        <main className="flex-1 p-6 sm:p-10 max-w-7xl space-y-8 overflow-x-hidden">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="mint" className="text-xs">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="clay-pill clay-mint px-3 py-0.5 text-xs font-extrabold text-[#1D5E4D]">
                   Teacher-in-the-Loop Studio
-                </Badge>
-                <Badge variant="lavender" className="text-xs">
-                  RAG Grounding
-                </Badge>
+                </span>
+                <span className="clay-pill clay-lavender px-3 py-0.5 text-xs font-bold text-[#4B3B7A]">
+                  RAG Grounding Verified
+                </span>
               </div>
-              <h1 className="text-2xl sm:text-4xl font-bold text-[#010105]">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#010105] tracking-tight">
                 AI-Assisted Task &amp; Quiz Generator Studio
               </h1>
-              <p className="text-xs sm:text-sm text-[#5A5E70] font-medium mt-0.5">
+              <p className="text-xs sm:text-sm text-[#5A5E70] font-medium mt-1">
                 Susun draf soal adaptif berbasis dokumen modul guru. Guru memegang kendali penuh untuk mereview, mengedit, dan menyetujui sebelum publikasi.
               </p>
             </div>
           </div>
 
           {/* GENERATOR CONFIGURATION CARD */}
-          <Card className="p-6 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs space-y-4">
+          <div className="clay-card clay-white p-6 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-bold text-[#010105] mb-1">Target Kelas</label>
                 <select
                   value={selectedClassId}
                   onChange={(e) => setSelectedClassId(e.target.value)}
-                  className="w-full p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#FBF9F4] focus:outline-none"
+                  className="w-full p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#F8F9FD] focus:outline-none cursor-pointer"
                 >
                   {classrooms.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -143,7 +144,7 @@ export default function QuizStudioPage() {
                 <select
                   value={selectedDocId}
                   onChange={(e) => setSelectedDocId(e.target.value)}
-                  className="w-full p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#FBF9F4] focus:outline-none"
+                  className="w-full p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#F8F9FD] focus:outline-none cursor-pointer"
                 >
                   {documents.map((d) => (
                     <option key={d.id} value={d.id}>
@@ -158,82 +159,91 @@ export default function QuizStudioPage() {
                 <Input
                   value={targetTopic}
                   onChange={(e) => setTargetTopic(e.target.value)}
-                  className="text-xs"
+                  className="text-xs bg-[#F8F9FD] rounded-2xl"
                 />
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-2 border-t border-[rgba(28,30,38,0.06)]">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 pt-3 border-t border-[rgba(28,30,38,0.06)]">
               <span className="text-xs text-[#5A5E70] font-medium">
-                Prompt akan dicocokkan dengan similarity score embedding ChromaDB.
+                Prompt dicocokkan dengan kemiripan vektor ChromaDB dari modul guru.
               </span>
-              <Button
+              <button
                 onClick={handleGenerateAI}
                 disabled={isGenerating}
-                variant="primary"
-                size="sm"
-                className="font-bold text-xs"
+                className="clay-btn clay-btn-dark px-4 py-2.5 text-xs font-black flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
               >
-                <Sparkles className="w-4 h-4 mr-1.5" />
-                {isGenerating ? "Menghasilkan Draf Soal..." : "Generate Draf Soal via AI RAG"}
-              </Button>
+                <Sparkles className="w-4 h-4" />
+                <span>{isGenerating ? "Menghasilkan Draf Soal..." : "Generate Draf Soal via AI RAG"}</span>
+              </button>
             </div>
-          </Card>
+          </div>
 
           {/* DRAFT QUESTIONS REVIEW & APPROVAL LIST */}
           <section className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold text-[#010105]">
-                Draf Soal Kuis ({draftQuestions.length} Soal Ter-grounding)
-              </h2>
-              <Badge variant="butter" className="text-xs">
+              <div>
+                <h2 className="text-lg font-black text-[#010105]">
+                  Draf Soal Kuis ({draftQuestions.length} Soal Ter-grounding)
+                </h2>
+                <p className="text-xs text-[#5A5E70]">
+                  Setiap butir soal memiliki sitasi halaman dari dokumen ajar asli.
+                </p>
+              </div>
+              <span className="clay-pill clay-butter px-3 py-1 text-xs font-extrabold text-[#785308]">
                 Perlu Persetujuan Guru
-              </Badge>
+              </span>
             </div>
 
             <div className="space-y-4">
               {draftQuestions.map((q, qIdx) => (
-                <Card key={q.id || qIdx} className="p-6 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs space-y-3">
+                <div
+                  key={q.id || qIdx}
+                  className="clay-card clay-card-hover clay-white p-6 space-y-3.5"
+                >
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-[#1C1E26] text-white flex items-center justify-center text-xs font-bold">
+                      <span className="w-7 h-7 rounded-xl bg-[#1C1E26] text-white flex items-center justify-center text-xs font-black">
                         {qIdx + 1}
                       </span>
-                      <Badge variant="lavender" className="text-[10px]">
+                      <span className="clay-pill clay-lavender text-[10px] font-extrabold px-2.5 py-0.5 text-[#4B3B7A]">
                         Level {q.difficulty}
-                      </Badge>
+                      </span>
                     </div>
-                    <span className="text-[10px] font-mono text-[#9195A8]">
+                    <span className="clay-pill bg-[#F8F9FD] text-[10px] font-mono font-bold text-[#5A5E70] px-2.5 py-1">
                       {q.sourceReference}
                     </span>
                   </div>
 
-                  <p className="text-sm font-bold text-[#010105]">{q.questionText}</p>
+                  <p className="text-sm font-black text-[#010105] leading-relaxed">
+                    {q.questionText}
+                  </p>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                     {q.options.map((opt: string, optIdx: number) => (
                       <div
                         key={optIdx}
-                        className={`p-3 rounded-2xl text-xs font-medium border ${
+                        className={`p-3 rounded-2xl text-xs font-bold border transition-all ${
                           optIdx === q.correctIndex
-                            ? "bg-[#D1EBE1] border-[#1D5E4D] text-[#1D5E4D] font-bold"
-                            : "bg-[#FBF9F4] border-[rgba(28,30,38,0.06)] text-[#5A5E70]"
+                            ? "clay-card clay-mint text-[#1D5E4D] border-[#1D5E4D]"
+                            : "bg-[#F8F9FD] border-[rgba(28,30,38,0.06)] text-[#5A5E70]"
                         }`}
                       >
-                        <span className="font-bold mr-1.5">{String.fromCharCode(65 + optIdx)}.</span>
+                        <span className="font-black mr-1.5">{String.fromCharCode(65 + optIdx)}.</span>
                         {opt}
                       </div>
                     ))}
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
 
             {/* Bottom Actions */}
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
               {isPublished ? (
-                <div className="flex items-center gap-2 text-xs font-bold text-[#1D5E4D]">
-                  <CheckCircle2 className="w-4 h-4" /> Kuis berhasil disetujui &amp; diterbitkan ke portal siswa!
+                <div className="clay-pill clay-mint px-4 py-2 flex items-center gap-2 text-xs font-black text-[#1D5E4D]">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Kuis berhasil disetujui &amp; diterbitkan ke portal siswa!</span>
                 </div>
               ) : (
                 <span className="text-xs text-[#5A5E70] font-medium">
@@ -241,16 +251,14 @@ export default function QuizStudioPage() {
                 </span>
               )}
 
-              <Button
+              <button
                 onClick={handlePublishToClass}
                 disabled={draftQuestions.length === 0}
-                variant="primary"
-                size="lg"
-                className="font-bold shadow-md w-full sm:w-auto"
+                className="clay-btn clay-btn-dark px-6 py-3 text-xs font-black shadow-md w-full sm:w-auto flex items-center justify-center gap-2 cursor-pointer"
               >
-                <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                Setujui &amp; Terbitkan Kuis ke Portal Siswa
-              </Button>
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Setujui &amp; Terbitkan Kuis ke Portal Siswa</span>
+              </button>
             </div>
           </section>
         </main>

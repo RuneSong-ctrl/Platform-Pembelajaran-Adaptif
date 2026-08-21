@@ -41,26 +41,26 @@ export default function TeacherSidebar() {
   ];
 
   return (
-    <aside className="w-64 bg-white border-r border-[rgba(28,30,38,0.06)] min-h-[calc(100vh-4rem)] p-4 hidden md:flex flex-col justify-between">
+    <aside className="w-64 bg-white border-r border-[rgba(28,30,38,0.06)] min-h-[calc(100vh-4rem)] p-4 hidden md:flex flex-col justify-between shrink-0 shadow-2xs">
       <div className="space-y-6">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#9195A8] px-3">
+          <span className="text-[10px] font-black uppercase tracking-wider text-[#9195A8] px-3">
             Menu Manajemen Guru
           </span>
-          <nav className="mt-2 space-y-1">
+          <nav className="mt-2 space-y-1.5">
             {links.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
                   key={item.href}
                   to={item.href}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all ${
                     item.active
-                      ? "bg-[#1C1E26] text-white shadow-xs"
-                      : "text-[#5A5E70] hover:bg-[#FBF9F4] hover:text-[#010105]"
+                      ? "clay-btn clay-btn-dark text-white font-black shadow-xs"
+                      : "text-[#5A5E70] hover:bg-[#F8F9FD] hover:text-[#010105]"
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-4 h-4 shrink-0" />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -69,19 +69,23 @@ export default function TeacherSidebar() {
         </div>
 
         {/* Classroom Quick Selector */}
-        <div className="p-3.5 rounded-2xl bg-[#FBF9F4] border border-[rgba(28,30,38,0.06)] space-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#9195A8] block">
+        <div className="clay-card clay-white p-3.5 space-y-1.5">
+          <span className="text-[10px] font-black uppercase tracking-wider text-[#9195A8] block">
             Rombel Aktif
           </span>
           <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-[#1D5E4D]" />
-            <span className="text-xs font-bold text-[#010105]">Biologi 10-A (32 Siswa)</span>
+            <div className="w-7 h-7 rounded-xl bg-[#D1EBE1] text-[#1D5E4D] flex items-center justify-center shrink-0">
+              <Users className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-extrabold text-[#010105]">
+              Biologi 10-A (32 Siswa)
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Footer Info */}
-      <div className="p-3.5 rounded-2xl bg-[#D1EBE1] border border-[rgba(29,94,77,0.15)] text-[11px] font-bold text-[#1D5E4D] flex items-center gap-2">
+      {/* Footer Grounding Badge */}
+      <div className="clay-pill clay-mint p-3 text-[11px] font-extrabold text-[#1D5E4D] flex items-center gap-2">
         <ShieldCheck className="w-4 h-4 shrink-0" />
         <span>RAG Grounding Aktif (Zero Hallucination)</span>
       </div>
