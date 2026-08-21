@@ -69,13 +69,15 @@ export default function TeacherDashboardPage() {
   const totalStudents = classrooms.reduce((acc, c) => acc + c.studentIds.length, 0);
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26]">
+    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col">
       <Navbar />
 
-      <div className="flex">
+      <div className="flex flex-1 min-h-[calc(100vh-4rem)]">
+        {/* Responsive Desktop Sidebar for Teacher */}
         <TeacherSidebar />
 
-        <main className="flex-1 p-6 sm:p-10 max-w-7xl space-y-8 overflow-x-hidden">
+        {/* Main Content Area */}
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-7xl overflow-x-hidden space-y-6 sm:space-y-8">
           {/* Header & Quick Action */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -87,7 +89,7 @@ export default function TeacherDashboardPage() {
                   Tahun Ajaran 2026/2027
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#010105] tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">
                 Ringkasan Kelas &amp; Analitik Pembelajaran
               </h1>
               <p className="text-xs sm:text-sm text-[#5A5E70] font-medium mt-1">
@@ -107,7 +109,7 @@ export default function TeacherDashboardPage() {
             </button>
           </div>
 
-          {/* 4 KPI METRIC CARDS (Desktop Grid with Clay Tokens) */}
+          {/* 4 KPI METRIC CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="clay-card clay-card-hover clay-white p-5 space-y-2">
               <div className="flex justify-between items-center text-[#5A5E70]">
@@ -170,7 +172,7 @@ export default function TeacherDashboardPage() {
             </div>
           </div>
 
-          {/* CLASSROOMS LIST (Desktop 2-Column Responsive Card Grid) */}
+          {/* CLASSROOMS LIST */}
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <div>

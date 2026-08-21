@@ -94,13 +94,15 @@ export default function QuizStudioPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26]">
+    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col">
       <Navbar />
 
-      <div className="flex">
+      <div className="flex flex-1 min-h-[calc(100vh-4rem)]">
+        {/* Responsive Desktop Sidebar */}
         <TeacherSidebar />
 
-        <main className="flex-1 p-6 sm:p-10 max-w-7xl space-y-8 overflow-x-hidden">
+        {/* Main Content Area */}
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-7xl overflow-x-hidden space-y-6 sm:space-y-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -112,7 +114,7 @@ export default function QuizStudioPage() {
                   RAG Grounding Verified
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#010105] tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">
                 AI-Assisted Task &amp; Quiz Generator Studio
               </h1>
               <p className="text-xs sm:text-sm text-[#5A5E70] font-medium mt-1">

@@ -67,4 +67,7 @@ export {
   Volume1,
   Camera,
   Image,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";

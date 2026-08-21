@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
+import Navbar from "@/components/layout/Navbar";
+import BottomNav from "@/components/layout/BottomNav";
+import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
 import {
   Send,
@@ -9,6 +12,10 @@ import {
   Sparkles,
   BookOpen,
   ArrowLeft,
+  ShieldCheck,
+  Flame,
+  Star,
+  CheckCircle2,
 } from "@/components/ui/icons";
 
 interface ChatMessage {
@@ -52,6 +59,7 @@ export default function StudentAIPage() {
     "Bagaimana lambung memecah protein?",
     "Fungsi struktur vili pada usus halus?",
     "Apa peran empedu dalam mencerna lemak?",
+    "Jelaskan mekanisme kerja enzim pepsin & renin!",
   ];
 
   const scrollToBottom = () => {
@@ -64,7 +72,7 @@ export default function StudentAIPage() {
 
   const getMockAIResponse = (query: string): { text: string; citation: string } => {
     const q = query.toLowerCase();
-    if (q.includes("lambung") || q.includes("pepsin") || q.includes("asam") || q.includes("protein")) {
+    if (q.includes("lambung") || q.includes("pepsin") || q.includes("asam") || q.includes("protein") || q.includes("renin")) {
       return {
         text: "Di dalam lambung (ventrikulus), getah lambung menghasilkan asam klorida (HCl) dengan tingkat keasaman ekstrem (pH 1.5 - 2.0) yang disekresikan oleh sel parietal. Keasaman ini berfungsi membunuh mikroorganisme patogen dan mengaktifkan pepsinogen inaktif menjadi enzim aktif pepsin untuk memotong ikatan peptida protein menjadi pepton.",
         citation: "Modul Biologi Bab 3 Hal. 18 • Materi: Fisiologi Lambung",
@@ -121,156 +129,172 @@ export default function StudentAIPage() {
   };
 
   return (
-    <div className="h-[100dvh] w-full bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
-      {/* 1. FIXED TOP HEADER WITH BACK BUTTON */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-[rgba(28,30,38,0.08)] px-4 py-3 shrink-0 z-30">
-        <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
-          <button
-            onClick={() => {
-              audioSynth.playClickSound();
-              navigate("/student");
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F0EEF6] hover:bg-[#E3DBF8] text-xs font-black text-[#4B3B7A] transition-all cursor-pointer shadow-2xs"
-            title="Kembali ke Beranda"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Beranda</span>
-          </button>
+    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8 overflow-x-hidden">
+      <Navbar />
 
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white flex items-center justify-center shrink-0 shadow-xs">
-              <Bot className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-xs sm:text-sm font-black text-[#010105] truncate">
-                  Asisten Belajar AI
-                </h1>
-                <span className="w-2 h-2 rounded-full bg-[#1D5E4D] animate-pulse shrink-0"></span>
-              </div>
-              <p className="text-[10px] text-[#5A5E70] truncate font-medium">
-                Grounded • Bab 3 Sistem Pencernaan
-              </p>
-            </div>
-          </div>
+      <div className="flex flex-1 min-h-[calc(100vh-4rem)]">
+        {/* Desktop Sidebar */}
+        <StudentSidebar />
 
-          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D] hidden sm:inline-block">
-            Online
-          </span>
-        </div>
-      </header>
-
-      {/* 2. QUICK QUESTION CHIPS BAR */}
-      <div className="bg-[#F8F9FD] border-b border-[rgba(28,30,38,0.05)] px-4 py-2 shrink-0 z-20">
-        <div className="max-w-lg mx-auto flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-          {quickQuestions.map((q, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleSendMessage(q)}
-              className="bg-white hover:bg-[#F0EEF6] border border-[rgba(28,30,38,0.08)] px-3 py-1 rounded-full text-[11px] font-bold text-[#4B3B7A] shrink-0 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
-            >
-              <Sparkles className="w-3 h-3 text-[#4B3B7A]" />
-              <span>{q}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 3. SCROLLABLE CHAT MESSAGES STREAM (ONLY THIS PART SCROLLS) */}
-      <main className="flex-1 overflow-y-auto px-4 py-3 space-y-3 max-w-lg mx-auto w-full">
-        {messages.map((msg) => {
-          const isAI = msg.sender === "ai";
-          return (
-            <div
-              key={msg.id}
-              className={`flex gap-2.5 max-w-[88%] ${
-                isAI ? "self-start" : "self-end ml-auto flex-row-reverse"
-              }`}
-            >
-              {/* Avatar */}
-              <div
-                className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold ${
-                  isAI
-                    ? "bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white shadow-2xs"
-                    : "clay-card clay-lavender text-[#4B3B7A]"
-                }`}
+        {/* Expanded Desktop AI Tutor Main Content */}
+        <main className="flex-1 w-full max-w-5xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-4">
+          {/* Header Card */}
+          <div className="clay-card clay-white p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Link
+                to="/student"
+                onClick={() => audioSynth.playClickSound()}
+                className="clay-pill clay-white p-2 text-[#5A5E70] hover:text-[#010105] md:hidden cursor-pointer"
+                title="Kembali"
               >
-                {isAI ? <Bot className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white flex items-center justify-center shrink-0 shadow-md">
+                <Bot className="w-6 h-6" />
               </div>
 
-              {/* Message Bubble */}
-              <div
-                className={`p-3.5 rounded-2xl text-xs leading-relaxed ${
-                  isAI
-                    ? "bg-white border border-[rgba(28,30,38,0.08)] text-[#1C1E26] shadow-xs"
-                    : "clay-card clay-lavender text-[#2D2152] font-medium"
-                }`}
-              >
-                <p>{msg.text}</p>
-
-                {/* Grounded Source Citation */}
-                {msg.citation && (
-                  <div className="mt-2.5 pt-2 border-t border-[rgba(28,30,38,0.08)] flex items-start gap-1.5 text-[10px] text-[#1D5E4D] font-bold bg-[#EBF6F2] -mx-1.5 -mb-1.5 p-2 rounded-b-xl">
-                    <BookOpen className="w-3 h-3 shrink-0 mt-0.5" />
-                    <span>{msg.citation}</span>
-                  </div>
-                )}
-
-                <span className="block text-[9px] text-[#9195A8] mt-1 text-right">
-                  {msg.timestamp}
-                </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base sm:text-lg font-black text-[#010105]">
+                    Asisten Belajar AI Tutor
+                  </h1>
+                  <span className="clay-pill clay-mint text-[10px] font-extrabold text-[#1D5E4D] px-2.5 py-0.5 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#1D5E4D] animate-pulse"></span>
+                    Online
+                  </span>
+                </div>
+                <p className="text-xs text-[#5A5E70] font-medium">
+                  Grounded 100% pada Modul Biologi Kelas 10-A • Zero Hallucination
+                </p>
               </div>
             </div>
-          );
-        })}
 
-        {/* Typing Animation */}
-        {isTyping && (
-          <div className="flex gap-2.5 max-w-[85%] self-start">
-            <div className="w-7 h-7 rounded-xl bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white flex items-center justify-center shrink-0">
-              <Bot className="w-3.5 h-3.5" />
-            </div>
-            <div className="bg-white border border-[rgba(28,30,38,0.08)] p-3 rounded-2xl shadow-xs flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-[#3B82F6] animate-bounce"></div>
-              <div className="w-2 h-2 rounded-full bg-[#3B82F6] animate-bounce [animation-delay:0.2s]"></div>
-              <div className="w-2 h-2 rounded-full bg-[#3B82F6] animate-bounce [animation-delay:0.4s]"></div>
-              <span className="text-[10px] text-[#9195A8] ml-1 font-semibold">
-                Mencari jawaban di modul guru...
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="clay-pill clay-lavender text-[10px] font-extrabold text-[#4B3B7A] px-3 py-1 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>RAG Guard Aktif</span>
               </span>
             </div>
           </div>
-        )}
 
-        <div ref={messagesEndRef} />
-      </main>
+          {/* Prompt Chips Bar */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#9195A8] shrink-0 hidden sm:inline-block">
+              Pertanyaan Cepat:
+            </span>
+            {quickQuestions.map((q, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSendMessage(q)}
+                className="clay-pill clay-white hover:bg-[#F2EFFC] text-[#4B3B7A] px-3.5 py-1.5 text-xs font-bold shrink-0 transition-transform hover:scale-105 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Sparkles className="w-3 h-3 text-[#4B3B7A]" />
+                <span>{q}</span>
+              </button>
+            ))}
+          </div>
 
-      {/* 4. PINNED BOTTOM INPUT BAR (NO BOTTOM NAV) */}
-      <footer className="bg-white border-t border-[rgba(28,30,38,0.08)] px-4 py-3 shrink-0 z-30">
-        <div className="max-w-lg mx-auto flex items-center gap-2">
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleSendMessage();
-            }}
-            placeholder="Tanyakan materi Bab 3 di sini..."
-            className="flex-1 px-4 py-2.5 text-xs bg-[#F8F9FD] rounded-full border border-[rgba(28,30,38,0.08)] outline-hidden text-[#1C1E26] placeholder-[#9195A8] focus:border-[#3B82F6] focus:bg-white transition-all"
-          />
-          <button
-            onClick={() => handleSendMessage()}
-            disabled={!inputText.trim()}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 ${
-              inputText.trim()
-                ? "bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white shadow-xs hover:scale-105 active:scale-95"
-                : "bg-[#F0EEF6] text-[#9195A8] cursor-not-allowed"
-            }`}
-            title="Kirim Pertanyaan"
-          >
-            <Send className="w-4 h-4 ml-0.5" />
-          </button>
-        </div>
-      </footer>
+          {/* Large Chat Workspace Card */}
+          <div className="clay-card clay-white p-4 sm:p-6 flex-1 min-h-[480px] max-h-[620px] flex flex-col justify-between gap-4 overflow-hidden">
+            {/* Scrollable Message List */}
+            <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+              {messages.map((msg) => {
+                const isAI = msg.sender === "ai";
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex gap-3 max-w-[90%] sm:max-w-[80%] ${
+                      isAI ? "self-start" : "self-end ml-auto flex-row-reverse"
+                    }`}
+                  >
+                    {/* Avatar */}
+                    <div
+                      className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold ${
+                        isAI
+                          ? "bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white shadow-sm"
+                          : "clay-card clay-lavender text-[#4B3B7A]"
+                      }`}
+                    >
+                      {isAI ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                    </div>
+
+                    {/* Bubble */}
+                    <div
+                      className={`p-4 rounded-3xl text-xs sm:text-sm leading-relaxed ${
+                        isAI
+                          ? "clay-card bg-[#FDFCFE] border border-[rgba(28,30,38,0.06)] text-[#1C1E26]"
+                          : "clay-card clay-lavender text-[#2D2152] font-semibold"
+                      }`}
+                    >
+                      <p>{msg.text}</p>
+
+                      {/* Citation Pill */}
+                      {msg.citation && (
+                        <div className="mt-3 pt-2.5 border-t border-[rgba(28,30,38,0.08)] flex items-start gap-2 text-[11px] text-[#1D5E4D] font-bold bg-[#EBF6F2] -mx-2 -mb-2 p-2.5 rounded-b-2xl">
+                          <BookOpen className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                          <span>{msg.citation}</span>
+                        </div>
+                      )}
+
+                      <span className="block text-[10px] text-[#9195A8] mt-1.5 text-right font-medium">
+                        {msg.timestamp}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Typing Animation */}
+              {isTyping && (
+                <div className="flex gap-3 max-w-[80%] self-start">
+                  <div className="w-9 h-9 rounded-2xl bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <div className="clay-card clay-white p-3.5 rounded-3xl flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-[#3B82F6] animate-bounce"></div>
+                    <div className="w-2 h-2 rounded-full bg-[#3B82F6] animate-bounce [animation-delay:0.2s]"></div>
+                    <div className="w-2 h-2 rounded-full bg-[#3B82F6] animate-bounce [animation-delay:0.4s]"></div>
+                    <span className="text-xs text-[#9195A8] ml-1.5 font-semibold">
+                      Mencari jawaban di modul guru...
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Bar Inside Card */}
+            <div className="pt-3 border-t border-black/5 flex items-center gap-2">
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSendMessage();
+                }}
+                placeholder="Tanyakan konsep Bab 3, enzim, atau materi yang sulit dipahami..."
+                className="flex-1 px-4 py-3 text-xs sm:text-sm bg-[#F8F9FD] rounded-2xl border border-[rgba(28,30,38,0.08)] outline-hidden text-[#1C1E26] placeholder-[#9195A8] focus:border-[#3B82F6] focus:bg-white transition-all shadow-inner"
+              />
+              <button
+                onClick={() => handleSendMessage()}
+                disabled={!inputText.trim()}
+                className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                  inputText.trim()
+                    ? "clay-btn clay-btn-dark text-white shadow-md hover:scale-105 active:scale-95"
+                    : "bg-[#F0EEF6] text-[#9195A8] cursor-not-allowed"
+                }`}
+                title="Kirim Pertanyaan"
+              >
+                <Send className="w-4 h-4 ml-0.5" />
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      <BottomNav />
     </div>
   );
 }

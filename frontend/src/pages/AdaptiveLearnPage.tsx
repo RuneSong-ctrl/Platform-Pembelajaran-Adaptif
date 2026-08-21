@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
+import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
 import confetti from "canvas-confetti";
 import {
@@ -124,10 +125,13 @@ export default function AdaptiveLearnPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] pb-32 overflow-x-hidden">
+    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8 overflow-x-hidden">
       <Navbar />
 
-      <main className="w-full max-w-lg mx-auto px-4 sm:px-6 pt-3 sm:pt-4 flex flex-col gap-4">
+      <div className="flex flex-1">
+        <StudentSidebar />
+
+        <main className="flex-1 w-full max-w-4xl lg:max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-4 sm:gap-6">
         {/* Top Back Navigation */}
         <div className="flex items-center justify-between">
           <Link
@@ -589,7 +593,8 @@ export default function AdaptiveLearnPage() {
             </button>
           </div>
         )}
-      </main>
+        </main>
+      </div>
 
       <BottomNav />
     </div>

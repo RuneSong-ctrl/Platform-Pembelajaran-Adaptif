@@ -14,7 +14,7 @@ export default function BottomNav() {
   const pathname = location.pathname;
 
   return (
-    <div className="fixed bottom-5 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
+    <div className="fixed bottom-5 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none md:hidden">
       <nav className="pointer-events-auto bg-white/95 backdrop-blur-md rounded-full px-4 sm:px-6 py-2 flex items-center justify-between gap-2 sm:gap-4 shadow-[0_12px_32px_rgba(28,30,38,0.14)] border border-[rgba(28,30,38,0.08)] max-w-sm sm:max-w-md w-full relative">
         {/* Tab 1: Home */}
         <Link
