@@ -3,12 +3,12 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const cardVariants = cva(
-  "rounded-[28px] transition-all select-none",
+  "rounded-[28px] transition-all select-none relative",
   {
     variants: {
       variant: {
         default:
-          "bg-white border border-[rgba(28,30,38,0.08)] shadow-[0_4px_16px_rgba(28,30,38,0.04)] hover:shadow-[0_8px_24px_rgba(28,30,38,0.06)]",
+          "bg-white border border-[rgba(28,30,38,0.08)] shadow-[0_4px_16px_rgba(28,30,38,0.04)]",
         mint:
           "bg-[#D1EBE1] border border-[rgba(29,94,77,0.12)] text-[#1D5E4D] shadow-[0_4px_16px_rgba(29,94,77,0.04)]",
         lavender:
@@ -23,7 +23,9 @@ const cardVariants = cva(
           "bg-[#F0EEF6] border border-[rgba(28,30,38,0.06)] text-[#1C1E26]",
         dark:
           "bg-[#1C1E26] border border-[#2A2D39] text-white shadow-[0_6px_20px_rgba(0,0,0,0.12)]",
-        
+        outline:
+          "bg-white border-2 border-[rgba(28,30,38,0.1)] text-[#1C1E26]",
+
         /* Claymorphic 3D Variants */
         clayWhite:
           "clay-card text-[#1C1E26]",
@@ -40,6 +42,12 @@ const cardVariants = cva(
         clayDark:
           "clay-card clay-dark",
       },
+      interactive: {
+        true: "hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(28,30,38,0.08)] cursor-pointer",
+      },
+      clickable: {
+        true: "active:translate-y-0.5 active:scale-[0.99] cursor-pointer",
+      },
     },
     defaultVariants: {
       variant: "default",
@@ -52,10 +60,10 @@ export interface CardProps
     VariantProps<typeof cardVariants> {}
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant, ...props }, ref) => (
+  ({ className, variant, interactive, clickable, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn(cardVariants({ variant }), className)}
+      className={cn(cardVariants({ variant, interactive, clickable }), className)}
       {...props}
     />
   )
@@ -121,4 +129,41 @@ const CardFooter = React.forwardRef<
 ));
 CardFooter.displayName = "CardFooter";
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
+const CardBadge = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "absolute top-4 right-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold",
+      className
+    )}
+    {...props}
+  />
+));
+CardBadge.displayName = "CardBadge";
+
+const CardAction = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("mt-4 pt-4 border-t border-[rgba(28,30,38,0.06)] flex items-center justify-between", className)}
+    {...props}
+  />
+));
+CardAction.displayName = "CardAction";
+
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardBadge,
+  CardAction,
+  cardVariants,
+};

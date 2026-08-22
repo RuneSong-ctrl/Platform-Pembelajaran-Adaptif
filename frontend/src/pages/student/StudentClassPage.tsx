@@ -82,7 +82,7 @@ export default function StudentClassPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8 overflow-x-hidden">
+    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8">
       <Navbar />
 
       <div className="flex flex-1">

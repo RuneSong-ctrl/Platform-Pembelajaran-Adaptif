@@ -22,6 +22,8 @@ const buttonVariants = cva(
           "bg-[#D2E5FA] text-[#21518A] border border-[rgba(33,81,138,0.15)] hover:bg-[#C2DCF8] active:translate-y-[1px] shadow-[0_4px_12px_rgba(33,81,138,0.06)]",
         coral:
           "bg-[#FCD9D7] text-[#852C28] border border-[rgba(133,44,40,0.15)] hover:bg-[#FACBC9] active:translate-y-[1px] shadow-[0_4px_12px_rgba(133,44,40,0.06)]",
+        destructive:
+          "bg-[#ba1a1a] text-white hover:bg-[#93000a] active:translate-y-[1px] shadow-[0_4px_12px_rgba(186,26,26,0.15)]",
         outline:
           "border border-[rgba(28,30,38,0.12)] bg-white text-[#1C1E26] hover:bg-[#F7F6FA] active:translate-y-[1px] shadow-[0_2px_8px_rgba(28,30,38,0.03)]",
         ghost:
@@ -30,9 +32,11 @@ const buttonVariants = cva(
           "text-[#1C1E26] underline-offset-4 hover:underline",
         circleAction:
           "w-11 h-11 rounded-full bg-white text-[#1C1E26] border border-[rgba(28,30,38,0.08)] shadow-[0_4px_12px_rgba(28,30,38,0.04)] hover:-translate-y-0.5 hover:shadow-[0_8px_18px_rgba(28,30,38,0.08)] active:translate-y-0",
-        
+
         /* Claymorphic 3D Buttons */
         clayPrimary:
+          "clay-btn clay-btn-dark",
+        clayDark:
           "clay-btn clay-btn-dark",
         clayWhite:
           "clay-btn clay-btn-white",
@@ -48,10 +52,15 @@ const buttonVariants = cva(
           "clay-btn clay-coral hover:brightness-95",
       },
       size: {
-        default: "h-11 px-5 py-2.5",
+        xs: "h-7 rounded-lg px-2.5 text-[11px] font-semibold",
         sm: "h-9 rounded-xl px-3.5 text-xs font-semibold",
+        default: "h-11 px-5 py-2.5",
         lg: "h-13 rounded-2xl px-7 text-base font-extrabold",
         icon: "h-11 w-11 rounded-full p-0",
+        iconSm: "h-8 w-8 rounded-full p-0 text-xs",
+      },
+      fullWidth: {
+        true: "w-full",
       },
     },
     defaultVariants: {
@@ -65,17 +74,71 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  isLoading?: boolean;
+  loadingText?: string;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  (
+    {
+      className,
+      variant,
+      size,
+      fullWidth,
+      asChild = false,
+      isLoading = false,
+      loadingText,
+      leftIcon,
+      rightIcon,
+      children,
+      disabled,
+      ...props
+    },
+    ref
+  ) => {
     const Comp = asChild ? Slot : "button";
+
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant, size, fullWidth, className }))}
         ref={ref}
+        disabled={disabled || isLoading}
         {...props}
-      />
+      >
+        {isLoading ? (
+          <>
+            <svg
+              className="h-4 w-4 animate-spin shrink-0 text-current"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+            <span>{loadingText || children}</span>
+          </>
+        ) : (
+          <>
+            {leftIcon && <span className="inline-flex shrink-0">{leftIcon}</span>}
+            {children}
+            {rightIcon && <span className="inline-flex shrink-0">{rightIcon}</span>}
+          </>
+        )}
+      </Comp>
     );
   }
 );

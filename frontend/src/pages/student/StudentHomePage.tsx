@@ -135,7 +135,7 @@ export default function StudentHomePage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8 overflow-x-hidden">
+    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8">
       <Navbar />
 
       <div className="flex flex-1">
@@ -143,7 +143,7 @@ export default function StudentHomePage() {
         <StudentSidebar />
 
         {/* Responsive auto-fit main stream */}
-        <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden">
+        <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
             {/* LEFT MAIN STREAM (7 cols on lg) */}
             <div className="lg:col-span-7 flex flex-col gap-4 sm:gap-5">
