@@ -1,0 +1,10 @@
+export { default as StudentHomePage } from "./StudentHomePage";
+export { default as AdaptiveLearnPage } from "./AdaptiveLearnPage";
+export { default as AdaptiveQuizPage } from "./AdaptiveQuizPage";
+export { default as AssessmentPage } from "./AssessmentPage";
+export { default as StudentClassPage } from "./StudentClassPage";
+export { default as StudentAIPage } from "./StudentAIPage";
+export { default as StudentProfilePage } from "./StudentProfilePage";
+export { default as LearningPathwayStatusPage } from "./LearningPathwayStatusPage";
+export { default as StudentSchedulePage } from "./StudentSchedulePage";
+export { default as StudentPassportPage } from "./StudentPassportPage";

@@ -1,25 +1,27 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 
-// Pages
-import LandingPage from "./pages/LandingPage";
-import StudentHomePage from "./pages/StudentHomePage";
-import AdaptiveLearnPage from "./pages/AdaptiveLearnPage";
-import StudentClassPage from "./pages/StudentClassPage";
-import StudentAIPage from "./pages/StudentAIPage";
-import StudentProfilePage from "./pages/StudentProfilePage";
-import LearningPathwayStatusPage from "./pages/LearningPathwayStatusPage";
-import StudentSchedulePage from "./pages/StudentSchedulePage";
-import AssessmentPage from "./pages/AssessmentPage";
-import AdaptiveQuizPage from "./pages/AdaptiveQuizPage";
-import StudentPassportPage from "./pages/StudentPassportPage";
-import TeacherDashboardPage from "./pages/TeacherDashboardPage";
-import GradebookPage from "./pages/GradebookPage";
-import QuizStudioPage from "./pages/QuizStudioPage";
-import TeacherRAGPage from "./pages/TeacherRAGPage";
-import ParentPortalPage from "./pages/ParentPortalPage";
-import PublicVerifyPage from "./pages/PublicVerifyPage";
-import NotFoundPage from "./pages/NotFoundPage";
+// Modular Pages by Role
+import {
+  LandingPage,
+  PublicVerifyPage,
+  NotFoundPage,
+  StudentHomePage,
+  AdaptiveLearnPage,
+  StudentClassPage,
+  StudentAIPage,
+  StudentProfilePage,
+  LearningPathwayStatusPage,
+  StudentSchedulePage,
+  AssessmentPage,
+  AdaptiveQuizPage,
+  StudentPassportPage,
+  TeacherDashboardPage,
+  GradebookPage,
+  QuizStudioPage,
+  TeacherRAGPage,
+  ParentPortalPage,
+} from "@/pages";
 import PWAInstallPrompt from "./components/common/PWAInstallPrompt";
 
 export default function App() {
