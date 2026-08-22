@@ -74,6 +74,34 @@ export default function StudentHomePage() {
           HeroIcon: Headphones,
           modalityLabel: "Auditori",
           btnColor: "text-[#3C2D68]",
+          topBgGradient: "from-[#C4B2F5] via-[#E3DBF8]/75 via-45% to-transparent",
+          calendarCard: {
+            cardBg: "bg-[#EFEAFB]",
+            cardBorder: "border-[#D8CDF8]/80",
+            shadow: "shadow-[0_12px_28px_rgba(75,59,122,0.08),inset_2px_2px_4px_#fff,inset_-2px_-2px_5px_rgba(75,59,122,0.03)]",
+            textColor: "text-[#2D2152]",
+            subTextColor: "text-[#4B3B7A]",
+            iconBox: "bg-white text-[#4B3B7A]",
+            targetBadge: "clay-pill bg-white text-[#2D2152]",
+            chevronBtn: "bg-white/70 hover:bg-white text-[#4B3B7A]",
+            completedPill: "bg-white/60 hover:bg-white/80 text-[#4B3B7A]",
+            completedDayLabel: "text-[#4B3B7A]",
+            completedDateLabel: "text-[#2D2152]",
+            checkBadge: "bg-[#4B3B7A] text-white",
+            activePill: "bg-white text-[#2D2152] shadow-[0_8px_20px_rgba(75,59,122,0.18),inset_1px_1px_2px_#fff]",
+            activeDayLabel: "text-[#2D2152]",
+            activeDateLabel: "text-[#2D2152]",
+            activeDot: "bg-[#4B3B7A]",
+            upcomingPill: "bg-white/35 hover:bg-white/50 text-[#A595CE]",
+            upcomingDayLabel: "text-[#A595CE]",
+            upcomingDateLabel: "text-[#A595CE]",
+            upcomingDot: "bg-[#D1C6EB]",
+            progressBar: "bg-[#4B3B7A]",
+            innerCardBg: "bg-white/90 border border-white",
+            missionTag1: "bg-[#E3DBF8] text-[#4B3B7A]",
+            missionTag2: "bg-[#D1EBE1] text-[#1D5E4D]",
+            missionTitle: "text-[#2D2152]",
+          },
         };
       case "KINESTETIK":
         return {
@@ -85,6 +113,34 @@ export default function StudentHomePage() {
           HeroIcon: FlaskConical,
           modalityLabel: "Kinestetik",
           btnColor: "text-[#694503]",
+          topBgGradient: "from-[#FCD678] via-[#FEE7B3]/75 via-45% to-transparent",
+          calendarCard: {
+            cardBg: "bg-[#FFF4DC]",
+            cardBorder: "border-[#FCE0A2]/80",
+            shadow: "shadow-[0_12px_28px_rgba(120,83,8,0.08),inset_2px_2px_4px_#fff,inset_-2px_-2px_5px_rgba(120,83,8,0.03)]",
+            textColor: "text-[#4A3205]",
+            subTextColor: "text-[#785308]",
+            iconBox: "bg-white text-[#785308]",
+            targetBadge: "clay-pill bg-white text-[#4A3205]",
+            chevronBtn: "bg-white/70 hover:bg-white text-[#785308]",
+            completedPill: "bg-white/60 hover:bg-white/80 text-[#785308]",
+            completedDayLabel: "text-[#785308]",
+            completedDateLabel: "text-[#4A3205]",
+            checkBadge: "bg-[#785308] text-white",
+            activePill: "bg-white text-[#4A3205] shadow-[0_8px_20px_rgba(120,83,8,0.18),inset_1px_1px_2px_#fff]",
+            activeDayLabel: "text-[#4A3205]",
+            activeDateLabel: "text-[#4A3205]",
+            activeDot: "bg-[#785308]",
+            upcomingPill: "bg-white/35 hover:bg-white/50 text-[#C9A96E]",
+            upcomingDayLabel: "text-[#C9A96E]",
+            upcomingDateLabel: "text-[#C9A96E]",
+            upcomingDot: "bg-[#EAD4AB]",
+            progressBar: "bg-[#785308]",
+            innerCardBg: "bg-white/90 border border-white",
+            missionTag1: "bg-[#FEE7B3] text-[#785308]",
+            missionTag2: "bg-[#D1EBE1] text-[#1D5E4D]",
+            missionTitle: "text-[#4A3205]",
+          },
         };
       case "VISUAL":
       default:
@@ -97,12 +153,43 @@ export default function StudentHomePage() {
           HeroIcon: Eye,
           modalityLabel: "Visual",
           btnColor: "text-[#124B3D]",
+          topBgGradient: "from-[#9DE1CA] via-[#D1EBE1]/75 via-45% to-transparent",
+          calendarCard: {
+            cardBg: "bg-[#E6F5EE]",
+            cardBorder: "border-[#C7EAD9]/80",
+            shadow: "shadow-[0_12px_28px_rgba(29,94,77,0.08),inset_2px_2px_4px_#fff,inset_-2px_-2px_5px_rgba(29,94,77,0.03)]",
+            textColor: "text-[#0E3D31]",
+            subTextColor: "text-[#1D5E4D]",
+            iconBox: "bg-white text-[#1D5E4D]",
+            targetBadge: "clay-pill bg-white text-[#0E3D31]",
+            chevronBtn: "bg-white/70 hover:bg-white text-[#1D5E4D]",
+            completedPill: "bg-white/60 hover:bg-white/80 text-[#1D5E4D]",
+            completedDayLabel: "text-[#1D5E4D]",
+            completedDateLabel: "text-[#0E3D31]",
+            checkBadge: "bg-[#1D5E4D] text-white",
+            activePill: "bg-white text-[#0E3D31] shadow-[0_8px_20px_rgba(29,94,77,0.18),inset_1px_1px_2px_#fff]",
+            activeDayLabel: "text-[#0E3D31]",
+            activeDateLabel: "text-[#0E3D31]",
+            activeDot: "bg-[#1D5E4D]",
+            upcomingPill: "bg-white/35 hover:bg-white/50 text-[#88B8A9]",
+            upcomingDayLabel: "text-[#88B8A9]",
+            upcomingDateLabel: "text-[#88B8A9]",
+            upcomingDot: "bg-[#B3DCD0]",
+            progressBar: "bg-[#1D5E4D]",
+            innerCardBg: "bg-white/90 border border-white",
+            missionTag1: "bg-[#D1EBE1] text-[#1D5E4D]",
+            missionTag2: "bg-[#E3DBF8] text-[#4B3B7A]",
+            missionTitle: "text-[#0E3D31]",
+          },
         };
+
     }
   };
 
   const styleConfig = getStyleConfig();
   const HeroIconComponent = styleConfig.HeroIcon;
+  const cal = styleConfig.calendarCard;
+
 
   // Audio Speech Synthesis Handler
   const handleToggleSpeak = () => {
@@ -135,12 +222,22 @@ export default function StudentHomePage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8">
-      <Navbar />
+    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8 relative overflow-hidden">
+      {/* Vibrant Ambient Top Gradient per Modality */}
+      <div
+        className={`absolute top-0 left-0 right-0 h-[460px] sm:h-[520px] bg-gradient-to-b ${styleConfig.topBgGradient} pointer-events-none transition-all duration-500`}
+        aria-hidden="true"
+      />
 
-      <div className="flex flex-1">
+
+      <div className="relative z-10">
+        <Navbar />
+      </div>
+
+      <div className="flex flex-1 relative z-10">
         {/* Desktop Student Sidebar */}
         <StudentSidebar />
+
 
         {/* Responsive auto-fit main stream */}
         <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -214,35 +311,41 @@ export default function StudentHomePage() {
               </div>
             </section>
 
-            {/* 2. UNIFIED WEEKLY SCHEDULE & TARGET HUB (Claymorphic) */}
-            <section className="clay-card clay-white p-4 sm:p-5 space-y-3.5">
+            {/* 2. UNIFIED WEEKLY SCHEDULE & TARGET HUB (Harmonious Modality Theme) */}
+            <section className={`clay-card ${cal.cardBg} ${cal.textColor} p-4 sm:p-5 rounded-[28px] border ${cal.cardBorder} ${cal.shadow} space-y-3.5`}>
+              {/* Header Bar */}
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="clay-card clay-lavender w-8 h-8 rounded-xl flex items-center justify-center text-[#4B3B7A] shrink-0">
-                    <Calendar className="w-4 h-4" />
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl ${cal.iconBox} flex items-center justify-center shadow-xs shrink-0`}>
+                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-xs sm:text-sm font-black text-[#010105] truncate">
-                      Pekan Belajar &amp; Komitmen Mandiri
-                    </h2>
-                    <span className="text-[10px] text-[#5A5E70] block">
+                    <h2 className={`text-xs sm:text-sm font-black ${cal.textColor} truncate tracking-tight`}>
                       Agustus 2026 • Minggu 3
-                    </span>
+                    </h2>
+                    <p className={`text-[10px] sm:text-[11px] ${cal.subTextColor} font-bold truncate`}>
+                      2 dari 3 Misi Adaptif Selesai Hari Ini
+                    </p>
                   </div>
                 </div>
 
-                <Link
-                  to="/student/schedule"
-                  onClick={() => audioSynth.playClickSound()}
-                  className="clay-pill clay-lavender text-[10px] font-extrabold text-[#4B3B7A] px-3 py-1.5 flex items-center gap-1 transition-transform hover:scale-105 shrink-0 whitespace-nowrap"
-                >
-                  <span>Kelola Penuh</span>
-                  <ChevronRight className="w-3 h-3 shrink-0" />
-                </Link>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className={`${cal.targetBadge} text-[11px] sm:text-xs font-black px-3 py-1 shadow-2xs`}>
+                    67% Target
+                  </span>
+                  <Link
+                    to="/student/schedule"
+                    onClick={() => audioSynth.playClickSound()}
+                    className={`p-1.5 rounded-xl ${cal.chevronBtn} transition-transform hover:scale-105 shrink-0 shadow-2xs`}
+                    title="Kelola Jadwal Penuh"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
               </div>
 
-              {/* 7-Day Clay Selector */}
-              <div className="grid grid-cols-7 gap-1">
+              {/* 7-Day Clay Selector (SEN 17 - MIN 23) */}
+              <div className="grid grid-cols-7 gap-1 sm:gap-1.5 items-end">
                 {daysOfWeek.map((item, idx) => {
                   const isSelected = selectedDayIdx === idx;
                   return (
@@ -252,23 +355,46 @@ export default function StudentHomePage() {
                         audioSynth.playClickSound();
                         setSelectedDayIdx(idx);
                       }}
-                      className={`flex flex-col items-center justify-center py-2 rounded-2xl transition-all cursor-pointer ${
+                      className={`flex flex-col items-center justify-center transition-all cursor-pointer ${
                         isSelected
-                          ? "clay-btn clay-btn-dark text-white font-bold scale-105"
+                          ? `${cal.activePill} rounded-2xl py-3 sm:py-3.5 scale-105 z-10 -my-1`
                           : item.completed
-                          ? "clay-pill clay-mint text-[#1D5E4D] font-semibold"
-                          : "clay-pill bg-[#F8F9FD] text-[#9195A8] hover:bg-[#F2EFFC]"
+                          ? `${cal.completedPill} rounded-2xl py-2 sm:py-2.5 shadow-2xs`
+                          : `${cal.upcomingPill} rounded-2xl py-2 sm:py-2.5`
                       }`}
                     >
-                      <span className="text-[9px] uppercase tracking-wider">{item.day}</span>
-                      <span className="text-xs font-black mt-0.5">{item.date}</span>
-                      <div className="mt-1">
+                      <span
+                        className={`text-[9px] sm:text-[10px] uppercase font-black tracking-wide ${
+                          isSelected
+                            ? cal.activeDayLabel
+                            : item.completed
+                            ? cal.completedDayLabel
+                            : cal.upcomingDayLabel
+                        }`}
+                      >
+                        {item.day}
+                      </span>
+                      <span
+                        className={`text-xs sm:text-sm font-black mt-0.5 ${
+                          isSelected
+                            ? `${cal.activeDateLabel} text-sm sm:text-base`
+                            : item.completed
+                            ? cal.completedDateLabel
+                            : cal.upcomingDateLabel
+                        }`}
+                      >
+                        {item.date}
+                      </span>
+
+                      <div className="mt-1 flex items-center justify-center min-h-[16px]">
                         {item.completed ? (
-                          <Check className="w-2.5 h-2.5 text-[#1D5E4D] stroke-[3]" />
-                        ) : item.isToday ? (
-                          <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-[#D1EBE1]" : "bg-[#1C1E26]"}`}></div>
+                          <div className={`w-4 h-4 rounded-full ${cal.checkBadge} flex items-center justify-center shadow-2xs`}>
+                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                          </div>
+                        ) : isSelected ? (
+                          <div className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${cal.activeDot} shadow-xs`}></div>
                         ) : (
-                          <div className="w-1 h-1 rounded-full bg-[#C7C6CB]"></div>
+                          <div className={`w-1.5 h-1.5 rounded-full ${cal.upcomingDot}`}></div>
                         )}
                       </div>
                     </button>
@@ -276,8 +402,13 @@ export default function StudentHomePage() {
                 })}
               </div>
 
+              {/* Bottom Target Progress Bar */}
+              <div className="w-full bg-white/60 h-2.5 rounded-full p-0.5 shadow-inner mt-1">
+                <div className={`${cal.progressBar} h-full rounded-full w-[67%] transition-all duration-500 shadow-xs`} />
+              </div>
+
               {/* Active Selected Day Mission in Clay Card */}
-              <div className="clay-card p-3.5 bg-[#FCFBFE] border border-[#E3DBF8]/70 flex items-center justify-between gap-3">
+              <div className={`clay-card p-3 sm:p-3.5 ${cal.innerCardBg} flex items-center justify-between gap-3 shadow-xs rounded-2xl`}>
                 {activeDaySchedule ? (
                   <div className="flex items-center gap-3 min-w-0">
                     <button
@@ -295,14 +426,20 @@ export default function StudentHomePage() {
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="clay-pill clay-lavender text-[9px] font-extrabold px-2 py-0.2 text-[#4B3B7A]">
+                        <span className={`clay-pill ${cal.missionTag1} text-[9px] font-extrabold px-2 py-0.5`}>
                           {activeDaySchedule.day} • {activeDaySchedule.time}
                         </span>
-                        <span className="clay-pill clay-mint text-[9px] font-bold px-2 py-0.2 text-[#1D5E4D]">
+                        <span className={`clay-pill ${cal.missionTag2} text-[9px] font-bold px-2 py-0.5`}>
                           {activeDaySchedule.format}
                         </span>
                       </div>
-                      <h4 className={`text-xs font-bold truncate ${activeDaySchedule.completed ? "line-through text-[#9195A8]" : "text-[#010105]"}`}>
+                      <h4
+                        className={`text-xs font-bold truncate ${
+                          activeDaySchedule.completed
+                            ? "line-through text-[#9195A8]"
+                            : cal.missionTitle
+                        }`}
+                      >
                         {activeDaySchedule.title}
                       </h4>
                     </div>
@@ -310,10 +447,10 @@ export default function StudentHomePage() {
                 ) : (
                   <div className="flex items-center justify-between w-full">
                     <div className="text-xs">
-                      <span className="font-bold text-[#010105] block">
+                      <span className={`font-bold ${cal.textColor} block`}>
                         {selectedDayObj.fullDay}, {selectedDayObj.date} Agustus
                       </span>
-                      <span className="text-[10px] text-[#9195A8]">
+                      <span className={`text-[10px] ${cal.subTextColor}`}>
                         Belajar mandiri fleksibel (Eksplorasi modul bebas)
                       </span>
                     </div>
@@ -322,7 +459,7 @@ export default function StudentHomePage() {
                         audioSynth.playClickSound();
                         navigate("/student/schedule");
                       }}
-                      className="clay-btn clay-btn-white px-3 py-1 text-[#4B3B7A] text-[10px] font-extrabold flex items-center gap-1 cursor-pointer shrink-0"
+                      className={`clay-pill bg-white ${cal.subTextColor} text-[10px] font-black px-2.5 py-1 flex items-center gap-1 shadow-2xs hover:scale-105 transition-transform shrink-0 cursor-pointer`}
                     >
                       <Plus className="w-3 h-3" />
                       <span>Atur</span>
@@ -331,6 +468,8 @@ export default function StudentHomePage() {
                 )}
               </div>
             </section>
+
+
 
             {/* 3. MODALITY-SPECIFIC CONTENT (Tactile Clay Cards) */}
             {style === "VISUAL" && (

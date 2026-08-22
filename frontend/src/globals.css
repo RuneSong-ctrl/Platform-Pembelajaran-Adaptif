@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@heroui/styles";
 
 :root {
   /* Canvas & Surfaces */
@@ -420,8 +421,15 @@ body {
 
 /* Pulse animation */
 @keyframes soft-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.04); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.04);
+  }
 }
 
 .animate-soft-pulse {

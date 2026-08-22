@@ -25,7 +25,9 @@ import {
   GraduationCap,
   BookOpen,
   Layers,
+  X,
 } from "@/components/ui/icons";
+
 
 export default function StudentClassPage() {
   const navigate = useNavigate();
@@ -317,118 +319,150 @@ export default function StudentClassPage() {
       </main>
     </div>
 
-      {/* JOIN CLASS MODAL */}
-      <Dialog open={joinModalOpen} onOpenChange={setJoinModalOpen}>
-        <DialogContent className="max-w-sm p-6 bg-white rounded-3xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-black text-[#010105]">
-              Gabung Kelas Baru
-            </DialogTitle>
-            <DialogDescription className="text-xs text-[#5A5E70]">
-              Masukkan 6-digit kode kelas dari guru (misal: UDU802 atau MAT714).
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 my-3">
-            <div>
-              <Input
-                placeholder="CONTOH: UDU802"
-                value={joinCodeInput}
-                onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
-                className="font-mono text-center tracking-widest text-base font-black uppercase rounded-2xl h-11"
-                maxLength={6}
-              />
-            </div>
-            {joinMessage && (
-              <p
-                className={`text-xs font-bold text-center ${
-                  joinMessage.success ? "text-[#1D5E4D]" : "text-[#852C28]"
-                }`}
-              >
-                {joinMessage.message}
-              </p>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-2 pt-1">
+      {/* INSTANT CLAY JOIN CLASS MODAL */}
+      {joinModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/25 flex items-center justify-center p-4"
+          onClick={() => setJoinModalOpen(false)}
+        >
+          <div
+            className="clay-card bg-white rounded-[26px] p-5 sm:p-6 border border-white max-w-xs sm:max-w-sm w-full shadow-[0_12px_28px_rgba(28,30,38,0.08),inset_2px_2px_4px_#fff,inset_-2px_-2px_5px_rgba(0,0,0,0.03)] flex flex-col gap-3 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => setJoinModalOpen(false)}
-              className="clay-btn clay-btn-white px-4 py-2 rounded-xl text-xs font-bold text-[#5A5E70] cursor-pointer"
+              className="absolute right-4 top-4 rounded-xl p-1.5 text-[#5A5E70] clay-pill bg-[#F0EEF6] hover:bg-[#E3DBF8] transition-all cursor-pointer"
             >
-              Batal
+              <X className="h-4 w-4" />
             </button>
-            <button
-              onClick={handleJoin}
-              className="clay-btn clay-btn-dark px-4 py-2 rounded-xl text-xs font-bold text-white cursor-pointer"
-            >
-              Gabung Sekarang
-            </button>
+
+            <div>
+              <h3 className="text-base font-black text-[#1C1E26]">
+                Gabung Kelas Baru
+              </h3>
+              <p className="text-xs text-[#5A5E70] mt-0.5">
+                Masukkan 6-digit kode kelas dari guru (misal: UDU802 atau MAT714).
+              </p>
+            </div>
+
+            <div className="space-y-2.5 my-1">
+              <div className="p-1 rounded-2xl bg-[#F7F6FA] border border-white shadow-[inset_1.5px_1.5px_3px_rgba(0,0,0,0.04)]">
+                <input
+                  type="text"
+                  placeholder="CONTOH: UDU802"
+                  value={joinCodeInput}
+                  onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
+                  className="w-full font-mono text-center tracking-widest text-base font-black uppercase rounded-xl h-11 bg-transparent border-0 outline-none text-[#1C1E26]"
+                  maxLength={6}
+                  autoFocus
+                />
+              </div>
+              {joinMessage && (
+                <p
+                  className={`text-xs font-bold text-center ${
+                    joinMessage.success ? "text-[#1D5E4D]" : "text-[#852C28]"
+                  }`}
+                >
+                  {joinMessage.message}
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-black/5">
+              <button
+                onClick={() => setJoinModalOpen(false)}
+                className="clay-pill bg-[#F0EEF6] hover:bg-[#E3DBF8] text-[#4B3B7A] px-4 py-2 text-xs font-extrabold cursor-pointer transition-all active:scale-95"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleJoin}
+                className="clay-btn clay-btn-dark px-4 py-2 text-xs font-extrabold text-white cursor-pointer shadow-sm active:scale-95"
+              >
+                Gabung Sekarang
+              </button>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
-      {/* SUBMIT ASSIGNMENT MODAL */}
-      <Dialog open={submitModalOpen} onOpenChange={setSubmitModalOpen}>
-        <DialogContent className="max-w-md p-6 bg-white rounded-3xl">
-          {activeTask && (
-            <div className="space-y-4">
-              <DialogHeader>
-                <DialogTitle className="text-base font-black text-[#010105]">
-                  Kumpulkan: {activeTask.title}
-                </DialogTitle>
-                <DialogDescription className="text-xs text-[#5A5E70]">
-                  {activeTask.contentJson?.instructions}
-                </DialogDescription>
-              </DialogHeader>
+      {/* INSTANT CLAY SUBMIT ASSIGNMENT MODAL */}
+      {submitModalOpen && activeTask && (
+        <div
+          className="fixed inset-0 z-50 bg-black/25 flex items-center justify-center p-4"
+          onClick={() => setSubmitModalOpen(false)}
+        >
+          <div
+            className="clay-card bg-white rounded-[26px] p-5 sm:p-6 border border-white max-w-sm sm:max-w-md w-full shadow-[0_12px_28px_rgba(28,30,38,0.08),inset_2px_2px_4px_#fff,inset_-2px_-2px_5px_rgba(0,0,0,0.03)] flex flex-col gap-3.5 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setSubmitModalOpen(false)}
+              className="absolute right-4 top-4 rounded-xl p-1.5 text-[#5A5E70] clay-pill bg-[#F0EEF6] hover:bg-[#E3DBF8] transition-all cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
 
-              <div>
-                <label className="block text-xs font-bold text-[#010105] mb-1">
-                  Teks Jawaban / Analisis Mandiri
-                </label>
+            <div>
+              <h3 className="text-base font-black text-[#1C1E26]">
+                Kumpulkan: {activeTask.title}
+              </h3>
+              <p className="text-xs text-[#5A5E70] mt-0.5">
+                {activeTask.contentJson?.instructions}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#1C1E26] mb-1">
+                Teks Jawaban / Analisis Mandiri
+              </label>
+              <div className="p-1 rounded-2xl bg-[#F7F6FA] border border-white shadow-[inset_1.5px_1.5px_3px_rgba(0,0,0,0.04)]">
                 <textarea
                   rows={4}
                   placeholder="Ketik uraian jawaban tugasmu di sini..."
                   value={submissionText}
                   onChange={(e) => setSubmissionText(e.target.value)}
-                  className="w-full p-3 rounded-2xl border border-[rgba(28,30,38,0.1)] bg-[#F8F9FD] text-xs font-medium text-[#010105] focus:outline-none focus:ring-2 focus:ring-[#010105] placeholder:text-[#9195A8]"
+                  className="w-full p-2.5 bg-transparent border-0 outline-none text-xs font-medium text-[#1C1E26] placeholder:text-[#9195A8] resize-none"
+                  autoFocus
                 />
               </div>
-
-              <div className="p-3 rounded-2xl bg-[#F0EEF6] flex items-center justify-between text-xs font-medium text-[#5A5E70]">
-                <span className="flex items-center gap-1.5 text-[11px]">
-                  <UploadCloud className="w-3.5 h-3.5 text-[#010105]" />
-                  Lampiran Catatan
-                </span>
-                <span className="text-[10px] font-mono font-bold bg-white px-2 py-0.5 rounded-md">
-                  Tugas_Catatan_Mandiri.pdf
-                </span>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-1">
-                <button
-                  onClick={() => setSubmitModalOpen(false)}
-                  className="clay-btn clay-btn-white px-4 py-2 rounded-xl text-xs font-bold text-[#5A5E70] cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={handleSendSubmission}
-                  disabled={!submissionText}
-                  className={`clay-btn px-4 py-2 rounded-xl text-xs font-bold ${
-                    submissionText
-                      ? "clay-btn-dark text-white cursor-pointer"
-                      : "bg-[#E4E2DD] text-[#9195A8] cursor-not-allowed"
-                  }`}
-                >
-                  Kirim ke Guru
-                </button>
-              </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+
+            <div className="p-2.5 rounded-xl bg-[#F0EEF6] flex items-center justify-between text-xs font-medium text-[#5A5E70] border border-white">
+              <span className="flex items-center gap-1.5 text-[11px] font-bold text-[#4B3B7A]">
+                <UploadCloud className="w-3.5 h-3.5 text-[#4B3B7A]" />
+                Lampiran Catatan
+              </span>
+              <span className="text-[10px] font-mono font-bold bg-white px-2 py-0.5 rounded-md text-[#1C1E26] shadow-2xs">
+                Tugas_Catatan_Mandiri.pdf
+              </span>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-black/5">
+              <button
+                onClick={() => setSubmitModalOpen(false)}
+                className="clay-pill bg-[#F0EEF6] hover:bg-[#E3DBF8] text-[#4B3B7A] px-4 py-2 text-xs font-extrabold cursor-pointer transition-all active:scale-95"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSendSubmission}
+                disabled={!submissionText}
+                className={`clay-btn px-4 py-2 text-xs font-extrabold ${
+                  submissionText
+                    ? "clay-btn-dark text-white cursor-pointer shadow-sm active:scale-95"
+                    : "bg-[#E4E2DD] text-[#9195A8] cursor-not-allowed"
+                }`}
+              >
+                Kirim ke Guru
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>
+
   );
 }
