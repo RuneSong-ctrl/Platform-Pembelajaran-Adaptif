@@ -21,6 +21,7 @@ import {
   QuizStudioPage,
   TeacherRAGPage,
   ParentPortalPage,
+  ParentChatPage,
 } from "@/pages";
 import PWAInstallPrompt from "./components/common/PWAInstallPrompt";
 
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="/teacher/quiz-generator" element={<QuizStudioPage />} />
         <Route path="/teacher/rag" element={<TeacherRAGPage />} />
         <Route path="/parent" element={<ParentPortalPage />} />
+        <Route path="/parent/chat" element={<ParentChatPage />} />
         <Route path="/verify" element={<PublicVerifyPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
@@ -51,3 +53,4 @@ export default function App() {
     </>
   );
 }
+
