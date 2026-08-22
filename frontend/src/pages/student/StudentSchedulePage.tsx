@@ -27,7 +27,9 @@ import {
   Volume2,
   BookOpen,
   Layers,
+  X,
 } from "@/components/ui/icons";
+
 
 export default function StudentSchedulePage() {
   const navigate = useNavigate();
@@ -293,134 +295,160 @@ export default function StudentSchedulePage() {
       </main>
     </div>
 
-      {/* MODAL: TAMBAH JADWAL BELAJAR TERKHUSUS MODALITAS */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-sm p-6 bg-white rounded-3xl border-2 border-white shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-black text-[#010105]">
-              Buat Rencana Belajar Baru
-            </DialogTitle>
-            <DialogDescription className="text-xs text-[#5A5E70]">
-              Pilih format terkhusus gaya belajar {style === "AUDITORI" ? "Auditori" : style === "KINESTETIK" ? "Kinestetik" : "Visual"} kamu.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3.5 my-3">
-            {/* Day Selector */}
-            <div>
-              <label className="block text-xs font-bold text-[#010105] mb-1">
-                Pilih Hari Belajar
-              </label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"].map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setDay(d)}
-                    className={`py-1.5 text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
-                      day === d
-                        ? "clay-btn clay-btn-dark text-white font-bold"
-                        : "clay-pill clay-white text-[#5A5E70] hover:text-[#010105]"
-                    }`}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Time & Duration */}
-            <div>
-              <label className="block text-xs font-bold text-[#010105] mb-1">
-                Waktu &amp; Durasi
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  placeholder="Misal: 16:00 - 16:30"
-                  className="rounded-xl text-xs font-medium bg-[#F8F9FD] border border-[rgba(28,30,38,0.08)]"
-                />
-                <Input
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  placeholder="Misal: 30 mnt"
-                  className="rounded-xl text-xs font-medium bg-[#F8F9FD] border border-[rgba(28,30,38,0.08)]"
-                />
-              </div>
-            </div>
-
-            {/* Topic Title */}
-            <div>
-              <label className="block text-xs font-bold text-[#010105] mb-1">
-                Topik / Materi Target
-              </label>
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Contoh: Bab 3: Struktur Vili &amp; Reaksi Enzim"
-                className="rounded-xl text-xs font-medium bg-[#F8F9FD] border border-[rgba(28,30,38,0.08)]"
-              />
-            </div>
-
-            {/* Format Khusus per Modalitas */}
-            <div>
-              <label className="block text-xs font-bold text-[#010105] mb-1">
-                Format Khusus Pembelajaran
-              </label>
-              <div className="space-y-1.5">
-                {formatOptions.map((opt) => {
-                  const Icon = opt.icon;
-                  const isSelected = specificFormat === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setSpecificFormat(opt.id)}
-                      className={`w-full p-2.5 rounded-2xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                        isSelected
-                          ? "clay-btn clay-btn-dark text-white font-bold"
-                          : "clay-card clay-white text-[#010105] hover:scale-[1.01]"
-                      }`}
-                    >
-                      <div
-                        className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
-                          isSelected ? "clay-pill bg-white/20 text-white" : "clay-pill clay-lavender text-[#4B3B7A]"
-                        }`}
-                      >
-                        <Icon className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="text-xs font-extrabold truncate">{opt.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-1">
+      {/* INSTANT CLAY CREATE SCHEDULE MODAL */}
+      {modalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/25 flex items-center justify-center p-4"
+          onClick={() => setModalOpen(false)}
+        >
+          <div
+            className="clay-card bg-white rounded-[26px] p-5 sm:p-6 border border-white max-w-xs sm:max-w-md w-full shadow-[0_12px_28px_rgba(28,30,38,0.08),inset_2px_2px_4px_#fff,inset_-2px_-2px_5px_rgba(0,0,0,0.03)] flex flex-col gap-3 relative max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => setModalOpen(false)}
-              className="clay-btn clay-btn-white px-4 py-2 text-xs font-bold text-[#5A5E70] cursor-pointer"
+              className="absolute right-4 top-4 rounded-xl p-1.5 text-[#5A5E70] clay-pill bg-[#F0EEF6] hover:bg-[#E3DBF8] transition-all cursor-pointer"
             >
-              Batal
+              <X className="h-4 w-4" />
             </button>
-            <button
-              onClick={handleSave}
-              disabled={!title.trim()}
-              className={`clay-btn px-4 py-2 text-xs font-bold ${
-                title.trim()
-                  ? "clay-btn-dark text-white cursor-pointer"
-                  : "bg-[#E4E2DD] text-[#9195A8] cursor-not-allowed"
-              }`}
-            >
-              Simpan Jadwal
-            </button>
+
+            <div>
+              <h3 className="text-base font-black text-[#1C1E26]">
+                Buat Rencana Belajar Baru
+              </h3>
+              <p className="text-xs text-[#5A5E70] mt-0.5">
+                Pilih format terkhusus gaya belajar {style === "AUDITORI" ? "Auditori" : style === "KINESTETIK" ? "Kinestetik" : "Visual"} kamu.
+              </p>
+            </div>
+
+            <div className="space-y-3 my-1">
+              {/* Day Selector */}
+              <div>
+                <label className="block text-xs font-bold text-[#1C1E26] mb-1">
+                  Pilih Hari Belajar
+                </label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"].map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setDay(d)}
+                      className={`py-1.5 text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
+                        day === d
+                          ? "clay-btn clay-btn-dark text-white font-bold scale-102"
+                          : "clay-pill bg-[#F0EEF6] hover:bg-[#E3DBF8] text-[#5A5E70] hover:text-[#1C1E26]"
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Time & Duration */}
+              <div>
+                <label className="block text-xs font-bold text-[#1C1E26] mb-1">
+                  Waktu &amp; Durasi
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-1 rounded-2xl bg-[#F7F6FA] border border-white shadow-[inset_1.5px_1.5px_3px_rgba(0,0,0,0.04)]">
+                    <input
+                      type="text"
+                      value={time}
+                      onChange={(e) => setTime(e.target.value)}
+                      placeholder="Misal: 16:00 - 16:30"
+                      className="w-full rounded-xl text-xs font-medium bg-transparent border-0 outline-none px-2 py-1.5 text-[#1C1E26]"
+                    />
+                  </div>
+                  <div className="p-1 rounded-2xl bg-[#F7F6FA] border border-white shadow-[inset_1.5px_1.5px_3px_rgba(0,0,0,0.04)]">
+                    <input
+                      type="text"
+                      value={duration}
+                      onChange={(e) => setDuration(e.target.value)}
+                      placeholder="Misal: 30 mnt"
+                      className="w-full rounded-xl text-xs font-medium bg-transparent border-0 outline-none px-2 py-1.5 text-[#1C1E26]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Topic Title */}
+              <div>
+                <label className="block text-xs font-bold text-[#1C1E26] mb-1">
+                  Topik / Materi Target
+                </label>
+                <div className="p-1 rounded-2xl bg-[#F7F6FA] border border-white shadow-[inset_1.5px_1.5px_3px_rgba(0,0,0,0.04)]">
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Contoh: Bab 3: Struktur Vili &amp; Reaksi Enzim"
+                    className="w-full rounded-xl text-xs font-medium bg-transparent border-0 outline-none px-2 py-1.5 text-[#1C1E26]"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* Format Khusus per Modalitas */}
+              <div>
+                <label className="block text-xs font-bold text-[#1C1E26] mb-1">
+                  Format Khusus Pembelajaran
+                </label>
+                <div className="space-y-1.5">
+                  {formatOptions.map((opt) => {
+                    const Icon = opt.icon;
+                    const isSelected = specificFormat === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setSpecificFormat(opt.id)}
+                        className={`w-full p-2.5 rounded-2xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                          isSelected
+                            ? "clay-btn clay-btn-dark text-white font-bold"
+                            : "clay-card bg-[#FCFBFE] border-white text-[#1C1E26] hover:scale-[1.01]"
+                        }`}
+                      >
+                        <div
+                          className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                            isSelected ? "clay-pill bg-white/20 text-white" : "clay-pill clay-lavender text-[#4B3B7A]"
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-xs font-extrabold truncate">{opt.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-black/5">
+              <button
+                onClick={() => setModalOpen(false)}
+                className="clay-pill bg-[#F0EEF6] hover:bg-[#E3DBF8] text-[#4B3B7A] px-4 py-2 text-xs font-extrabold cursor-pointer transition-all active:scale-95"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={!title.trim()}
+                className={`clay-btn px-4 py-2 text-xs font-extrabold ${
+                  title.trim()
+                    ? "clay-btn-dark text-white cursor-pointer shadow-sm active:scale-95"
+                    : "bg-[#E4E2DD] text-[#9195A8] cursor-not-allowed"
+                }`}
+              >
+                Simpan Jadwal
+              </button>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
       <BottomNav />
     </div>
+
   );
 }

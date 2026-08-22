@@ -63,10 +63,12 @@ interface AppContextType {
   mintCredential: (studentId: string, classroomId: string, competencyTitle: string, score: number) => Promise<BlockchainCredential>;
   mintNewCredential: (newCert: BlockchainCredential) => void;
 
-  // Parent Notes
+  // Parent Notes & Active Child Focus
   notes: ParentTeacherNote[];
-  sendNote: (receiverId: string, studentId: string, message: string) => void;
-  sendParentTeacherNote: (receiverId: string, studentId: string, message: string) => void;
+  selectedParentChildId: string;
+  setSelectedParentChildId: (id: string) => void;
+  sendNote: (receiverId: string, studentId: string, message: string) => string;
+  sendParentTeacherNote: (receiverId: string, studentId: string, message: string) => string;
   replyNote: (noteId: string, reply: string) => void;
 
   // Offline Sync
@@ -111,7 +113,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [credentials, setCredentials] = useState<BlockchainCredential[]>(MOCK_CREDENTIALS);
   const [submissions, setSubmissions] = useState<AssignmentSubmission[]>(MOCK_SUBMISSIONS);
   const [notes, setNotes] = useState<ParentTeacherNote[]>(MOCK_NOTES);
+  const [selectedParentChildId, setSelectedParentChildId] = useState<string>("user_ayu_01");
   const [offlinePackages, setOfflinePackages] = useState<OfflinePackage[]>(MOCK_OFFLINE_PACKAGES);
+
 
   const [userMood, setUserMood] = useState<"Great" | "Good" | "Okay" | "Tired" | null>(null);
   const [studyTimeMinutes, setStudyTimeMinutes] = useState<number>(35);
@@ -392,12 +396,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const sendNote = (receiverId: string, studentId: string, message: string) => {
+  const sendNote = (receiverId: string, studentId: string, message: string): string => {
     const receiver = users.find((u) => u.id === receiverId);
     const student = users.find((u) => u.id === studentId);
+    const newNoteId = `note_${Date.now()}`;
 
     const newNote: ParentTeacherNote = {
-      id: `note_${Date.now()}`,
+      id: newNoteId,
       senderId: currentUser.id,
       senderName: currentUser.name,
       receiverId,
@@ -408,7 +413,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       sentAt: new Date().toISOString(),
     };
     setNotes((prev) => [newNote, ...prev]);
+    return newNoteId;
   };
+
 
   const sendParentTeacherNote = sendNote;
 
@@ -473,9 +480,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         mintCredential,
         mintNewCredential,
         notes,
+        selectedParentChildId,
+        setSelectedParentChildId,
         sendNote,
         sendParentTeacherNote,
         replyNote,
+
         offlinePackages,
         toggleDownloadPackage,
         triggerSync,
