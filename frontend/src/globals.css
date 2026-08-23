@@ -421,7 +421,6 @@ body {
 
 /* Pulse animation */
 @keyframes soft-pulse {
-
   0%,
   100% {
     transform: scale(1);
@@ -435,3 +434,40 @@ body {
 .animate-soft-pulse {
   animation: soft-pulse 2.5s infinite ease-in-out;
 }
+
+/* Audio Wave Equalizer Animation */
+@keyframes audio-wave-anim {
+  0%, 100% {
+    height: 25%;
+  }
+  50% {
+    height: 100%;
+  }
+}
+
+.animate-audio-bar {
+  animation: audio-wave-anim 1.2s infinite ease-in-out;
+}
+
+/* Standard Focus Visible Rings for A11y (WCAG 2.2 AA) */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--text-primary) !important;
+  outline-offset: 2px !important;
+}
+
+/* Accessible Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

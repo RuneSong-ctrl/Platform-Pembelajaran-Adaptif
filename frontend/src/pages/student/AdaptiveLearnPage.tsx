@@ -310,7 +310,14 @@ export default function AdaptiveLearnPage() {
 
               {/* Scrubber Bar */}
               <div className="space-y-1">
-                <div className="w-full bg-white/80 h-2.5 rounded-full overflow-hidden">
+                <div
+                  className="w-full bg-white/80 h-2.5 rounded-full overflow-hidden shadow-inner"
+                  role="progressbar"
+                  aria-valuenow={isPlaying ? 70 : 35}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label="Progres Pemutaran Audio Podcast Bab 3"
+                >
                   <div
                     className="bg-[#4B3B7A] h-full rounded-full transition-all duration-300"
                     style={{ width: isPlaying ? "70%" : "35%" }}
@@ -324,17 +331,24 @@ export default function AdaptiveLearnPage() {
 
               {/* Playback Controls & Speed Selector */}
               <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center gap-1 bg-white/60 p-1 rounded-full text-[10px] font-bold text-[#4B3B7A]">
+                <div
+                  className="flex items-center gap-1 bg-white/60 p-1 rounded-full text-[10px] font-bold text-[#4B3B7A]"
+                  role="group"
+                  aria-label="Pengaturan Kecepatan Audio"
+                >
                   {[1.0, 1.25, 1.5].map((spd) => (
                     <button
                       key={spd}
+                      type="button"
                       onClick={() => {
                         audioSynth.playClickSound();
                         setPlaybackSpeed(spd);
                       }}
-                      className={`px-2 py-0.5 rounded-full transition-all cursor-pointer ${
-                        playbackSpeed === spd ? "bg-[#4B3B7A] text-white" : ""
+                      className={`px-2 py-0.5 rounded-full transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4B3B7A] ${
+                        playbackSpeed === spd ? "bg-[#4B3B7A] text-white shadow-xs" : ""
                       }`}
+                      aria-label={`Kecepatan ${spd}x`}
+                      aria-pressed={playbackSpeed === spd}
                     >
                       {spd}x
                     </button>
@@ -342,9 +356,12 @@ export default function AdaptiveLearnPage() {
                 </div>
 
                 <button
+                  type="button"
                   onClick={handleToggleAudio}
-                  className="clay-btn clay-btn-white w-12 h-12 rounded-full flex items-center justify-center text-[#4B3B7A] shadow-xs cursor-pointer"
+                  className="clay-btn clay-btn-white w-12 h-12 rounded-full flex items-center justify-center text-[#4B3B7A] shadow-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4B3B7A]"
                   title={isPlaying ? "Jeda Audio" : "Putar Audio"}
+                  aria-label={isPlaying ? "Jeda Audio Podcast" : "Putar Audio Podcast"}
+                  aria-pressed={isPlaying}
                 >
                   {isPlaying ? (
                     <Pause className="w-6 h-6 fill-current" />
@@ -354,9 +371,12 @@ export default function AdaptiveLearnPage() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => handleTTSRead(episodes[activeEpisode].transcript)}
-                  className="clay-btn clay-btn-white px-3 py-1.5 rounded-full text-[11px] font-bold text-[#4B3B7A] flex items-center gap-1 shadow-2xs cursor-pointer"
+                  className="clay-btn clay-btn-white px-3 py-1.5 rounded-full text-[11px] font-bold text-[#4B3B7A] flex items-center gap-1 shadow-2xs cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4B3B7A]"
                   title="Bacakan Transkrip Suara"
+                  aria-label={isSpeakingSummary ? "Hentikan Pembacaan Transkrip" : "Bacakan Transkrip dengan Suara AI"}
+                  aria-pressed={isSpeakingSummary}
                 >
                   <Volume2 className="w-3.5 h-3.5" />
                   <span>{isSpeakingSummary ? "Stop" : "Bacakan"}</span>

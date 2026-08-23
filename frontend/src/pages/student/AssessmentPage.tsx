@@ -333,17 +333,20 @@ export default function AssessmentPage() {
               </h2>
 
               {/* Options */}
-              <div className="space-y-2.5">
+              <div className="space-y-2.5" role="radiogroup" aria-label={`Pilihan Jawaban Soal ${currentIndex + 1}`}>
                 {currentQ.options.map((opt, idx) => {
                   const isSelected = selectedOption === idx;
                   return (
                     <button
                       key={idx}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
                       onClick={() => {
                         audioSynth.playClickSound();
                         setSelectedOption(idx);
                       }}
-                      className={`w-full p-3.5 sm:p-4 rounded-2xl transition-all flex items-center justify-between gap-3 text-left cursor-pointer ${
+                      className={`w-full p-3.5 sm:p-4 rounded-2xl transition-all flex items-center justify-between gap-3 text-left cursor-pointer focus-visible:ring-2 focus-visible:ring-[#1C1E26] ${
                         isSelected
                           ? "clay-btn clay-btn-dark text-white font-bold shadow-md scale-101"
                           : "clay-card bg-[#F8F9FD] border-white/80 hover:bg-[#F2EFFC] text-[#1C1E26]"
@@ -364,9 +367,15 @@ export default function AssessmentPage() {
             {/* Action Buttons */}
             <div className="pt-2 flex items-center gap-2">
               <button
+                type="button"
                 onClick={handleNext}
                 disabled={selectedOption === null}
-                className={`clay-btn flex-1 py-3.5 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all ${
+                aria-label={
+                  currentIndex < ASSESSMENT_QUESTIONS.length - 1
+                    ? "Lanjut ke Soal Berikutnya"
+                    : "Selesaikan dan Lihat Profil Kognitif AI"
+                }
+                className={`clay-btn flex-1 py-3.5 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all focus-visible:ring-2 focus-visible:ring-[#1C1E26] ${
                   selectedOption !== null
                     ? "clay-btn-dark text-white shadow-md active:scale-98 cursor-pointer"
                     : "bg-[#E4E2DD] text-[#9195A8] cursor-not-allowed"

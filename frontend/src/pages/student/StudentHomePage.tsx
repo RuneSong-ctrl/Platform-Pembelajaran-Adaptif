@@ -336,8 +336,9 @@ export default function StudentHomePage() {
                   <Link
                     to="/student/schedule"
                     onClick={() => audioSynth.playClickSound()}
-                    className={`p-1.5 rounded-xl ${cal.chevronBtn} transition-transform hover:scale-105 shrink-0 shadow-2xs`}
+                    className={`p-1.5 rounded-xl ${cal.chevronBtn} transition-transform hover:scale-105 shrink-0 shadow-2xs focus-visible:ring-2 focus-visible:ring-[#1C1E26]`}
                     title="Kelola Jadwal Penuh"
+                    aria-label="Buka Halaman Kelola Jadwal Belajar"
                   >
                     <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
@@ -345,17 +346,20 @@ export default function StudentHomePage() {
               </div>
 
               {/* 7-Day Clay Selector (SEN 17 - MIN 23) */}
-              <div className="grid grid-cols-7 gap-1 sm:gap-1.5 items-end">
+              <div className="grid grid-cols-7 gap-1 sm:gap-1.5 items-end" role="group" aria-label="Pilih Hari Jadwal Mingguan">
                 {daysOfWeek.map((item, idx) => {
                   const isSelected = selectedDayIdx === idx;
                   return (
                     <button
                       key={idx}
+                      type="button"
                       onClick={() => {
                         audioSynth.playClickSound();
                         setSelectedDayIdx(idx);
                       }}
-                      className={`flex flex-col items-center justify-center transition-all cursor-pointer ${
+                      aria-label={`Pilih Hari ${item.fullDay}, Tanggal ${item.date} Agustus${item.completed ? " (Selesai)" : ""}`}
+                      aria-pressed={isSelected}
+                      className={`flex flex-col items-center justify-center transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#1C1E26] ${
                         isSelected
                           ? `${cal.activePill} rounded-2xl py-3 sm:py-3.5 scale-105 z-10 -my-1`
                           : item.completed
@@ -631,12 +635,15 @@ export default function StudentHomePage() {
                     </div>
 
                     <button
+                      type="button"
                       onClick={() => {
                         audioSynth.playClickSound();
                         setIsPlayingAudio(!isPlayingAudio);
                       }}
-                      className="clay-btn clay-btn-white w-12 h-12 rounded-full flex items-center justify-center text-[#4B3B7A] shrink-0 cursor-pointer"
-                      title={isPlayingAudio ? "Jeda" : "Putar"}
+                      className="clay-btn clay-btn-white w-12 h-12 rounded-full flex items-center justify-center text-[#4B3B7A] shrink-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4B3B7A]"
+                      title={isPlayingAudio ? "Jeda Podcast" : "Putar Podcast"}
+                      aria-label={isPlayingAudio ? "Jeda Podcast Bab 3" : "Putar Podcast Bab 3"}
+                      aria-pressed={isPlayingAudio}
                     >
                       {isPlayingAudio ? (
                         <Pause className="w-6 h-6 fill-current" />
@@ -648,7 +655,7 @@ export default function StudentHomePage() {
 
                   {/* Audio Progress Bar */}
                   <div className="space-y-1">
-                    <div className="w-full bg-white/70 h-2.5 rounded-full overflow-hidden shadow-inner">
+                    <div className="w-full bg-white/70 h-2.5 rounded-full overflow-hidden shadow-inner" role="progressbar" aria-valuenow={isPlayingAudio ? 65 : 35} aria-valuemin={0} aria-valuemax={100} aria-label="Progres Pemutaran Podcast">
                       <div
                         className="bg-[#4B3B7A] h-full rounded-full transition-all duration-300"
                         style={{ width: isPlayingAudio ? "65%" : "35%" }}
@@ -663,8 +670,11 @@ export default function StudentHomePage() {
                   {/* Text to Speech Trigger */}
                   <div className="pt-2 border-t border-[#4B3B7A]/15 flex items-center justify-between gap-2">
                     <button
+                      type="button"
                       onClick={handleToggleSpeak}
-                      className="clay-btn clay-btn-white py-1.5 px-3 text-[11px] font-bold text-[#4B3B7A] flex items-center gap-1.5 cursor-pointer"
+                      className="clay-btn clay-btn-white py-1.5 px-3 text-[11px] font-bold text-[#4B3B7A] flex items-center gap-1.5 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4B3B7A]"
+                      aria-label={isSpeakingSummary ? "Hentikan Pembacaan Suara AI" : "Bacakan Ringkasan Teks dengan Suara AI"}
+                      aria-pressed={isSpeakingSummary}
                     >
                       <Volume2 className="w-3.5 h-3.5" />
                       <span>{isSpeakingSummary ? "Hentikan Suara" : "Bacakan Ringkasan Teks"}</span>
@@ -903,12 +913,22 @@ export default function StudentHomePage() {
                   </div>
 
                   {/* Animated Waveform Visualizer */}
-                  <div className="clay-card clay-dark p-3 rounded-xl flex items-end justify-between gap-1 h-12">
+                  <div
+                    className="clay-card clay-dark p-3 rounded-xl flex items-end justify-between gap-1 h-12 overflow-hidden"
+                    role="img"
+                    aria-label={isPlayingAudio || isSpeakingSummary ? "Visualisasi Spektrum Suara Aktif Berputar" : "Visualisasi Spektrum Suara Jeda"}
+                  >
                     {[35, 60, 80, 95, 65, 45, 85, 90, 70, 50, 75, 90, 60, 80, 95, 70, 55, 40, 65, 80].map((val, i) => (
                       <div
                         key={i}
-                        className="w-full bg-[#E3DBF8] rounded-t-sm"
-                        style={{ height: `${val}%` }}
+                        className={`w-full bg-[#E3DBF8] rounded-t-sm transition-all ${
+                          isPlayingAudio || isSpeakingSummary ? "animate-audio-bar" : ""
+                        }`}
+                        style={{
+                          height: isPlayingAudio || isSpeakingSummary ? undefined : `${val}%`,
+                          animationDelay: `${(i % 6) * 0.15}s`,
+                          animationDuration: `${0.8 + ((i % 4) * 0.2)}s`,
+                        }}
                       ></div>
                     ))}
                   </div>

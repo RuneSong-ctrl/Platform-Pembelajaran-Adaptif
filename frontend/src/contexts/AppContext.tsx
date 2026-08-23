@@ -29,6 +29,7 @@ import {
   generateTransactionId,
   GENESIS_BLOCK_HASH,
 } from "@/services/blockchainVault";
+import { ApiService } from "@/services/apiClient";
 
 interface AppContextType {
   // User & Role Switching
@@ -445,7 +446,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const triggerSync = async () => {
     setIsSyncing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Background sync with FastAPI backend
+      const [backendClassrooms, backendDocs, backendTasks, backendCreds] = await Promise.all([
+        ApiService.getClassrooms(),
+        ApiService.getDocuments(),
+        ApiService.getTasks(),
+        ApiService.getCredentials(),
+      ]);
+
+      if (backendClassrooms && backendClassrooms.length > 0) {
+        setClassrooms(backendClassrooms);
+      }
+      if (backendDocs && backendDocs.length > 0) {
+        setDocuments(backendDocs);
+      }
+      if (backendTasks && backendTasks.length > 0) {
+        setTasks(backendTasks);
+      }
+      if (backendCreds && backendCreds.length > 0) {
+        setCredentials(backendCreds);
+      }
+    } catch {
+      // Graceful offline fallback
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     setOfflinePackages((prev) =>
       prev.map((pkg) => ({ ...pkg, syncStatus: "Synced" }))
     );

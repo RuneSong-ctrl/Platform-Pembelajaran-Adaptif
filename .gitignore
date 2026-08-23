@@ -81,3 +81,21 @@ tmp/
 temp/
 *.pem
 .eslintcache
+
+# Python & Backend (Root coverage)
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*/.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+*/.venv/
+venv/
+*/venv/
+*.sqlite
+*.sqlite3
+*.db
+!*.example.db
