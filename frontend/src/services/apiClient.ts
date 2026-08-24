@@ -255,6 +255,57 @@ export class ApiService {
     return this.request<any[]>(`/documents${query}`);
   }
 
+  static async extractDocumentText(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const response = await fetch(`${API_BASE_URL}/documents/extract-text`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return (await response.json()) as {
+        success: boolean;
+        filename: string;
+        title: string;
+        text: string;
+        length: number;
+      };
+    } catch (err) {
+      console.warn("[API] extractDocumentText error", err);
+      return null;
+    }
+  }
+
+  static async uploadDocumentFile(data: {
+    classroom_id: string;
+    title?: string;
+    summary?: string;
+    file: File;
+  }) {
+    const formData = new FormData();
+    formData.append("classroom_id", data.classroom_id);
+    if (data.title) formData.append("title", data.title);
+    if (data.summary) formData.append("summary", data.summary);
+    formData.append("file", data.file);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/documents/upload-file`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return (await response.json()) as any;
+    } catch (err) {
+      console.warn("[API] uploadDocumentFile error", err);
+      return null;
+    }
+  }
+
   static async uploadDocument(data: {
     classroom_id: string;
     title: string;

@@ -524,7 +524,15 @@ export default function AuthGatePage() {
                 disabled={isRegistering}
                 className="clay-btn clay-btn-dark w-full mt-3 py-4 px-5 rounded-2xl font-black text-sm text-white flex items-center justify-between group active:scale-98 transition-all cursor-pointer disabled:opacity-50 shadow-md"
               >
-                <span>{isRegistering ? "Membuat Akun..." : "Buat Akun & Mulai Belajar"}</span>
+                <span>
+                  {isRegistering
+                    ? "Membuat Akun..."
+                    : regRole === "GURU"
+                    ? "Buat Akun & Mulai Mengajar"
+                    : regRole === "ORTU"
+                    ? "Buat Akun & Pantau Anak"
+                    : "Buat Akun & Mulai Belajar"}
+                </span>
                 <div className="w-8 h-8 rounded-full bg-white/15 group-hover:bg-white/25 flex items-center justify-center transition-all duration-200 group-hover:translate-x-0.5">
                   <ArrowRight className="w-4 h-4 text-white" />
                 </div>

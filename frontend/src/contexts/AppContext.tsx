@@ -64,6 +64,7 @@ interface AppContextType {
   // Documents & RAG Grounding
   documents: GroundedDocument[];
   uploadDocument: (classroomId: string, title: string, rawText: string, summary?: string) => Promise<GroundedDocument>;
+  uploadDocumentFile: (classroomId: string, file: File, title?: string, summary?: string) => Promise<GroundedDocument>;
   deleteDocument: (docId: string) => void;
 
   // Tasks & Quiz
@@ -629,6 +630,58 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return newDoc;
   };
 
+  const uploadDocumentFile = async (
+    classroomId: string,
+    file: File,
+    title?: string,
+    summary?: string
+  ): Promise<GroundedDocument> => {
+    const cleanTitle =
+      title?.trim() ||
+      file.name
+        .replace(/\.[^/.]+$/, "")
+        .replace(/[_\-]+/g, " ")
+        .trim();
+
+    const tempDoc: GroundedDocument = {
+      id: `doc_${Date.now()}`,
+      classroomId,
+      title: cleanTitle,
+      rawText: "Sedang memproses dan mengekstrak dokumen...",
+      chunksCount: 1,
+      vectorId: `VEC-${Math.floor(100 + Math.random() * 900)}`,
+      status: "READY",
+      uploadedAt: new Date().toISOString(),
+      summary: summary || `Modul ajar: ${cleanTitle} (Sumber: ${file.name})`,
+    };
+
+    setDocuments((prev) => [tempDoc, ...prev]);
+    setClassrooms((prev) =>
+      prev.map((c) =>
+        c.id === classroomId ? { ...c, documentsCount: c.documentsCount + 1 } : c
+      )
+    );
+
+    // Persist to backend with real PDF / text extraction
+    try {
+      const res = await ApiService.uploadDocumentFile({
+        classroom_id: classroomId,
+        title: cleanTitle,
+        summary: summary || tempDoc.summary,
+        file,
+      });
+      if (res) {
+        const norm = normalizeDocument(res);
+        setDocuments((prev) => prev.map((d) => (d.id === tempDoc.id ? norm : d)));
+        return norm;
+      }
+    } catch (err) {
+      console.warn("[AppContext] uploadDocumentFile error", err);
+    }
+
+    return tempDoc;
+  };
+
   const deleteDocument = (docId: string) => {
     setDocuments((prev) => prev.filter((d) => d.id !== docId));
     ApiService.deleteDocument(docId).catch(() => {});
@@ -917,6 +970,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         joinClassroom,
         documents,
         uploadDocument,
+        uploadDocumentFile,
         deleteDocument,
         tasks,
         createTask,

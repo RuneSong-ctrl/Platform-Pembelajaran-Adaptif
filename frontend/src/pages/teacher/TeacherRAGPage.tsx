@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
 import TeacherSidebar from "@/components/layout/TeacherSidebar";
 import { audioSynth } from "@/services/audioSynth";
+import { ApiService } from "@/services/apiClient";
 import {
   UploadCloud,
   Lock,
@@ -12,10 +13,13 @@ import {
   Plus,
   X,
   BookOpen,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
 } from "@/components/ui/icons";
 
 export default function TeacherRAGPage() {
-  const { documents, uploadDocument, deleteDocument, classrooms } = useApp();
+  const { documents, uploadDocument, uploadDocumentFile, deleteDocument, classrooms } = useApp();
 
   const [selectedClassId, setSelectedClassId] = useState<string>(
     classrooms[0]?.id || ""
@@ -29,25 +33,108 @@ export default function TeacherRAGPage() {
   const [customSummary, setCustomSummary] = useState("");
   const [customRawText, setCustomRawText] = useState("");
 
+  // File upload state
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractMsg, setExtractMsg] = useState("");
+  const [extractError, setExtractError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedFile(file);
+    setIsExtracting(true);
+    setExtractMsg("");
+    setExtractError("");
+    audioSynth.playClickSound();
+
+    if (file.name.toLowerCase().endsWith(".pdf")) {
+      try {
+        const res = await ApiService.extractDocumentText(file);
+        if (res && res.text && res.text.trim()) {
+          if (!customTitle.trim()) {
+            setCustomTitle(res.title);
+          }
+          setCustomRawText(res.text);
+          setExtractMsg(`Teks PDF (${res.text.length} karakter) berhasil diekstrak!`);
+          audioSynth.playSuccessSound();
+        } else {
+          setExtractError("File PDF tidak memuat teks digital yang dapat dibaca.");
+          audioSynth.playErrorSound();
+        }
+      } catch (err) {
+        setExtractError("Gagal mengekstrak file PDF.");
+        audioSynth.playErrorSound();
+      } finally {
+        setIsExtracting(false);
+      }
+    } else {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        if (text) {
+          if (!customTitle.trim()) {
+            setCustomTitle(
+              file.name.replace(/\.[^/.]+$/, "").replace(/[_\-]+/g, " ")
+            );
+          }
+          setCustomRawText(text);
+          setExtractMsg(`File ${file.name} (${text.length} karakter) siap disimpan.`);
+          audioSynth.playSuccessSound();
+        }
+        setIsExtracting(false);
+      };
+      reader.onerror = () => {
+        setExtractError("Gagal membaca file dokumen.");
+        setIsExtracting(false);
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleClearFile = () => {
+    setSelectedFile(null);
+    setExtractMsg("");
+    setExtractError("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleCustomUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customTitle.trim() || !customRawText.trim()) return;
+    if (!customTitle.trim()) return;
+    if (!customRawText.trim() && !selectedFile) return;
 
     setIsUploading(true);
     audioSynth.playClickSound();
 
     try {
-      await uploadDocument(
-        selectedClassId,
-        customTitle.trim(),
-        customRawText.trim(),
-        customSummary.trim() || customRawText.slice(0, 120) + "..."
-      );
+      if (selectedFile) {
+        await uploadDocumentFile(
+          selectedClassId,
+          selectedFile,
+          customTitle.trim(),
+          customSummary.trim() || customRawText.slice(0, 120) + "..."
+        );
+      } else {
+        await uploadDocument(
+          selectedClassId,
+          customTitle.trim(),
+          customRawText.trim(),
+          customSummary.trim() || customRawText.slice(0, 120) + "..."
+        );
+      }
       audioSynth.playSuccessSound();
       setIsCustomModalOpen(false);
+      setSelectedFile(null);
       setCustomTitle("");
       setCustomSummary("");
       setCustomRawText("");
+      setExtractMsg("");
+      setExtractError("");
     } catch (err) {
       console.error("Upload error", err);
       audioSynth.playErrorSound();
@@ -284,6 +371,75 @@ export default function TeacherRAGPage() {
             </div>
 
             <form onSubmit={handleCustomUpload} className="space-y-4">
+              {/* Interactive File Dropzone for PDF / TXT / MD */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-[#5A5E70] block">
+                  Unggah Berkas PDF / Dokumen:
+                </label>
+                
+                <div className="p-4 rounded-2xl border-2 border-dashed border-[#1D5E4D]/30 bg-[#EBF6F2]/40 hover:bg-[#EBF6F2]/70 transition-all text-center space-y-2 relative group">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.txt,.md"
+                    onChange={handleFileSelect}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                  />
+                  <div className="w-10 h-10 rounded-2xl bg-white text-[#1D5E4D] mx-auto flex items-center justify-center shadow-xs">
+                    {isExtracting ? (
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <UploadCloud className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-[#1D5E4D]">
+                      {isExtracting ? "Mengekstrak Teks dari PDF..." : "Pilih File PDF / Dokumen Modul Ajar"}
+                    </p>
+                    <p className="text-[10px] text-[#5A5E70] mt-0.5">
+                      Mendukung format .pdf, .txt, .md (Teks otomatis diekstrak ke formulir di bawah)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Selected File Feedback Badge */}
+                {selectedFile && (
+                  <div className="p-2.5 rounded-xl bg-white border border-[#1D5E4D]/20 flex items-center justify-between gap-2 shadow-2xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="w-4 h-4 text-[#1D5E4D] shrink-0" />
+                      <span className="text-xs font-bold text-[#1C1E26] truncate">
+                        {selectedFile.name}
+                      </span>
+                      <span className="text-[10px] text-[#5A5E70] font-mono shrink-0">
+                        ({(selectedFile.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearFile}
+                      className="p-1 rounded-lg hover:bg-black/5 text-[#5A5E70] hover:text-[#ba1a1a] transition-colors cursor-pointer"
+                      title="Hapus file"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {extractMsg && (
+                  <div className="p-2 rounded-xl bg-[#EBF6F2] text-[#1D5E4D] text-[11px] font-bold flex items-center gap-1.5 animate-in fade-in">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>{extractMsg}</span>
+                  </div>
+                )}
+
+                {extractError && (
+                  <div className="p-2 rounded-xl bg-[#FDE8E8] text-[#9B1C1C] text-[11px] font-bold flex items-center gap-1.5 animate-in fade-in">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{extractError}</span>
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="text-xs font-bold text-[#5A5E70] block mb-1">
                   Judul Modul / Topik Bab:
@@ -317,7 +473,7 @@ export default function TeacherRAGPage() {
                 </label>
                 <textarea
                   required
-                  rows={6}
+                  rows={5}
                   placeholder="Tempelkan isi rangkuman silabus, konsep utama, dan definisi yang akan dijadikan rujukan oleh Asisten AI Tutor dan Generator Kuis DDA..."
                   value={customRawText}
                   onChange={(e) => setCustomRawText(e.target.value)}
@@ -328,18 +484,21 @@ export default function TeacherRAGPage() {
               <div className="flex justify-end gap-2.5 pt-2">
                 <button
                   type="button"
-                  onClick={() => setIsCustomModalOpen(false)}
+                  onClick={() => {
+                    setIsCustomModalOpen(false);
+                    handleClearFile();
+                  }}
                   className="clay-btn clay-btn-white px-4 py-2.5 rounded-2xl text-xs font-bold text-[#5A5E70] cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  disabled={isUploading}
-                  className="clay-btn clay-btn-dark px-5 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 cursor-pointer"
+                  disabled={isUploading || isExtracting}
+                  className="clay-btn clay-btn-dark px-5 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <Database className="w-4 h-4" />
-                  <span>{isUploading ? "Memproses..." : "Simpan Dokumen"}</span>
+                  <span>{isUploading ? "Memproses & Vektorisasi..." : "Simpan Dokumen"}</span>
                 </button>
               </div>
             </form>
