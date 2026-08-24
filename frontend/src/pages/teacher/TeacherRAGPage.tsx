@@ -18,7 +18,7 @@ export default function TeacherRAGPage() {
   const { documents, uploadDocument, deleteDocument, classrooms } = useApp();
 
   const [selectedClassId, setSelectedClassId] = useState<string>(
-    classrooms[0]?.id || "cls_bio_10a"
+    classrooms[0]?.id || ""
   );
   const [strictGrounding, setStrictGrounding] = useState(true);
   const [isUploading, setIsUploading] = useState(false);

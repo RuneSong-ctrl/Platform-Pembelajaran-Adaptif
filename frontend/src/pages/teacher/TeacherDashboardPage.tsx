@@ -226,7 +226,7 @@ export default function TeacherDashboardPage() {
                     </div>
                     <div className="clay-pill bg-[#F8F9FD] p-2.5 flex items-center gap-2">
                       <BookOpen className="w-3.5 h-3.5 text-[#4B3B7A]" />
-                      <span>{cls.documentsCount || 4} Modul Terindeks</span>
+                      <span>{cls.documentsCount || 0} Modul Terindeks</span>
                     </div>
                   </div>
                 </div>

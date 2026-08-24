@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/icons";
 
 export default function GradebookPage() {
-  const { users, credentials, classrooms } = useApp();
+  const { users, credentials, classrooms, mintCredential } = useApp();
 
   const [isBatchMinting, setIsBatchMinting] = useState(false);
   const [batchMintSuccess, setBatchMintSuccess] = useState(false);
@@ -27,16 +27,30 @@ export default function GradebookPage() {
   const masteryCount = students.filter((s) => s.currentDDALevel === "MASTERY").length;
   const primaryClass = classrooms[0];
 
-  const handleBatchMint = () => {
+  const handleBatchMint = async () => {
     setIsBatchMinting(true);
     audioSynth.playClickSound();
 
-    setTimeout(() => {
+    try {
+      for (const st of students) {
+        const hasCert = credentials.some((c) => c.studentId === st.id);
+        if (!hasCert && primaryClass) {
+          await mintCredential(
+            st.id,
+            primaryClass.id,
+            `Penguasaan Materi ${primaryClass.subject}`,
+            st.currentDDALevel === "MASTERY" ? 95 : st.currentDDALevel === "CHALLENGING" ? 85 : 75
+          );
+        }
+      }
       setIsBatchMinting(false);
       setBatchMintSuccess(true);
       audioSynth.playLevelUpSound();
       confetti({ particleCount: 90, spread: 70 });
-    }, 1500);
+    } catch (err) {
+      console.error("Batch mint error", err);
+      setIsBatchMinting(false);
+    }
   };
 
   return (

@@ -21,7 +21,7 @@ export default function QuizStudioPage() {
   const { documents, classrooms, createTask } = useApp();
 
   const [selectedClassId, setSelectedClassId] = useState<string>(
-    classrooms[0]?.id || "cls_bio_10a"
+    classrooms[0]?.id || ""
   );
   const [selectedDocId, setSelectedDocId] = useState<string>(
     documents[0]?.id || ""
