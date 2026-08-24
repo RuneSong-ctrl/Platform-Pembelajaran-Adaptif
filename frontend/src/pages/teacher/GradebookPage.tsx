@@ -188,8 +188,12 @@ export default function GradebookPage() {
                       return (
                         <tr key={st.id} className="hover:bg-[#F8F9FD] transition-colors">
                           <td className="py-4 font-black text-[#010105] flex items-center gap-3">
-                            <div className="clay-card clay-lavender w-8 h-8 rounded-full flex items-center justify-center font-black text-xs text-[#4B3B7A] shrink-0">
-                              {st.avatar}
+                            <div className="clay-card clay-lavender w-8 h-8 rounded-full flex items-center justify-center font-black text-xs text-[#4B3B7A] shrink-0 overflow-hidden">
+                              {st.avatar && (st.avatar.startsWith("data:image") || st.avatar.startsWith("http")) ? (
+                                <img src={st.avatar} alt={st.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span>{st.avatar || st.name.slice(0, 2).toUpperCase()}</span>
+                              )}
                             </div>
                             <span>{st.name}</span>
                           </td>

@@ -383,7 +383,7 @@ export default function StudentSchedulePage() {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Contoh: Bab 3: Struktur Vili &amp; Reaksi Enzim"
+                    placeholder="Contoh: Belajar Modul & Latihan Mandiri"
                     className="w-full rounded-xl text-xs font-medium bg-transparent border-0 outline-none px-2 py-1.5 text-[#1C1E26]"
                     autoFocus
                   />

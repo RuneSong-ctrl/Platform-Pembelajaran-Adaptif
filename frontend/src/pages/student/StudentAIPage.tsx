@@ -162,7 +162,7 @@ export default function StudentAIPage() {
       {
         id: `msg_init_${Date.now()}`,
         sender: "ai",
-        text: `Halo ${currentUser.name}! Sesi percakapan telah direset. Silakan tanyakan konsep apa saja seputar Bab 3: Sistem Pencernaan & Enzim.`,
+        text: `Halo ${currentUser.name}! Sesi percakapan telah direset. Silakan tanyakan konsep apa saja ${primaryDoc ? `seputar "${primaryDoc.title}"` : "seputar materi pembelajaran"}.`,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       },
     ]);
@@ -207,17 +207,12 @@ export default function StudentAIPage() {
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 </div>
                 <p className="text-[10px] sm:text-[11px] text-[#5A5E70] font-medium truncate">
-                  Bab 3: Sistem Pencernaan &amp; Enzim
+                  {primaryDoc?.title || "Konsultasi Materi Pembelajaran"}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="bg-[#EBF6F2] text-[#1D5E4D] text-[10px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 border border-[#D1EBE1]">
-                <ShieldCheck className="w-3 h-3" />
-                <span>RAG Verified</span>
-              </span>
-
               <button
                 onClick={handleResetChat}
                 className="p-1.5 rounded-xl bg-[#F0EEF6] hover:bg-[#E3DBF8] text-[#4B3B7A] transition-colors cursor-pointer"
@@ -323,7 +318,7 @@ export default function StudentAIPage() {
                   value={inputText}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  placeholder="Tanyakan konsep Bab 3, enzim, atau materi yang sulit dipahami..."
+                  placeholder="Tanyakan konsep materi atau topik yang ingin kamu pelajari..."
                   className="flex-1 bg-transparent border-0 outline-none text-xs sm:text-sm text-[#1C1E26] placeholder-[#9195A8] px-3 py-1.5 sm:py-2 resize-none max-h-28 overflow-y-auto leading-relaxed min-w-0"
                 />
 

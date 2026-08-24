@@ -228,8 +228,16 @@ export default function Navbar() {
           {/* User Profile & Logout */}
           {currentUser && (
             <div className="flex items-center gap-2.5 pl-1 sm:pl-2">
-              <div className="w-8 h-8 rounded-xl bg-[#1C1E26] text-white flex items-center justify-center text-xs font-black shadow-xs">
-                {currentUser.avatar || currentUser.name.slice(0, 2).toUpperCase()}
+              <div className="w-8 h-8 rounded-xl bg-[#1C1E26] text-white flex items-center justify-center text-xs font-black shadow-xs overflow-hidden shrink-0">
+                {currentUser.avatar && (currentUser.avatar.startsWith("data:image") || currentUser.avatar.startsWith("http")) ? (
+                  <img
+                    src={currentUser.avatar}
+                    alt={currentUser.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span>{currentUser.avatar || currentUser.name.slice(0, 2).toUpperCase()}</span>
+                )}
               </div>
 
               <div className="hidden lg:block text-left">

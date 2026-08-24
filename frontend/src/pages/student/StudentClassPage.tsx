@@ -270,9 +270,11 @@ export default function StudentClassPage() {
                         <span className="text-[9px] font-bold uppercase text-[#9195A8]">
                           {task.type}
                         </span>
-                        <span className="text-[9px] text-[#5A5E70] font-medium">
-                          • {task.sourceReference || "Bab 3"}
-                        </span>
+                        {task.sourceReference && (
+                          <span className="text-[9px] text-[#5A5E70] font-medium">
+                            • {task.sourceReference}
+                          </span>
+                        )}
                       </div>
                       <h4 className="text-xs font-bold text-[#010105] truncate">
                         {task.title}

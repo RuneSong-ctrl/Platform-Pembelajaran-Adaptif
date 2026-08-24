@@ -273,7 +273,7 @@ export default function AdaptiveQuizPage() {
             <div className="space-y-1">
               <div className="flex justify-between text-[11px] font-bold text-[#9195A8]">
                 <span>Pertanyaan {ddaState.history.length + 1} dari 4</span>
-                <span>Bab 3 Sistem Pencernaan</span>
+                <span>{quizTask?.title || "Kuis Evaluasi Adaptif DDA"}</span>
               </div>
               <Progress value={((ddaState.history.length + 1) / 4) * 100} indicatorColor="bg-[#1C1E26]" />
             </div>
