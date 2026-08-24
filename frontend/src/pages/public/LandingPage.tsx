@@ -20,7 +20,7 @@ import {
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { switchUser } = useApp();
+  const { currentUser, isAuthenticated } = useApp();
 
   return (
     <div className="min-h-screen bg-[#FBF9F4] text-[#1B1C19] selection:bg-[#FADFAD] pb-24">
@@ -47,32 +47,38 @@ export default function LandingPage() {
         <p className="text-sm sm:text-lg text-[#5A5E70] font-medium max-w-2xl mx-auto leading-relaxed">
           Memadukan <strong>Adaptive AI Brain</strong> untuk menyesuaikan modalitas dan kecepatan kognitif siswa, serta <strong>Blockchain Vault</strong> untuk mengunci rekam jejak akademik permanen anti-manipulasi.
         </p>
-
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <Button
             onClick={() => {
               audioSynth.playClickSound();
-              switchUser("user_ayu_01");
-              navigate("/assessment");
+              if (isAuthenticated && currentUser.role === "SISWA") {
+                navigate("/assessment");
+              } else {
+                navigate("/auth?role=SISWA");
+              }
             }}
             variant="primary"
             size="lg"
-            className="font-bold text-sm sm:text-base h-12 px-7 shadow-md"
+            className="font-bold text-sm sm:text-base h-12 px-7 shadow-md cursor-pointer"
           >
-            Mulai Asesmen Gaya Belajarmu
+            Mulai Asesmen Gaya Belajar
             <ArrowRight className="w-4 h-4 ml-1.5" />
           </Button>
 
           <Button
             onClick={() => {
               audioSynth.playClickSound();
-              navigate("/student");
+              if (isAuthenticated) {
+                navigate(currentUser.role === "GURU" ? "/teacher" : currentUser.role === "ORTU" ? "/parent" : "/student");
+              } else {
+                navigate("/auth");
+              }
             }}
             variant="outline"
             size="lg"
-            className="font-bold text-sm sm:text-base h-12 px-7"
+            className="font-bold text-sm sm:text-base h-12 px-7 cursor-pointer"
           >
-            Eksplorasi Portal Siswa
+            {isAuthenticated ? "Masuk ke Dashboard" : "Masuk / Daftar Akun"}
           </Button>
         </div>
       </header>
@@ -93,8 +99,11 @@ export default function LandingPage() {
           <div
             onClick={() => {
               audioSynth.playClickSound();
-              switchUser("user_ayu_01");
-              navigate("/student");
+              if (isAuthenticated && currentUser.role === "SISWA") {
+                navigate("/student");
+              } else {
+                navigate("/auth?role=SISWA");
+              }
             }}
             className="clay-card clay-mint p-6 cursor-pointer group hover:scale-[1.02] transition-all flex flex-col justify-between"
           >
@@ -113,7 +122,7 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="mt-5 flex items-center justify-between pt-3 border-t border-[rgba(18,75,61,0.15)]">
-              <span className="text-xs font-black text-[#124B3D]">Masuk sebagai Ayu</span>
+              <span className="text-xs font-black text-[#124B3D]">Buka Portal Siswa</span>
               <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#010105] shadow-xs group-hover:bg-[#010105] group-hover:text-white transition-colors">
                 <ArrowUpRight className="w-4 h-4" />
               </span>
@@ -124,8 +133,11 @@ export default function LandingPage() {
           <div
             onClick={() => {
               audioSynth.playClickSound();
-              switchUser("user_teacher_01");
-              navigate("/teacher");
+              if (isAuthenticated && currentUser.role === "GURU") {
+                navigate("/teacher");
+              } else {
+                navigate("/auth?role=GURU");
+              }
             }}
             className="clay-card clay-lavender p-6 cursor-pointer group hover:scale-[1.02] transition-all flex flex-col justify-between"
           >
@@ -144,7 +156,7 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="mt-5 flex items-center justify-between pt-3 border-t border-[rgba(60,45,104,0.15)]">
-              <span className="text-xs font-black text-[#3C2D68]">Masuk sebagai Pak Made</span>
+              <span className="text-xs font-black text-[#3C2D68]">Buka Portal Guru</span>
               <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#010105] shadow-xs group-hover:bg-[#010105] group-hover:text-white transition-colors">
                 <ArrowUpRight className="w-4 h-4" />
               </span>
@@ -155,8 +167,11 @@ export default function LandingPage() {
           <div
             onClick={() => {
               audioSynth.playClickSound();
-              switchUser("user_parent_01");
-              navigate("/parent");
+              if (isAuthenticated && currentUser.role === "ORTU") {
+                navigate("/parent");
+              } else {
+                navigate("/auth?role=ORTU");
+              }
             }}
             className="clay-card clay-butter p-6 cursor-pointer group hover:scale-[1.02] transition-all flex flex-col justify-between"
           >
@@ -175,7 +190,7 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="mt-5 flex items-center justify-between pt-3 border-t border-[rgba(105,69,3,0.15)]">
-              <span className="text-xs font-black text-[#694503]">Masuk sebagai Ibu Wayan</span>
+              <span className="text-xs font-black text-[#694503]">Buka Portal Orang Tua</span>
               <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#010105] shadow-xs group-hover:bg-[#010105] group-hover:text-white transition-colors">
                 <ArrowUpRight className="w-4 h-4" />
               </span>

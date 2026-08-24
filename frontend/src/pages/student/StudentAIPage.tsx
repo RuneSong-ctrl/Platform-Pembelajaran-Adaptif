@@ -4,6 +4,7 @@ import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
 import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
+import { ApiService } from "@/services/apiClient";
 import {
   Send,
   Bot,
@@ -24,41 +25,47 @@ interface ChatMessage {
 }
 
 export default function StudentAIPage() {
-  const { currentUser } = useApp();
+  const { currentUser, documents, classrooms } = useApp();
   const [inputText, setInputText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const myClassrooms = classrooms.filter((c) =>
+    Boolean(currentUser?.id && c.studentIds?.includes(currentUser.id))
+  );
+  const activeDocs = documents.filter((d) =>
+    myClassrooms.some((c) => c.id === d.classroomId)
+  );
+  const primaryDoc = activeDocs[0] || documents[0];
+
+  const initialGreeting = primaryDoc
+    ? `Halo ${currentUser.name || "Siswa"}! Saya adalah Asisten Belajar AI Tutor yang ter-grounding langsung pada modul ajar gurumu: "${primaryDoc.title}". Silakan tanyakan konsep apa saja seputar materi ini.`
+    : `Halo ${currentUser.name || "Siswa"}! Saya Asisten AI Tutor. Saat ini guru belum mengunggah silabus/modul resmi di kelasmu. Kamu dapat bertanya konsep pelajaran umum, atau meminta gurumu mengunggah materi ajar ke RAG Knowledge Base.`;
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "msg_init_1",
       sender: "ai",
-      text: `Halo ${currentUser.name}! Saya adalah Asisten Belajar AI yang ter-grounding langsung pada materi dan modul ajar gurumu. Silakan tanyakan konsep apa saja seputar Bab 3: Sistem Pencernaan & Enzim.`,
-      timestamp: "09:30",
-    },
-    {
-      id: "msg_init_2",
-      sender: "user",
-      text: "Apa fungsi utama enzim ptialin di dalam rongga mulut?",
-      timestamp: "09:31",
-    },
-    {
-      id: "msg_init_3",
-      sender: "ai",
-      text: "Enzim ptialin (amilase saliva) berfungsi mengkatalisis pemecahan amilum (karbohidrat kompleks) menjadi disakarida maltosa di dalam rongga mulut pada suasana pH netral 6.8. Enzim ini diproduksi oleh kelenjar saliva parotis untuk memulai pencernaan kimiawi.",
-      citation: "Modul Biologi Bab 3 Hal. 12 • Guru: I Made Sukadana, S.Pd.",
-      timestamp: "09:31",
+      text: initialGreeting,
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
 
-  const quickQuestions = [
-    "Bagaimana lambung memecah protein?",
-    "Fungsi struktur vili pada usus halus?",
-    "Apa peran empedu dalam mencerna lemak?",
-    "Jelaskan mekanisme enzim pepsin & renin!",
-  ];
+  const quickQuestions = primaryDoc
+    ? [
+        `Jelaskan ringkasan ${primaryDoc.title.slice(0, 30)}!`,
+        "Apa poin konsep paling penting yang perlu saya kuasai?",
+        "Berikan contoh analogi sederhana untuk materi ini!",
+        "Bagaimana tips menyelesaikan kuis adaptif DDA untuk topik ini?",
+      ]
+    : [
+        "Bagaimana cara belajar adaptif yang efektif?",
+        "Apa itu DDA (Dynamic Difficulty Adjustment)?",
+        "Bagaimana cara bergabung ke kelas guru?",
+        "Jelaskan prinsip sertifikat Paspor Blockchain!",
+      ];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -68,41 +75,9 @@ export default function StudentAIPage() {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const getMockAIResponse = (query: string): { text: string; citation: string } => {
-    const q = query.toLowerCase();
-    if (
-      q.includes("lambung") ||
-      q.includes("pepsin") ||
-      q.includes("asam") ||
-      q.includes("protein") ||
-      q.includes("renin")
-    ) {
-      return {
-        text: "Di dalam lambung (ventrikulus), getah lambung menghasilkan asam klorida (HCl) dengan tingkat keasaman ekstrem (pH 1.5 - 2.0) yang disekresikan oleh sel parietal. Keasaman ini berfungsi membunuh mikroorganisme patogen dan mengaktifkan pepsinogen inaktif menjadi enzim aktif pepsin untuk memotong ikatan peptida protein menjadi pepton.",
-        citation: "Modul Biologi Bab 3 Hal. 18 • Materi: Fisiologi Lambung",
-      };
-    }
-    if (q.includes("vili") || q.includes("usus") || q.includes("serap") || q.includes("ileum")) {
-      return {
-        text: "Dinding usus halus (terutama ileum) memiliki lipatan mikroskopis berupa vili dan mikrovili. Struktur ini memperluas total luas permukaan serap nutrisi hingga mencapai 200 meter persegi. Glukosa dan asam amino diserap ke kapiler darah, sedangkan asam lemak diserap ke pembuluh limfa (kil).",
-        citation: "Modul Biologi Bab 3 Hal. 25 • Materi: Penyerapan Nutrisi Usus Halus",
-      };
-    }
-    if (q.includes("empedu") || q.includes("lemak") || q.includes("hati") || q.includes("lipase")) {
-      return {
-        text: "Hati menghasilkan cairan empedu yang disimpan di kantung empedu. Garam empedu berfungsi mengemulsikan gumpalan lemak menjadi butiran mikro (droplet) agar enzim lipase dari pankreas dapat menghidrolisis trigliserida menjadi asam lemak dan gliserol.",
-        citation: "Modul Biologi Bab 3 Hal. 22 • Materi: Kelenjar Pencernaan & Enzimatis",
-      };
-    }
-    return {
-      text: `Berdasarkan modul ajar guru untuk kelas 10-A, topik "${query}" berkaitan dengan proses fisiologis pencernaan. Seluruh proses diatur secara terkoordinasi oleh gerak mekanik peristaltik dan sekresi biokimiawi enzim untuk memastikan efisiensi metabolisme tubuh.`,
-      citation: "Modul Biologi Bab 3 Hal. 15 • Silabus Terverifikasi",
-    };
-  };
-
-  const handleSendMessage = (textToSend?: string) => {
+  const handleSendMessage = async (textToSend?: string) => {
     const text = textToSend || inputText;
-    if (!text.trim()) return;
+    if (!text.trim() || isTyping) return;
 
     audioSynth.playClickSound();
 
@@ -113,26 +88,52 @@ export default function StudentAIPage() {
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const newHistory = [...messages, userMsg];
+    setMessages(newHistory);
     setInputText("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
     setIsTyping(true);
 
-    setTimeout(() => {
-      audioSynth.playSuccessSound();
-      const response = getMockAIResponse(text);
+    try {
+      const response = await ApiService.chatWithAI({
+        message: text.trim(),
+        history: newHistory.map((m) => ({ sender: m.sender, text: m.text })),
+        classroom_id: primaryDoc?.classroomId,
+        document_id: primaryDoc?.id,
+        learning_style: currentUser?.learningStyle || "VISUAL",
+        student_name: currentUser?.name || "Siswa",
+        student_id: currentUser?.id || "guest",
+      });
+
+      if (response && response.text) {
+        audioSynth.playSuccessSound();
+        const aiMsg: ChatMessage = {
+          id: `msg_ai_${Date.now()}`,
+          sender: "ai",
+          text: response.text,
+          citation: response.citation,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        };
+        setMessages((prev) => [...prev, aiMsg]);
+      }
+    } catch (err: any) {
+      console.warn("Backend chat fallback:", err);
+      // Fallback local
       const aiMsg: ChatMessage = {
         id: `msg_ai_${Date.now()}`,
         sender: "ai",
-        text: response.text,
-        citation: response.citation,
+        text: primaryDoc
+          ? `Berdasarkan modul "${primaryDoc.title}": ${primaryDoc.summary || primaryDoc.rawText.slice(0, 200)}...`
+          : "Pertanyaan yang sangat bagus! Silakan eksplorasi konsep ini lebih dalam.",
+        citation: primaryDoc ? `${primaryDoc.title} • Modul Terverifikasi` : "EduAdapt AI",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, aiMsg]);
+    } finally {
       setIsTyping(false);
-    }, 700);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {

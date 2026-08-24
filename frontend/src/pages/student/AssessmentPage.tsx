@@ -215,13 +215,12 @@ export default function AssessmentPage() {
         {/* VIEW 1: INTRO SCREEN (CLAYMORPHIC) */}
         {!hasStarted && (
           <div className="space-y-5 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between">
-              <span className="clay-pill clay-lavender text-[10px] font-extrabold text-[#4B3B7A] px-3 py-1 flex items-center gap-1.5 shadow-2xs">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Diagnostic AI Assessment</span>
+            <div className="flex items-center justify-between pb-1 border-b border-black/5">
+              <span className="text-[11px] font-black uppercase tracking-wider text-[#595F72]">
+                Asesmen Diagnostik Awal
               </span>
               <span className="text-xs font-black text-[#1C1E26] tracking-tight">
-                EduFlow Adaptive
+                EduAdapt Adaptive
               </span>
             </div>
 

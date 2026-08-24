@@ -24,6 +24,7 @@ interface AckNotice {
 
 export default function ParentChatPage() {
   const {
+    currentUser,
     users,
     notes,
     sendParentTeacherNote,
@@ -33,10 +34,25 @@ export default function ParentChatPage() {
 
   const [searchParams] = useSearchParams();
   const childIdFromUrl = searchParams.get("childId");
-  const activeChildId = childIdFromUrl || selectedParentChildId || "user_ayu_01";
+  const activeChildId = childIdFromUrl || selectedParentChildId;
 
+  const targetTeacher = users.find((u) => u.role === "GURU");
   const selectedChild =
-    users.find((u) => u.id === activeChildId) || users[0];
+    users.find((u) => u.id === activeChildId) ||
+    users.find((u) => u.role === "SISWA") || {
+      id: "student_default",
+      name: "Siswa",
+      role: "SISWA",
+      grade: 10,
+      avatar: "SW",
+      learningStyle: "VISUAL",
+      modalityScores: { visual: 0, audio: 0, practice: 0 },
+      processingSpeed: "MODERATE",
+      xpTotal: 0,
+      streakDays: 0,
+      hearts: 5,
+      currentDDALevel: "BASIC",
+    };
 
   const [inputText, setInputText] = useState("");
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
@@ -58,10 +74,12 @@ export default function ParentChatPage() {
   }, []);
 
   // Filter and sort notes chronologically (oldest at top, newest at bottom)
-  const childNotes = notes
-    .filter((n) => n.studentId === selectedChild.id)
-    .slice()
-    .sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime());
+  const childNotes = selectedChild
+    ? notes
+        .filter((n) => n.studentId === selectedChild.id)
+        .slice()
+        .sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime())
+    : [];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -71,11 +89,14 @@ export default function ParentChatPage() {
     scrollToBottom();
   }, [childNotes, isWaitingResponse, isTeacherTyping, ackNotice]);
 
+  const childFirstName = selectedChild?.name ? selectedChild.name.split(" ")[0] : "Anak";
+  const teacherName = targetTeacher?.name || "Bapak/Ibu Guru";
+
   const quickQuestions = [
-    `Bagaimana fokus belajar ${selectedChild.name.split(" ")[0]} minggu ini?`,
+    `Bagaimana fokus belajar ${childFirstName} minggu ini?`,
     `Apakah ada materi remedial atau latihan pengayaan tambahan?`,
-    `Berapa rata-rata akurasi kuis adaptif ${selectedChild.name.split(" ")[0]}?`,
-    `Terima kasih banyak atas bimbingannya Pak Gunawan.`,
+    `Berapa rata-rata akurasi kuis adaptif ${childFirstName}?`,
+    `Terima kasih banyak atas bimbingannya ${teacherName}.`,
   ];
 
   const handleSendMessage = (customText?: string) => {
@@ -84,8 +105,11 @@ export default function ParentChatPage() {
 
     audioSynth.playClickSound();
 
-    // 1. Send note to AppContext (Instant local storage update)
-    const newNoteId = sendParentTeacherNote("user_teacher_01", selectedChild.id, text);
+    const teacherId = targetTeacher?.id || "guru_default";
+    const studentId = selectedChild?.id || "student_default";
+
+    // 1. Send note to AppContext
+    const newNoteId = sendParentTeacherNote(teacherId, studentId, text);
     setInputText("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -183,28 +207,28 @@ export default function ParentChatPage() {
 
               {/* Teacher Avatar */}
               <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#E0DAF5] text-[#4B3B7A] font-black text-xs flex items-center justify-center shrink-0 shadow-xs border border-white">
-                GW
+                {targetTeacher?.avatar || "GR"}
               </div>
 
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <h1 className="text-xs sm:text-sm font-black text-[#1C1E26] truncate">
-                    Bpk. Gunawan, M.Pd.
+                    {targetTeacher?.name || "Bpk. Gunawan, M.Pd."}
                   </h1>
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Online"></span>
                 </div>
                 <p className="text-[10px] sm:text-[11px] text-[#5A5E70] font-medium truncate">
-                  Wali Kelas 10-A • Konsultasi Terbuka
+                  Wali Kelas • Konsultasi Terbuka
                 </p>
               </div>
             </div>
 
-            {/* Focused Child Badge (No cluttered child selectors in chat header) */}
+            {/* Focused Child Badge */}
             <div className="flex items-center gap-1.5 shrink-0">
               <div className="clay-pill bg-[#F2EFFC] text-[#4B3B7A] px-3 py-1.5 rounded-xl text-[10px] sm:text-[11px] font-black flex items-center gap-1.5 shadow-2xs border border-[#E3DBF8]/70">
                 <User className="w-3.5 h-3.5 text-[#4B3B7A]" />
                 <span className="truncate max-w-[130px] sm:max-w-[200px]">
-                  Siswa: {selectedChild.name}
+                  Siswa: {selectedChild?.name || "Anak Terdaftar"}
                 </span>
               </div>
 
@@ -218,7 +242,6 @@ export default function ParentChatPage() {
             </div>
           </div>
 
-
           {/* Chat Workspace Card (Fit & Bounded) */}
           <div className="clay-card clay-white p-3 sm:p-4 flex-1 flex flex-col gap-2.5 overflow-hidden min-h-0 shadow-sm w-full">
             {/* Scrollable Message History Stream */}
@@ -227,7 +250,7 @@ export default function ParentChatPage() {
               {/* Context Banner */}
               <div className="text-center my-0.5">
                 <span className="clay-pill bg-white/90 text-[#4B3B7A] text-[9px] sm:text-[10px] font-extrabold px-3 py-1 border border-[#E3DBF8]/70 shadow-2xs">
-                  Konsultasi Khusus Siswa: {selectedChild.name} (Kelas 10-A)
+                  Konsultasi Khusus Siswa: {selectedChild?.name || "Siswa"}
                 </span>
               </div>
 
@@ -245,7 +268,7 @@ export default function ParentChatPage() {
                       </p>
 
                       <div className="mt-2 pt-1.5 border-t border-white/15 flex items-center justify-between text-[9px] text-white/70 font-medium">
-                        <span>Ibu Ni Wayan Sari</span>
+                        <span>{note.senderName || currentUser.name || "Orang Tua"}</span>
                         <span className="text-emerald-400 flex items-center gap-0.5 font-bold">
                           <Check className="w-2.5 h-2.5 stroke-[3]" /> Terkirim ke Guru
                         </span>
@@ -262,7 +285,7 @@ export default function ParentChatPage() {
 
                       <div className="p-3.5 sm:p-4 rounded-3xl text-xs sm:text-sm leading-relaxed max-w-full min-w-0 overflow-hidden break-words [overflow-wrap:anywhere] [word-break:break-word] clay-card bg-[#FDFCFE] border border-[#E3DBF8] text-[#1C1E26] shadow-2xs">
                         <span className="text-[10px] font-black text-[#4B3B7A] block mb-1">
-                          Bpk. Gunawan, M.Pd. (Wali Kelas)
+                          {note.receiverName || targetTeacher?.name || "Wali Kelas"}
                         </span>
 
                         <p className="break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap leading-relaxed select-text text-[#2D2152]">
@@ -286,7 +309,7 @@ export default function ParentChatPage() {
                 <div className="clay-pill bg-[#E6F5EE] border border-[#C7EAD9] text-[#1D5E4D] py-1.5 px-3 rounded-full text-[10px] font-bold flex items-center justify-center gap-1.5 shadow-2xs mx-auto animate-in fade-in max-w-fit">
                   <CheckCircle2 className="w-3.5 h-3.5 text-[#1D5E4D] shrink-0" />
                   <span>
-                    Sistem EduFlow: <strong>{ackNotice.ackCode}</strong> terkonfirmasi • Diteruskan ke Wali Kelas
+                    Sistem EduAdapt: <strong>{ackNotice.ackCode}</strong> terkonfirmasi • Diteruskan ke Wali Kelas
                   </span>
                 </div>
               )}
@@ -295,14 +318,14 @@ export default function ParentChatPage() {
               {isWaitingResponse && (
                 <div className="flex gap-2.5 max-w-[85%] self-start min-w-0 animate-in fade-in">
                   <div className="w-8 h-8 rounded-2xl bg-[#E0DAF5] text-[#4B3B7A] font-black text-xs flex items-center justify-center shrink-0 shadow-xs border border-white">
-                    GW
+                    {targetTeacher?.avatar || "GR"}
                   </div>
 
                   {!isTeacherTyping ? (
                     <div className="clay-card bg-[#F4F1FA] border border-[#E3DBF8] p-3 rounded-2xl flex items-center gap-2 shadow-2xs animate-pulse">
                       <Clock className="w-3.5 h-3.5 text-[#4B3B7A] shrink-0" />
                       <span className="text-xs text-[#4B3B7A] font-bold">
-                        Menunggu respon dari Bpk. Gunawan, M.Pd...
+                        Menunggu respon dari {targetTeacher?.name || "Wali Kelas"}...
                       </span>
                     </div>
                   ) : (
@@ -311,7 +334,7 @@ export default function ParentChatPage() {
                       <div className="w-2 h-2 rounded-full bg-[#4B3B7A] animate-bounce [animation-delay:0.2s]"></div>
                       <div className="w-2 h-2 rounded-full bg-[#4B3B7A] animate-bounce [animation-delay:0.4s]"></div>
                       <span className="text-xs text-[#5A5E70] font-bold ml-1">
-                        Bpk. Gunawan sedang mengetik balasan...
+                        {targetTeacher?.name || "Guru"} sedang mengetik balasan...
                       </span>
                     </div>
                   )}

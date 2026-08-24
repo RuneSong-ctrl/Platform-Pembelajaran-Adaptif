@@ -21,13 +21,32 @@ export default function ParentPortalPage() {
     learningSchedules,
     selectedParentChildId,
     setSelectedParentChildId,
+    documents,
+    tasks,
+    classrooms,
+    credentials,
   } = useApp();
 
   const [mobileTab, setMobileTab] = useState<"overview" | "consultation">("overview");
 
   const studentChildren = users.filter((u) => u.role === "SISWA");
   const selectedChild =
-    studentChildren.find((u) => u.id === selectedParentChildId) || studentChildren[0] || users[0];
+    studentChildren.find((u) => u.id === selectedParentChildId) ||
+    studentChildren[0] ||
+    users[0] || {
+      id: "guest",
+      name: "Siswa",
+      role: "SISWA",
+      grade: 10,
+      avatar: "SW",
+      learningStyle: "VISUAL",
+      modalityScores: { visual: 0, audio: 0, practice: 0 },
+      processingSpeed: "MODERATE",
+      xpTotal: 0,
+      streakDays: 0,
+      hearts: 5,
+      currentDDALevel: "BASIC",
+    };
 
   // Notes related to this child
   const childNotes = notes
@@ -40,6 +59,24 @@ export default function ParentPortalPage() {
   const childSchedules = learningSchedules.filter(
     (s) => s.studentId === selectedChild.id
   );
+
+  const childCredentials = credentials.filter((c) => c.studentId === selectedChild.id);
+  const childTasks = tasks.filter((t) =>
+    classrooms.some((c) => c.id === t.classroomId && c.studentIds?.includes(selectedChild.id))
+  );
+
+  const activeTopic =
+    childCredentials[0]?.competencyTitle ||
+    childTasks[0]?.title ||
+    documents[0]?.title ||
+    "Modul Kurikulum Mandiri";
+
+  const ddaAccuracy =
+    childCredentials.length > 0
+      ? Math.round(childCredentials.reduce((a, b) => a + b.score, 0) / childCredentials.length)
+      : selectedChild.currentDDALevel === "MASTERY"
+      ? 90
+      : 82;
 
   return (
     <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] pb-16 relative overflow-hidden">
@@ -127,7 +164,7 @@ export default function ParentPortalPage() {
           </div>
 
           <p className="text-xs text-[#082921] font-medium leading-relaxed bg-white/70 p-3 sm:p-4 rounded-2xl border border-white">
-            Minggu ini, <strong>{selectedChild.name}</strong> menunjukkan penguasaan sangat baik pada topik <em>Fisiologi Sistem Pencernaan &amp; Enzim</em> dengan akurasi kuis adaptif DDA <strong>82%</strong> dan modalitas dominan <strong>Visual ({selectedChild.modalityScores?.visual || 80}%)</strong>. Rekomendasi: Berikan apresiasi atas konsistensi belajar mandiri selama {selectedChild.streakDays || 14} hari berturut-turut.
+            Minggu ini, <strong>{selectedChild.name}</strong> menunjukkan penguasaan sangat baik pada topik <em>{activeTopic}</em> dengan akurasi asesmen adaptif DDA <strong>{ddaAccuracy}%</strong> dan modalitas dominan <strong>{selectedChild.learningStyle || "Visual"} ({selectedChild.modalityScores?.visual || 80}%)</strong>. Rekomendasi: Berikan apresiasi atas konsistensi belajar mandiri selama {selectedChild.streakDays || 14} hari berturut-turut.
           </p>
         </div>
 

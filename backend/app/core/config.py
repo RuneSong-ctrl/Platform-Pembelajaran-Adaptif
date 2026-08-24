@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     ]
     
     GENESIS_PREVIOUS_HASH: str = "0000000000000000000000000000000000000000000000000000000000000000"
+
+    # Google Gemini AI Configuration
+    GEMINI_API_KEY: str = ""
+    GEMINI_CHAT_MODEL: str = "gemini-2.0-flash"
+    GEMINI_EMBEDDING_MODEL: str = "text-embedding-004"
+    AI_RATE_LIMIT_PER_MINUTE: int = 20
+    AI_CACHE_TTL_SECONDS: int = 86400
 
     model_config = SettingsConfigDict(case_sensitive=True, env_file=".env", extra="ignore")
 

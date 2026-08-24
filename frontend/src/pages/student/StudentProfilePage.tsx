@@ -46,14 +46,16 @@ export default function StudentProfilePage() {
   const [saveSuccessMsg, setSaveSuccessMsg] = useState("");
 
   // Avatar Upload State
-  const [previewAvatar, setPreviewAvatar] = useState(currentUser.avatar || "AL");
+  const [previewAvatar, setPreviewAvatar] = useState(
+    currentUser.avatar || currentUser.name?.slice(0, 2).toUpperCase() || "ST"
+  );
 
-  const avatarPresets = ["AL", "BP", "CD", "RN", "SK", "DY", "MA", "KZ"];
+  const avatarPresets = ["ST", "ED", "ID", "AK", "RN", "SK", "DY", "MA"];
 
   const scores = currentUser.modalityScores || {
-    visual: 82,
-    audio: 45,
-    practice: 55,
+    visual: 0,
+    audio: 0,
+    practice: 0,
   };
 
   const style = currentUser.learningStyle || "VISUAL";

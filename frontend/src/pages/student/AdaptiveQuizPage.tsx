@@ -39,9 +39,15 @@ import {
 
 export default function AdaptiveQuizPage() {
   const navigate = useNavigate();
-  const { currentUser, tasks, credentials, mintNewCredential } = useApp();
+  const { currentUser, tasks, classrooms, credentials, mintCredential } = useApp();
 
-  const quizTask = tasks.find((t) => t.type === "quiz") || tasks[0];
+  const myClassrooms = classrooms.filter((c) =>
+    Boolean(currentUser?.id && c.studentIds?.includes(currentUser.id))
+  );
+  const quizTask =
+    tasks.find((t) => myClassrooms.some((c) => c.id === t.classroomId) && t.type === "quiz") ||
+    tasks.find((t) => t.type === "quiz") ||
+    tasks[0];
   const allQuestions = quizTask?.contentJson?.questions || [];
 
   const [ddaState, setDdaState] = useState<DDAState>(createInitialDDAState("BASIC"));
@@ -62,11 +68,11 @@ export default function AdaptiveQuizPage() {
 
   const activeQuestion =
     allQuestions.find((q) => q.difficulty === ddaState.currentLevel) ||
-    allQuestions[currentQuestionIndex % allQuestions.length];
+    allQuestions[currentQuestionIndex % (allQuestions.length || 1)];
 
   // Start question timer
   useEffect(() => {
-    if (isQuizFinished || isAnswerSubmitted) return;
+    if (isQuizFinished || isAnswerSubmitted || allQuestions.length === 0) return;
 
     setSecondsLeft(30);
     questionStartTimeRef.current = Date.now();
@@ -85,10 +91,10 @@ export default function AdaptiveQuizPage() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [currentQuestionIndex, isQuizFinished, isAnswerSubmitted, ddaState.currentLevel]);
+  }, [currentQuestionIndex, isQuizFinished, isAnswerSubmitted, ddaState.currentLevel, allQuestions.length]);
 
   const handleAnswer = (optionIdx: number | null, isTimeout = false) => {
-    if (isAnswerSubmitted) return;
+    if (isAnswerSubmitted || !activeQuestion) return;
 
     if (timerRef.current) clearInterval(timerRef.current);
     const timeSpent = (Date.now() - questionStartTimeRef.current) / 1000;
@@ -122,7 +128,7 @@ export default function AdaptiveQuizPage() {
   const handleNextQuestion = () => {
     audioSynth.playClickSound();
 
-    if (ddaState.history.length >= 4) {
+    if (ddaState.history.length >= Math.min(4, allQuestions.length)) {
       finishQuiz();
     } else {
       setIsAnswerSubmitted(false);
@@ -140,48 +146,71 @@ export default function AdaptiveQuizPage() {
 
     if (accuracy >= 50) {
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-
-      const lastBlock = credentials.length > 0 ? credentials[credentials.length - 1] : undefined;
-      const nextBlockIndex = (lastBlock?.blockIndex || 0) + 1;
-      const prevHash = lastBlock?.blockHash || GENESIS_BLOCK_HASH;
-      const certId = `KOG-2026-BIO-X${Math.floor(100 + Math.random() * 900)}`;
-      const timestamp = new Date().toISOString();
       const score = Math.max(accuracy, 85);
+      const targetClassId = quizTask?.classroomId || myClassrooms[0]?.id || "cls_bio_10a";
+      const competencyTitle = `Penguasaan ${quizTask?.chapter || quizTask?.title || "Materi Pembelajaran"} (Level ${ddaState.currentLevel})`;
 
-      const blockHash = await generateBlockHash(
-        nextBlockIndex,
-        prevHash,
-        currentUser.id,
-        certId,
-        score,
-        timestamp
-      );
-
-      const txId = await generateTransactionId(blockHash, certId);
-
-      const newCert: BlockchainCredential = {
-        id: `cred_${Date.now()}`,
-        certificateId: certId,
-        studentId: currentUser.id,
-        studentName: currentUser.name,
-        classroomId: "cls_bio_10a",
-        className: "Biologi Kelas 10-A",
-        competencyTitle: `Penguasaan Konseptual Sistem Pencernaan (Level ${ddaState.currentLevel})`,
-        score,
-        blockIndex: nextBlockIndex,
-        previousHash: prevHash,
-        blockHash,
-        transactionId: txId,
-        verifiedBy: "Universitas Udayana & Riset Fundamental HPF",
-        issuedAt: timestamp,
-      };
-
-      mintNewCredential(newCert);
-      setMintedCertId(certId);
+      try {
+        const newCert = await mintCredential(currentUser.id, targetClassId, competencyTitle, score);
+        setMintedCertId(newCert.certificateId);
+      } catch (err) {
+        console.warn("Mint credential offline fallback", err);
+      }
     }
   };
 
   const streak = ddaState.consecutiveCorrect;
+
+  if (allQuestions.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#FBF9F4] text-[#1B1C19] pb-24">
+        <Navbar />
+        <main className="max-w-2xl mx-auto px-4 pt-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <Link
+              to="/student"
+              onClick={() => audioSynth.playClickSound()}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[rgba(28,30,38,0.08)] shadow-[0_4px_12px_rgba(28,30,38,0.04)] text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] hover:bg-[#F2EFFC] transition-all cursor-pointer group"
+            >
+              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+              <span>Kembali ke Beranda</span>
+            </Link>
+          </div>
+
+          <div className="clay-card clay-white p-8 sm:p-12 rounded-3xl border border-black/5 text-center space-y-4 shadow-xs">
+            <div className="w-16 h-16 rounded-2xl bg-[#FFF4DC] text-[#785308] flex items-center justify-center mx-auto shadow-2xs">
+              <Sparkles className="w-8 h-8" />
+            </div>
+            <div className="max-w-md mx-auto space-y-1.5">
+              <h2 className="text-lg sm:text-xl font-black text-[#1C1E26]">
+                Belum Ada Kuis Aktif dari Guru
+              </h2>
+              <p className="text-xs sm:text-sm text-[#595F72] leading-relaxed">
+                Guru di kelasmu belum menerbitkan kuis adaptif DDA untuk modul ini. Guru dapat menyusun kuis otomatis menggunakan AI Generator Studio di Portal Guru.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
+              <Link
+                to="/student/class"
+                onClick={() => audioSynth.playClickSound()}
+                className="clay-btn clay-btn-dark px-5 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 cursor-pointer shadow-xs"
+              >
+                <span>Cek Ruang Kelas</span>
+              </Link>
+              <Link
+                to="/student/ai"
+                onClick={() => audioSynth.playClickSound()}
+                className="clay-btn clay-btn-white px-5 py-2.5 rounded-2xl text-xs font-bold text-[#1C1E26] flex items-center gap-2 cursor-pointer shadow-2xs"
+              >
+                <span>Diskusi Bersama AI Tutor</span>
+              </Link>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FBF9F4] text-[#1B1C19] pb-24">

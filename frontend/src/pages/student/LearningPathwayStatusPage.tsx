@@ -25,43 +25,47 @@ import {
 
 export default function LearningPathwayStatusPage() {
   const navigate = useNavigate();
-  const { currentUser } = useApp();
+  const { currentUser, credentials, tasks, documents, classrooms } = useApp();
   const [timeFilter, setTimeFilter] = useState<"Weekly" | "Monthly" | "Yearly">("Weekly");
 
   const style = currentUser.learningStyle || "VISUAL";
+  const myCreds = credentials.filter((c) => c.studentId === currentUser.id);
 
-  // Dynamic metrics per time filter
-  const getFilterData = () => {
-    switch (timeFilter) {
-      case "Monthly":
-        return {
-          achieved: 48,
-          score: 850,
-          studyHours: "14.5 Jam",
-          accuracy: "86%",
-          xpGained: "+1,250 XP",
-        };
-      case "Yearly":
-        return {
-          achieved: 156,
-          score: 3200,
-          studyHours: "58.2 Jam",
-          accuracy: "89%",
-          xpGained: "+4,800 XP",
-        };
-      case "Weekly":
-      default:
-        return {
-          achieved: 12,
-          score: 200,
-          studyHours: "3.5 Jam",
-          accuracy: "82%",
-          xpGained: "+350 XP",
-        };
-    }
+  const now = new Date();
+  const filteredCreds = myCreds.filter((c) => {
+    if (!c.issuedAt) return true;
+    const issueDate = new Date(c.issuedAt);
+    const diffDays = (now.getTime() - issueDate.getTime()) / (1000 * 3600 * 24);
+    if (timeFilter === "Weekly") return diffDays <= 7;
+    if (timeFilter === "Monthly") return diffDays <= 30;
+    return true; // Yearly
+  });
+
+  // Dynamic metrics computed from real user data
+  const achieved = filteredCreds.length;
+  const totalCredScore = filteredCreds.reduce((acc, c) => acc + (c.score || 0), 0);
+  const score = totalCredScore > 0 ? totalCredScore : (currentUser.xpTotal || 0);
+  const avgAcc = filteredCreds.length > 0
+    ? Math.round(totalCredScore / filteredCreds.length)
+    : 0;
+  const accuracyStr = `${avgAcc}%`;
+  const studyHours = filteredCreds.length > 0 ? `${(filteredCreds.length * 0.5).toFixed(1)} Jam` : "0 Jam";
+  const xpGained = `+${currentUser.xpTotal || totalCredScore || 0} XP`;
+
+  const data = {
+    achieved,
+    score,
+    studyHours,
+    accuracy: accuracyStr,
+    xpGained,
   };
 
-  const data = getFilterData();
+  const myClassrooms = classrooms.filter((c) =>
+    Boolean(currentUser?.id && c.studentIds?.includes(currentUser.id))
+  );
+  const activeDocs = documents.filter((d) =>
+    myClassrooms.some((c) => c.id === d.classroomId)
+  );
 
   return (
     <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8">
@@ -238,61 +242,50 @@ export default function LearningPathwayStatusPage() {
                 </div>
               </div>
               <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D]">
-                Visual Score: 92%
+                Visual Score: {avgAcc}%
               </span>
             </div>
 
             {/* Visual Bar Distribution Chart */}
             <div className="space-y-3 pt-1">
-              <div>
-                <div className="flex justify-between text-xs font-bold text-[#010105] mb-1">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#1D5E4D]"></span>
-                    Bagan Anatomi Saluran Cerna
-                  </span>
-                  <span className="text-[#1D5E4D]">94% (Sangat Baik)</span>
-                </div>
-                <div className="w-full bg-[#EBF6F2] h-3 rounded-full overflow-hidden">
-                  <div className="bg-[#1D5E4D] h-full rounded-full w-[94%] transition-all duration-500"></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-bold text-[#010105] mb-1">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#21518A]"></span>
-                    Peta Visual Reaksi Enzimatis
-                  </span>
-                  <span className="text-[#21518A]">88% (Baik)</span>
-                </div>
-                <div className="w-full bg-[#EBF6F2] h-3 rounded-full overflow-hidden">
-                  <div className="bg-[#21518A] h-full rounded-full w-[88%] transition-all duration-500"></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-bold text-[#010105] mb-1">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#4B3B7A]"></span>
-                    Diagram Penyerapan Vili Ileum
-                  </span>
-                  <span className="text-[#4B3B7A]">76% (Perlu Penguatan)</span>
-                </div>
-                <div className="w-full bg-[#EBF6F2] h-3 rounded-full overflow-hidden">
-                  <div className="bg-[#4B3B7A] h-full rounded-full w-[76%] transition-all duration-500"></div>
-                </div>
-              </div>
+              {myCreds.length === 0 ? (
+                <p className="text-xs text-[#9195A8] py-4 text-center">
+                  Belum ada kompetensi yang diselesaikan. Mulai kerjakan tugas/kuis untuk melihat distribusi penguasaan visual.
+                </p>
+              ) : (
+                myCreds.map((cred, idx) => (
+                  <div key={cred.id || idx}>
+                    <div className="flex justify-between text-xs font-bold text-[#010105] mb-1">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#1D5E4D]"></span>
+                        {cred.competencyTitle || "Kompetensi Pembelajaran"}
+                      </span>
+                      <span className="text-[#1D5E4D]">
+                        {cred.score}% ({cred.score >= 85 ? "Mastery" : cred.score >= 70 ? "Challenging" : "Basic"})
+                      </span>
+                    </div>
+                    <div className="w-full bg-[#EBF6F2] h-3 rounded-full overflow-hidden">
+                      <div
+                        className="bg-[#1D5E4D] h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, Math.max(10, cred.score))}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Visual Metric Highlights */}
             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[rgba(28,30,38,0.06)] text-[11px]">
               <div className="p-2.5 rounded-xl bg-[#F8F9FD] border border-[rgba(28,30,38,0.04)]">
                 <span className="text-[#5A5E70] block">Retensi Pola Spasial</span>
-                <span className="font-extrabold text-[#010105] text-xs">92% Indeks Visual</span>
+                <span className="font-extrabold text-[#010105] text-xs">{avgAcc}% Indeks Visual</span>
               </div>
               <div className="p-2.5 rounded-xl bg-[#F8F9FD] border border-[rgba(28,30,38,0.04)]">
                 <span className="text-[#5A5E70] block">Kecepatan Pindai Diagram</span>
-                <span className="font-extrabold text-[#1D5E4D] text-xs">1.8 Detik / Node</span>
+                <span className="font-extrabold text-[#1D5E4D] text-xs">
+                  {currentUser.processingSpeed === "FAST" ? "1.5 Detik / Node" : "2.4 Detik / Node"}
+                </span>
               </div>
             </div>
           </section>
@@ -315,63 +308,46 @@ export default function LearningPathwayStatusPage() {
                 </div>
               </div>
               <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#E3DBF8] text-[#4B3B7A]">
-                Audio Score: 88%
+                Audio Score: {avgAcc}%
               </span>
-            </div>
-
-            {/* Audio Waveform Spectrum Simulation */}
-            <div className="p-4 rounded-2xl bg-[#2D2152] text-white space-y-2">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-bold flex items-center gap-1.5">
-                  <Volume2 className="w-3.5 h-3.5 text-[#FEE7B3]" />
-                  Spektrum Frekuensi Belajar Podcast
-                </span>
-                <span className="text-[#E3DBF8] text-[10px]">3 Episode Selesai</span>
-              </div>
-
-              {/* Dynamic Waveform Bars */}
-              <div className="flex items-end justify-between gap-1 h-12 pt-2">
-                {[40, 65, 85, 95, 70, 50, 80, 90, 60, 75, 90, 85, 55, 70, 95, 80, 65, 45, 60, 75].map((h, i) => (
-                  <div
-                    key={i}
-                    className="w-full bg-[#E3DBF8] rounded-t-sm transition-all duration-300"
-                    style={{ height: `${h}%`, opacity: h > 70 ? 1 : 0.6 }}
-                  ></div>
-                ))}
-              </div>
             </div>
 
             {/* Audio Breakdown Metrics */}
             <div className="space-y-2.5 pt-1">
-              <div>
-                <div className="flex justify-between text-xs font-bold text-[#010105] mb-1">
-                  <span>Retensi Narasi Podcast Bab 3</span>
-                  <span className="text-[#4B3B7A]">91% (Sangat Tinggi)</span>
-                </div>
-                <div className="w-full bg-[#F2EFFC] h-2.5 rounded-full overflow-hidden">
-                  <div className="bg-[#4B3B7A] h-full rounded-full w-[91%]"></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-bold text-[#010105] mb-1">
-                  <span>Pemahaman Ringkasan Suara (TTS)</span>
-                  <span className="text-[#4B3B7A]">85% (Baik)</span>
-                </div>
-                <div className="w-full bg-[#F2EFFC] h-2.5 rounded-full overflow-hidden">
-                  <div className="bg-[#4B3B7A] h-full rounded-full w-[85%]"></div>
-                </div>
-              </div>
+              {myCreds.length === 0 ? (
+                <p className="text-xs text-[#9195A8] py-4 text-center">
+                  Belum ada rekaman audio selesai. Dengarkan podcast modul untuk mengukur retensi narasi.
+                </p>
+              ) : (
+                myCreds.map((cred, idx) => (
+                  <div key={cred.id || idx}>
+                    <div className="flex justify-between text-xs font-bold text-[#010105] mb-1">
+                      <span>{cred.competencyTitle}</span>
+                      <span className="text-[#4B3B7A]">
+                        {cred.score}% ({cred.score >= 85 ? "Mastery" : cred.score >= 70 ? "Challenging" : "Basic"})
+                      </span>
+                    </div>
+                    <div className="w-full bg-[#F2EFFC] h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-[#4B3B7A] h-full rounded-full"
+                        style={{ width: `${Math.min(100, cred.score)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[rgba(28,30,38,0.06)] text-[11px]">
               <div className="p-2.5 rounded-xl bg-[#F8F9FD] border border-[rgba(28,30,38,0.04)]">
                 <span className="text-[#5A5E70] block">Total Durasi Dengar</span>
-                <span className="font-extrabold text-[#4B3B7A] text-xs">48.5 Menit</span>
+                <span className="font-extrabold text-[#4B3B7A] text-xs">{studyHours}</span>
               </div>
               <div className="p-2.5 rounded-xl bg-[#F8F9FD] border border-[rgba(28,30,38,0.04)]">
                 <span className="text-[#5A5E70] block">Efektivitas Audio</span>
-                <span className="font-extrabold text-[#1D5E4D] text-xs">Tinggi (+18% Recall)</span>
+                <span className="font-extrabold text-[#1D5E4D] text-xs">
+                  {myCreds.length > 0 ? "Tinggi (Optimal)" : "Belum Dievaluasi"}
+                </span>
               </div>
             </div>
           </section>
@@ -394,41 +370,48 @@ export default function LearningPathwayStatusPage() {
                 </div>
               </div>
               <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#FEE7B3] text-[#785308]">
-                Lab Score: 90%
+                Lab Score: {avgAcc}%
               </span>
             </div>
 
             {/* Lab Simulation Accuracy Breakdown */}
             <div className="space-y-3 pt-1">
-              <div>
-                <div className="flex justify-between text-xs font-bold text-[#010105] mb-1">
-                  <span>Akurasi Pasang Molekul Enzim-Substrat</span>
-                  <span className="text-[#785308]">95% (Akurat)</span>
-                </div>
-                <div className="w-full bg-[#FFF9EE] h-3 rounded-full overflow-hidden">
-                  <div className="bg-[#785308] h-full rounded-full w-[95%]"></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-bold text-[#010105] mb-1">
-                  <span>Penyelesaian Studi Kasus Lab Virtual</span>
-                  <span className="text-[#785308]">86% (Mandiri)</span>
-                </div>
-                <div className="w-full bg-[#FFF9EE] h-3 rounded-full overflow-hidden">
-                  <div className="bg-[#785308] h-full rounded-full w-[86%]"></div>
-                </div>
-              </div>
+              {myCreds.length === 0 ? (
+                <p className="text-xs text-[#9195A8] py-4 text-center">
+                  Belum ada simulasi lab diselesaikan. Lakukan eksperimen praktis untuk merekam akurasi kinestetik.
+                </p>
+              ) : (
+                myCreds.map((cred, idx) => (
+                  <div key={cred.id || idx}>
+                    <div className="flex justify-between text-xs font-bold text-[#010105] mb-1">
+                      <span>{cred.competencyTitle}</span>
+                      <span className="text-[#785308]">
+                        {cred.score}% ({cred.score >= 85 ? "Mastery" : cred.score >= 70 ? "Challenging" : "Basic"})
+                      </span>
+                    </div>
+                    <div className="w-full bg-[#FFF9EE] h-3 rounded-full overflow-hidden">
+                      <div
+                        className="bg-[#785308] h-full rounded-full"
+                        style={{ width: `${Math.min(100, cred.score)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[rgba(28,30,38,0.06)] text-[11px]">
               <div className="p-2.5 rounded-xl bg-[#F8F9FD] border border-[rgba(28,30,38,0.04)]">
                 <span className="text-[#5A5E70] block">Rata-rata Waktu Misi</span>
-                <span className="font-extrabold text-[#010105] text-xs">3.4 Menit / Lab</span>
+                <span className="font-extrabold text-[#010105] text-xs">
+                  {myCreds.length > 0 ? "3.0 Menit / Lab" : "0 Menit"}
+                </span>
               </div>
               <div className="p-2.5 rounded-xl bg-[#F8F9FD] border border-[rgba(28,30,38,0.04)]">
                 <span className="text-[#5A5E70] block">Indeks Interaktif</span>
-                <span className="font-extrabold text-[#785308] text-xs">96% Sangat Aktif</span>
+                <span className="font-extrabold text-[#785308] text-xs">
+                  {myCreds.length > 0 ? "Sangat Aktif" : "Menunggu Eksplorasi"}
+                </span>
               </div>
             </div>
           </section>

@@ -3,7 +3,7 @@ import { Routes, Route } from "react-router-dom";
 
 // Modular Pages by Role
 import {
-  LandingPage,
+  AuthGatePage,
   PublicVerifyPage,
   NotFoundPage,
   StudentHomePage,
@@ -23,34 +23,155 @@ import {
   ParentPortalPage,
   ParentChatPage,
 } from "@/pages";
+import ProtectedRoute from "./components/common/ProtectedRoute";
 import PWAInstallPrompt from "./components/common/PWAInstallPrompt";
 
 export default function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/student" element={<StudentHomePage />} />
-        <Route path="/student/learn" element={<AdaptiveLearnPage />} />
-        <Route path="/student/ai" element={<StudentAIPage />} />
-        <Route path="/student/class" element={<StudentClassPage />} />
-        <Route path="/student/profile" element={<StudentProfilePage />} />
-        <Route path="/student/status" element={<LearningPathwayStatusPage />} />
-        <Route path="/student/schedule" element={<StudentSchedulePage />} />
-        <Route path="/assessment" element={<AssessmentPage />} />
-        <Route path="/quiz" element={<AdaptiveQuizPage />} />
-        <Route path="/passport" element={<StudentPassportPage />} />
-        <Route path="/teacher" element={<TeacherDashboardPage />} />
-        <Route path="/teacher/gradebook" element={<GradebookPage />} />
-        <Route path="/teacher/quiz-generator" element={<QuizStudioPage />} />
-        <Route path="/teacher/rag" element={<TeacherRAGPage />} />
-        <Route path="/parent" element={<ParentPortalPage />} />
-        <Route path="/parent/chat" element={<ParentChatPage />} />
+        {/* Public Routes */}
+        <Route path="/" element={<AuthGatePage />} />
         <Route path="/verify" element={<PublicVerifyPage />} />
+
+        {/* Protected Student Routes */}
+        <Route
+          path="/assessment"
+          element={
+            <ProtectedRoute allowedRoles={["SISWA"]} requireAssessment={false}>
+              <AssessmentPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student"
+          element={
+            <ProtectedRoute allowedRoles={["SISWA"]}>
+              <StudentHomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/learn"
+          element={
+            <ProtectedRoute allowedRoles={["SISWA"]}>
+              <AdaptiveLearnPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/ai"
+          element={
+            <ProtectedRoute allowedRoles={["SISWA"]}>
+              <StudentAIPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/class"
+          element={
+            <ProtectedRoute allowedRoles={["SISWA"]}>
+              <StudentClassPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/profile"
+          element={
+            <ProtectedRoute allowedRoles={["SISWA"]}>
+              <StudentProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/status"
+          element={
+            <ProtectedRoute allowedRoles={["SISWA"]}>
+              <LearningPathwayStatusPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/schedule"
+          element={
+            <ProtectedRoute allowedRoles={["SISWA"]}>
+              <StudentSchedulePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quiz"
+          element={
+            <ProtectedRoute allowedRoles={["SISWA"]}>
+              <AdaptiveQuizPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/passport"
+          element={
+            <ProtectedRoute allowedRoles={["SISWA"]}>
+              <StudentPassportPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Protected Teacher Routes */}
+        <Route
+          path="/teacher"
+          element={
+            <ProtectedRoute allowedRoles={["GURU"]}>
+              <TeacherDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/gradebook"
+          element={
+            <ProtectedRoute allowedRoles={["GURU"]}>
+              <GradebookPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/quiz-generator"
+          element={
+            <ProtectedRoute allowedRoles={["GURU"]}>
+              <QuizStudioPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/rag"
+          element={
+            <ProtectedRoute allowedRoles={["GURU"]}>
+              <TeacherRAGPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Protected Parent Routes */}
+        <Route
+          path="/parent"
+          element={
+            <ProtectedRoute allowedRoles={["ORTU"]}>
+              <ParentPortalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/parent/chat"
+          element={
+            <ProtectedRoute allowedRoles={["ORTU"]}>
+              <ParentChatPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Catch-all 404 Route */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
       <PWAInstallPrompt />
     </>
   );
 }
-

@@ -20,13 +20,26 @@ import {
   CheckCircle2,
   RotateCcw,
   Check,
+  School,
+  Bot,
 } from "@/components/ui/icons";
 
 export default function AdaptiveLearnPage() {
   const navigate = useNavigate();
-  const { currentUser } = useApp();
+  const { currentUser, documents, classrooms } = useApp();
 
   const style = currentUser.learningStyle || "VISUAL";
+
+  // Find student's enrolled classrooms
+  const myClassrooms = classrooms.filter((c) =>
+    Boolean(currentUser?.id && c.studentIds?.includes(currentUser.id))
+  );
+  // Active document from enrolled classroom or global first document
+  const activeDoc =
+    documents.find((d) => myClassrooms.some((c) => c.id === d.classroomId)) ||
+    documents[0];
+
+  const activeClassroom = classrooms.find((c) => c.id === activeDoc?.classroomId);
 
   // Audio Player State (Auditory student exclusive)
   const [isPlaying, setIsPlaying] = useState(false);
@@ -34,48 +47,52 @@ export default function AdaptiveLearnPage() {
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0);
   const [isSpeakingSummary, setIsSpeakingSummary] = useState(false);
 
-  const episodes = [
-    {
-      title: "Episode 1: Petualangan Menembus Saluran Cerna",
-      duration: "05:24",
-      audioUrl: "#",
-      transcript:
-        "Selamat datang di podcast modul biologi adaptif. Pada episode pertama ini, kita menelusuri rongga mulut. Di sini terjadi pencernaan mekanik oleh gigi dan pencernaan kimiawi oleh enzim ptialin (amilase saliva). Ptialin bekerja memotong rantai polisakarida amilum menjadi disakarida maltosa pada suasana pH netral 6.8 sebelum bolus makanan didorong melalui esofagus oleh gerak peristaltik.",
-    },
-    {
-      title: "Episode 2: Rahasia Asam Lambung & Enzim Pepsin",
-      duration: "06:12",
-      audioUrl: "#",
-      transcript:
-        "Memasuki lambung (ventrikulus), dinding lambung menghasilkan asam klorida (HCl) berkonsentrasi tinggi dengan pH 1.5 hingga 2.0. Keasaman ekstrem ini mengaktifkan enzim pepsinogen menjadi enzim pepsin aktif untuk memecah ikatan peptida protein menjadi pepton, sekaligus mensterilkan makanan dari bakteri patogen.",
-    },
-    {
-      title: "Episode 3: Labirin Penyerapan Sari Makanan di Usus Halus",
-      duration: "07:45",
-      audioUrl: "#",
-      transcript:
-        "Di usus halus, kimus asam dinetralkan oleh natrium bikarbonat dari pankreas di duodenum. Enzim tripsin, amilase pankreas, dan lipase bekerja tuntas. Selanjutnya pada ileum, miliaran vili dan mikrovili memperluas area permukaan serap nutrisi hingga 200 meter persegi, mengalirkan asam amino dan glukosa ke pembuluh kapiler darah serta asam lemak ke pembuluh kil.",
-    },
-  ];
+  // Derive dynamic sections/chunks from document raw text
+  const docParagraphs = (activeDoc?.rawText || "")
+    .split(/\n\n|\.\s+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 15);
 
-  // Kinesthetic Drag-and-drop Simulation State (Kinesthetic student exclusive)
+  const dynamicEpisodes =
+    docParagraphs.length > 0
+      ? docParagraphs.slice(0, 4).map((p, idx) => ({
+          title: `Bagian ${idx + 1}: ${p.slice(0, 45)}...`,
+          duration: `0${Math.min(9, Math.max(2, Math.ceil(p.length / 50)))}:${String(
+            (idx * 17 + 24) % 60
+          ).padStart(2, "0")}`,
+          transcript: p,
+        }))
+      : [
+          {
+            title: "Bagian 1: Ringkasan Modul Pembelajaran",
+            duration: "03:15",
+            transcript: activeDoc?.summary || activeDoc?.rawText || "Materi pembelajaran adaptif.",
+          },
+        ];
+
+  // Kinesthetic interactive concept matching
   const [matchedItems, setMatchedItems] = useState<{ [itemId: string]: string }>({});
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [simulationCompleted, setSimulationCompleted] = useState(false);
 
-  const simulationItems = [
-    { id: "item_ptialin", name: "Enzim Ptialin (Amilase)", targetZone: "zone_mulut", label: "Ptialin" },
-    { id: "item_pepsin", name: "Pepsin & Asam HCl (pH 1.5)", targetZone: "zone_lambung", label: "Pepsin + HCl" },
-    { id: "item_tripsin", name: "Tripsin & Enzim Lipase", targetZone: "zone_duodenum", label: "Tripsin & Lipase" },
-    { id: "item_absorpsi", name: "Vili Penyerapan Nutrisi", targetZone: "zone_ileum", label: "Vili Ileum" },
-  ];
+  const simulationItems =
+    docParagraphs.length >= 2
+      ? docParagraphs.slice(0, 4).map((p, idx) => ({
+          id: `item_${idx}`,
+          name: `Konsep ${idx + 1}: ${p.slice(0, 35)}...`,
+          targetZone: `zone_${idx}`,
+          label: `K-0${idx + 1}`,
+        }))
+      : [
+          { id: "item_0", name: "Pemahaman Inti Materi", targetZone: "zone_0", label: "Konsep 1" },
+          { id: "item_1", name: "Aplikasi Skenario Masalah", targetZone: "zone_1", label: "Konsep 2" },
+        ];
 
-  const simulationZones = [
-    { id: "zone_mulut", name: "1. Rongga Mulut", desc: "Pencernaan amilum netral" },
-    { id: "zone_lambung", name: "2. Lambung", desc: "Pencernaan protein asam" },
-    { id: "zone_duodenum", name: "3. Usus 12 Jari", desc: "Netralisasi & hidrolisis lemak" },
-    { id: "zone_ileum", name: "4. Usus Halus", desc: "Penyerapan kapiler darah" },
-  ];
+  const simulationZones = simulationItems.map((item, idx) => ({
+    id: `zone_${idx}`,
+    name: `Langkah ${idx + 1}`,
+    desc: `Penerapan target analisis ${idx + 1}`,
+  }));
 
   const handleZoneClick = (zoneId: string) => {
     if (!selectedItem) return;
@@ -103,22 +120,33 @@ export default function AdaptiveLearnPage() {
 
   const handleToggleAudio = () => {
     audioSynth.playClickSound();
-    setIsPlaying(!isPlaying);
+    const ep = dynamicEpisodes[activeEpisode] || dynamicEpisodes[0];
+    if (ep) {
+      handleTTSRead(ep.transcript);
+    }
   };
 
   const handleTTSRead = (text: string) => {
     audioSynth.playClickSound();
     if ("speechSynthesis" in window) {
-      if (isSpeakingSummary) {
+      if (isSpeakingSummary || isPlaying) {
         window.speechSynthesis.cancel();
         setIsSpeakingSummary(false);
+        setIsPlaying(false);
       } else {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = "id-ID";
         utterance.rate = playbackSpeed;
-        utterance.onend = () => setIsSpeakingSummary(false);
-        utterance.onerror = () => setIsSpeakingSummary(false);
+        utterance.onend = () => {
+          setIsSpeakingSummary(false);
+          setIsPlaying(false);
+        };
+        utterance.onerror = () => {
+          setIsSpeakingSummary(false);
+          setIsPlaying(false);
+        };
         setIsSpeakingSummary(true);
+        setIsPlaying(true);
         window.speechSynthesis.speak(utterance);
       }
     }
@@ -132,487 +160,431 @@ export default function AdaptiveLearnPage() {
         <StudentSidebar />
 
         <main className="flex-1 w-full max-w-4xl lg:max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-4 sm:gap-6">
-        {/* Top Back Navigation */}
-        <div className="flex items-center justify-between">
-          <Link
-            to="/student"
-            onClick={() => audioSynth.playClickSound()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[rgba(28,30,38,0.08)] shadow-2xs text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] transition-all cursor-pointer group"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-            <span>Beranda Siswa</span>
-          </Link>
+          {/* Top Back Navigation */}
+          <div className="flex items-center justify-between">
+            <Link
+              to="/student"
+              onClick={() => audioSynth.playClickSound()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[rgba(28,30,38,0.08)] shadow-2xs text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] transition-all cursor-pointer group"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+              <span>Beranda Siswa</span>
+            </Link>
 
-          {/* Modalitas Eksklusif Pill */}
-          <span
-            className={`px-3 py-1 rounded-full text-[10px] font-extrabold flex items-center gap-1 shadow-2xs ${
-              style === "AUDITORI"
-                ? "bg-[#E3DBF8] text-[#4B3B7A]"
-                : style === "KINESTETIK"
-                ? "bg-[#FEE7B3] text-[#785308]"
-                : "bg-[#D1EBE1] text-[#1D5E4D]"
-            }`}
-          >
-            {style === "AUDITORI" && <Headphones className="w-3 h-3" />}
-            {style === "KINESTETIK" && <FlaskConical className="w-3 h-3" />}
-            {style === "VISUAL" && <Eye className="w-3 h-3" />}
-            <span>Materi Khusus {style === "AUDITORI" ? "Auditori" : style === "KINESTETIK" ? "Kinestetik" : "Visual"}</span>
-          </span>
-        </div>
-
-        {/* Header Topic Meta */}
-        <div>
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white text-[#1C1E26] border border-[rgba(28,30,38,0.08)]">
-              Biologi Kelas 10-A
-            </span>
-            <span className="text-[10px] font-mono font-bold text-[#5A5E70]">
-              BAB 3 • VEC-BIO-301
+            {/* Modalitas Eksklusif Pill */}
+            <span
+              className={`px-3 py-1 rounded-full text-[10px] font-extrabold flex items-center gap-1 shadow-2xs ${
+                style === "AUDITORI"
+                  ? "bg-[#E3DBF8] text-[#4B3B7A]"
+                  : style === "KINESTETIK"
+                  ? "bg-[#FEE7B3] text-[#785308]"
+                  : "bg-[#D1EBE1] text-[#1D5E4D]"
+              }`}
+            >
+              {style === "AUDITORI" && <Headphones className="w-3 h-3" />}
+              {style === "KINESTETIK" && <FlaskConical className="w-3 h-3" />}
+              {style === "VISUAL" && <Eye className="w-3 h-3" />}
+              <span>
+                Materi Khusus {style === "AUDITORI" ? "Auditori" : style === "KINESTETIK" ? "Kinestetik" : "Visual"}
+              </span>
             </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-[#010105]">
-            Fisiologi Sistem Pencernaan &amp; Enzim
-          </h1>
-          <p className="text-xs text-[#5A5E70] font-medium mt-0.5">
-            Materi kurikulum ter-grounding disajikan eksklusif sesuai profil kognitifmu.
-          </p>
-        </div>
 
-        {/* ========================================================= */}
-        {/* 1. VISUAL MODE EXCLUSIVE CONTENT                         */}
-        {/* ========================================================= */}
-        {style === "VISUAL" && (
-          <div className="space-y-4 animate-in fade-in duration-200">
-            {/* Visual Overview Card */}
-            <section className="clay-card clay-mint p-5 text-[#124B3D] space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#1D5E4D]/80 block">
-                    Peta Visual • Saluran Pencernaan
-                  </span>
-                  <h2 className="text-base sm:text-lg font-black text-[#082921] mt-0.5">
-                    Alur Pencernaan Makanan &amp; Sekresi Enzim
-                  </h2>
-                </div>
-                <div className="w-9 h-9 rounded-2xl bg-white/80 text-[#1D5E4D] flex items-center justify-center shrink-0">
-                  <Eye className="w-5 h-5" />
-                </div>
+          {!activeDoc ? (
+            /* CLEAN EMPTY STATE WHEN TEACHER HAS NOT ADDED MODULES */
+            <div className="clay-card clay-white p-8 sm:p-12 rounded-3xl border border-black/5 text-center space-y-4 shadow-xs my-auto">
+              <div className="w-16 h-16 rounded-2xl bg-[#EBF6F2] text-[#1D5E4D] flex items-center justify-center mx-auto shadow-2xs">
+                <BookOpen className="w-8 h-8" />
               </div>
-
-              {/* 4 Organ Sequential Visual Cards */}
-              <div className="grid grid-cols-2 gap-2.5 pt-1">
-                <div className="bg-white/85 p-3 rounded-2xl border border-[rgba(29,94,77,0.15)] shadow-xs">
-                  <span className="text-[10px] font-extrabold text-[#1D5E4D] uppercase block">
-                    1. Rongga Mulut
-                  </span>
-                  <p className="text-xs font-bold text-[#010105] mt-0.5">Enzim Ptialin</p>
-                  <p className="text-[10px] text-[#5A5E70] mt-0.5">Amilum ➔ Maltosa (pH 6.8)</p>
-                </div>
-
-                <div className="bg-white/85 p-3 rounded-2xl border border-[rgba(29,94,77,0.15)] shadow-xs">
-                  <span className="text-[10px] font-extrabold text-[#785308] uppercase block">
-                    2. Lambung
-                  </span>
-                  <p className="text-xs font-bold text-[#010105] mt-0.5">Pepsin + HCl</p>
-                  <p className="text-[10px] text-[#5A5E70] mt-0.5">Protein ➔ Pepton (pH 1.5)</p>
-                </div>
-
-                <div className="bg-white/85 p-3 rounded-2xl border border-[rgba(29,94,77,0.15)] shadow-xs">
-                  <span className="text-[10px] font-extrabold text-[#4B3B7A] uppercase block">
-                    3. Duodenum
-                  </span>
-                  <p className="text-xs font-bold text-[#010105] mt-0.5">Tripsin &amp; Lipase</p>
-                  <p className="text-[10px] text-[#5A5E70] mt-0.5">Pepton ➔ Asam Amino</p>
-                </div>
-
-                <div className="bg-white/85 p-3 rounded-2xl border border-[rgba(29,94,77,0.15)] shadow-xs">
-                  <span className="text-[10px] font-extrabold text-[#21518A] uppercase block">
-                    4. Ileum (Vili)
-                  </span>
-                  <p className="text-xs font-bold text-[#010105] mt-0.5">Absorpsi Nutrisi</p>
-                  <p className="text-[10px] text-[#5A5E70] mt-0.5">Kapiler Darah &amp; Limfa</p>
-                </div>
-              </div>
-            </section>
-
-            {/* Infografis Enzimatis Detail */}
-            <section className="clay-card p-5 space-y-3 bg-white">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl clay-card clay-mint flex items-center justify-center text-[#1D5E4D]">
-                  <BookOpen className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs sm:text-sm font-extrabold text-[#010105]">
-                    Infografis: Luas Permukaan Serap Vili Ileum
-                  </h3>
-                  <p className="text-[10px] text-[#5A5E70]">
-                    Kutipan Modul Guru: BAB 3 Hal. 25
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-[#EBF6F2] border border-[rgba(29,94,77,0.1)] text-xs text-[#1D5E4D] font-medium leading-relaxed">
-                Struktur lipatan vili dan mikrovili memperluas bidang kontak penyerapan hingga <strong>200 m²</strong> (setara luas lapangan tenis). Glukosa &amp; asam amino dialirkan ke kapiler darah vena porta hepatika, sedangkan asam lemak dan gliserol diserap oleh pembuluh limfa (lakteal/kil).
-              </div>
-            </section>
-
-            {/* AI Companion Visual Cue Card */}
-            <section className="clay-card clay-sky p-4 text-[#153A66] flex items-start gap-3">
-              <Sparkles className="w-5 h-5 text-[#21518A] shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-xs font-extrabold text-[#21518A]">
-                  Petunjuk Visual AI Companion
-                </h4>
-                <p className="text-[11px] text-[#153A66] mt-0.5 leading-relaxed">
-                  Ingat rumus visual: <strong>Mulut (Amilum) ➔ Lambung (Protein) ➔ Duodenum (Lemak &amp; Peptida) ➔ Ileum (Penyerapan Total)</strong>.
+              <div className="max-w-md mx-auto space-y-1.5">
+                <h2 className="text-lg sm:text-xl font-black text-[#1C1E26]">
+                  Belum Ada Materi Pembelajaran Aktif
+                </h2>
+                <p className="text-xs sm:text-sm text-[#595F72] leading-relaxed">
+                  Guru di kelasmu belum mengunggah modul ajar atau silabus PDF ke sistem. Kamu dapat bergabung ke kelas guru menggunakan kode kelas atau mulai berdiskusi secara mandiri bersama Asisten AI Tutor.
                 </p>
               </div>
-            </section>
 
-            {/* Action to Quiz */}
-            <button
-              onClick={() => {
-                audioSynth.playClickSound();
-                navigate("/quiz");
-              }}
-              className="clay-btn clay-btn-dark w-full py-3 rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-xs cursor-pointer"
-            >
-              <span>Uji Pemahaman Diagram di Kuis DDA</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {/* ========================================================= */}
-        {/* 2. AUDITORY MODE EXCLUSIVE CONTENT                       */}
-        {/* ========================================================= */}
-        {style === "AUDITORI" && (
-          <div className="space-y-4 animate-in fade-in duration-200">
-            {/* Podcast Master Player Card */}
-            <section className="clay-card clay-lavender p-5 text-[#2D2152] space-y-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#4B3B7A]/80 block">
-                    Now Playing • Podcast Bio Ep. {activeEpisode + 1}
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
+                <Link
+                  to="/student/class"
+                  onClick={() => audioSynth.playClickSound()}
+                  className="clay-btn clay-btn-dark px-5 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 cursor-pointer shadow-xs"
+                >
+                  <School className="w-4 h-4" />
+                  <span>Cek Ruang Kelas</span>
+                </Link>
+                <Link
+                  to="/student/ai"
+                  onClick={() => audioSynth.playClickSound()}
+                  className="clay-btn clay-btn-white px-5 py-2.5 rounded-2xl text-xs font-bold text-[#1C1E26] flex items-center gap-2 cursor-pointer shadow-2xs"
+                >
+                  <Bot className="w-4 h-4 text-[#4B3B7A]" />
+                  <span>Tanya Asisten AI Tutor</span>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            /* DYNAMIC CONTENT WHEN DOCUMENT EXISTS */
+            <>
+              {/* Header Topic Meta */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white text-[#1C1E26] border border-[rgba(28,30,38,0.08)]">
+                    {activeClassroom?.name || "Kelas Adaptif"}
                   </span>
-                  <h2 className="text-sm sm:text-base font-black text-[#1E143D] mt-0.5">
-                    {episodes[activeEpisode].title}
-                  </h2>
-                  <p className="text-[11px] text-[#4B3B7A] font-medium mt-0.5">
-                    Narasi ter-grounding kurikulum Biologi Kelas 10-A
-                  </p>
+                  <span className="text-[10px] font-mono font-bold text-[#5A5E70]">
+                    {activeDoc.vectorId || "VEC-DOC"}
+                  </span>
                 </div>
-
-                <div className="w-10 h-10 rounded-2xl bg-white/80 text-[#4B3B7A] flex items-center justify-center shrink-0 shadow-xs">
-                  <Headphones className="w-5 h-5" />
-                </div>
+                <h1 className="text-xl sm:text-2xl font-black text-[#010105]">
+                  {activeDoc.title}
+                </h1>
+                <p className="text-xs text-[#5A5E70] font-medium mt-0.5">
+                  {activeDoc.summary || "Materi kurikulum ter-grounding disajikan eksklusif sesuai profil kognitifmu."}
+                </p>
               </div>
 
-              {/* Scrubber Bar */}
-              <div className="space-y-1">
-                <div
-                  className="w-full bg-white/80 h-2.5 rounded-full overflow-hidden shadow-inner"
-                  role="progressbar"
-                  aria-valuenow={isPlaying ? 70 : 35}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label="Progres Pemutaran Audio Podcast Bab 3"
-                >
-                  <div
-                    className="bg-[#4B3B7A] h-full rounded-full transition-all duration-300"
-                    style={{ width: isPlaying ? "70%" : "35%" }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-[10px] text-[#4B3B7A] font-bold">
-                  <span>{isPlaying ? "03:45" : "01:54"}</span>
-                  <span>{episodes[activeEpisode].duration}</span>
-                </div>
-              </div>
-
-              {/* Playback Controls & Speed Selector */}
-              <div className="flex items-center justify-between pt-1">
-                <div
-                  className="flex items-center gap-1 bg-white/60 p-1 rounded-full text-[10px] font-bold text-[#4B3B7A]"
-                  role="group"
-                  aria-label="Pengaturan Kecepatan Audio"
-                >
-                  {[1.0, 1.25, 1.5].map((spd) => (
-                    <button
-                      key={spd}
-                      type="button"
-                      onClick={() => {
-                        audioSynth.playClickSound();
-                        setPlaybackSpeed(spd);
-                      }}
-                      className={`px-2 py-0.5 rounded-full transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4B3B7A] ${
-                        playbackSpeed === spd ? "bg-[#4B3B7A] text-white shadow-xs" : ""
-                      }`}
-                      aria-label={`Kecepatan ${spd}x`}
-                      aria-pressed={playbackSpeed === spd}
-                    >
-                      {spd}x
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleToggleAudio}
-                  className="clay-btn clay-btn-white w-12 h-12 rounded-full flex items-center justify-center text-[#4B3B7A] shadow-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4B3B7A]"
-                  title={isPlaying ? "Jeda Audio" : "Putar Audio"}
-                  aria-label={isPlaying ? "Jeda Audio Podcast" : "Putar Audio Podcast"}
-                  aria-pressed={isPlaying}
-                >
-                  {isPlaying ? (
-                    <Pause className="w-6 h-6 fill-current" />
-                  ) : (
-                    <Play className="w-6 h-6 fill-current ml-0.5" />
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleTTSRead(episodes[activeEpisode].transcript)}
-                  className="clay-btn clay-btn-white px-3 py-1.5 rounded-full text-[11px] font-bold text-[#4B3B7A] flex items-center gap-1 shadow-2xs cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4B3B7A]"
-                  title="Bacakan Transkrip Suara"
-                  aria-label={isSpeakingSummary ? "Hentikan Pembacaan Transkrip" : "Bacakan Transkrip dengan Suara AI"}
-                  aria-pressed={isSpeakingSummary}
-                >
-                  <Volume2 className="w-3.5 h-3.5" />
-                  <span>{isSpeakingSummary ? "Stop" : "Bacakan"}</span>
-                </button>
-              </div>
-            </section>
-
-            {/* Episode Playlist Rows */}
-            <section className="clay-card p-4 space-y-2 bg-white">
-              <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#9195A8] px-1">
-                Daftar Episode Podcast Bab 3
-              </h3>
-
-              <div className="space-y-2">
-                {episodes.map((ep, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => {
-                      audioSynth.playClickSound();
-                      setActiveEpisode(idx);
-                      setIsPlaying(true);
-                    }}
-                    className={`clay-card p-3 flex items-center justify-between gap-3 cursor-pointer transition-all ${
-                      activeEpisode === idx
-                        ? "clay-lavender border-[#4B3B7A]/30 text-[#4B3B7A]"
-                        : "hover:bg-[#F8F9FD] text-[#010105]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shrink-0 text-xs font-bold">
-                        {activeEpisode === idx && isPlaying ? (
-                          <Volume2 className="w-4 h-4 text-[#4B3B7A] animate-pulse" />
-                        ) : (
-                          <span>{idx + 1}</span>
-                        )}
-                      </div>
+              {/* ========================================================= */}
+              {/* 1. VISUAL MODE DYNAMIC CONTENT                           */}
+              {/* ========================================================= */}
+              {style === "VISUAL" && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  {/* Visual Overview Card */}
+                  <section className="clay-card clay-mint p-5 text-[#124B3D] space-y-3">
+                    <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h4 className="text-xs font-extrabold truncate">{ep.title}</h4>
-                        <p className="text-[10px] text-[#5A5E70]">Durasi {ep.duration}</p>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#1D5E4D]/80 block">
+                          Peta Visual Konsep
+                        </span>
+                        <h2 className="text-base sm:text-lg font-black text-[#082921] mt-0.5">
+                          Struktur Inti &amp; Konsep Pembelajaran
+                        </h2>
+                      </div>
+                      <div className="w-9 h-9 rounded-2xl bg-white/80 text-[#1D5E4D] flex items-center justify-center shrink-0">
+                        <Eye className="w-5 h-5" />
                       </div>
                     </div>
 
-                    <span className="text-[10px] font-bold text-[#4B3B7A] bg-white/70 px-2 py-0.5 rounded-full shrink-0">
-                      {activeEpisode === idx ? "Aktif" : "Putar"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Complete Episode Transcript */}
-            <section className="clay-card p-5 space-y-2 bg-white">
-              <h3 className="text-xs font-extrabold text-[#010105] flex items-center gap-1.5">
-                <BookOpen className="w-4 h-4 text-[#4B3B7A]" />
-                <span>Transkrip Narasi: Episode {activeEpisode + 1}</span>
-              </h3>
-              <div className="p-3.5 rounded-2xl bg-[#F2EFFC] text-xs text-[#2D2152] leading-relaxed">
-                {episodes[activeEpisode].transcript}
-              </div>
-            </section>
-
-            {/* Action to Quiz */}
-            <button
-              onClick={() => {
-                audioSynth.playClickSound();
-                navigate("/quiz");
-              }}
-              className="clay-btn clay-btn-dark w-full py-3 rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-xs cursor-pointer"
-            >
-              <span>Uji Pemahaman Audio di Kuis DDA</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {/* ========================================================= */}
-        {/* 3. KINESTHETIC MODE EXCLUSIVE CONTENT                    */}
-        {/* ========================================================= */}
-        {style === "KINESTETIK" && (
-          <div className="space-y-4 animate-in fade-in duration-200">
-            {/* Lab Simulation Card */}
-            <section className="clay-card clay-butter p-5 text-[#4A3205] space-y-4">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#785308]/80 block">
-                    Lab Simulasi Interaktif • Organ &amp; Enzim
-                  </span>
-                  <h2 className="text-sm sm:text-base font-black text-[#2C1D02] mt-0.5">
-                    Pasangkan Enzim ke Zona Organ yang Sesuai
-                  </h2>
-                  <p className="text-[11px] text-[#785308] font-medium">
-                    Ketuk item enzim di bawah, lalu ketuk zona organ target.
-                  </p>
-                </div>
-
-                <div className="w-10 h-10 rounded-2xl bg-white/80 text-[#785308] flex items-center justify-center shrink-0 shadow-xs">
-                  <FlaskConical className="w-5 h-5" />
-                </div>
-              </div>
-
-              {/* Selectable Molecule Items */}
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#785308] block">
-                  1. Pilih Molekul Enzim / Struktur:
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  {simulationItems.map((item) => {
-                    const isMatched = !!matchedItems[item.id];
-                    const isCurrent = selectedItem === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        disabled={isMatched}
-                        onClick={() => {
-                          audioSynth.playClickSound();
-                          setSelectedItem(item.id);
-                        }}
-                        className={`p-2.5 rounded-2xl text-xs font-bold text-left transition-all cursor-pointer ${
-                          isMatched
-                            ? "bg-white/40 text-[#785308]/50 line-through cursor-not-allowed border border-transparent"
-                            : isCurrent
-                            ? "bg-[#1C1E26] text-white shadow-xs scale-102"
-                            : "bg-white text-[#785308] hover:bg-white/90 border border-[#785308]/20 shadow-2xs"
-                        }`}
-                      >
-                        {item.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Target Organ Zones */}
-              <div className="space-y-1.5 pt-1">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#785308] block">
-                  2. Ketuk Zona Organ Target:
-                </span>
-                <div className="space-y-2">
-                  {simulationZones.map((zone) => {
-                    const matchedItem = simulationItems.find((it) => matchedItems[it.id] === zone.id);
-                    const isCorrect = matchedItem && matchedItem.targetZone === zone.id;
-
-                    return (
-                      <div
-                        key={zone.id}
-                        onClick={() => handleZoneClick(zone.id)}
-                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
-                          isCorrect
-                            ? "bg-[#D1EBE1] border-[#1D5E4D]/30 text-[#1D5E4D]"
-                            : selectedItem
-                            ? "bg-white border-[#785308] ring-2 ring-[#785308]/20 text-[#010105]"
-                            : "bg-white/80 border-[rgba(28,30,38,0.08)] text-[#010105]"
-                        }`}
-                      >
-                        <div>
-                          <h4 className="text-xs font-extrabold">{zone.name}</h4>
-                          <p className="text-[10px] text-[#5A5E70]">{zone.desc}</p>
+                    {/* Sequential Visual Concept Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                      {docParagraphs.slice(0, 4).map((para, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-white/85 p-3.5 rounded-2xl border border-[rgba(29,94,77,0.15)] shadow-xs"
+                        >
+                          <span className="text-[10px] font-extrabold text-[#1D5E4D] uppercase block">
+                            Poin Kunci {idx + 1}
+                          </span>
+                          <p className="text-xs font-bold text-[#010105] mt-1 leading-relaxed">
+                            {para}
+                          </p>
                         </div>
+                      ))}
+                    </div>
+                  </section>
 
-                        {matchedItem ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-[#1D5E4D] flex items-center gap-1 shadow-2xs">
-                            <Check className="w-3 h-3 stroke-[3]" />
-                            {matchedItem.label}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-semibold text-[#9195A8] border border-dashed border-[#9195A8]/50 px-2 py-0.5 rounded-full">
-                            Kosong
-                          </span>
-                        )}
+                  {/* Summary Callout */}
+                  <section className="clay-card p-5 space-y-3 bg-white">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl clay-card clay-mint flex items-center justify-center text-[#1D5E4D]">
+                        <BookOpen className="w-4 h-4" />
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
+                      <div>
+                        <h3 className="text-xs sm:text-sm font-extrabold text-[#010105]">
+                          Teks Modul Lengkap
+                        </h3>
+                        <p className="text-[10px] text-[#5A5E70]">
+                          Sumber Ter-Grounding: {activeDoc.title}
+                        </p>
+                      </div>
+                    </div>
 
-              {/* Simulation Result / Reset */}
-              {simulationCompleted ? (
-                <div className="p-3.5 rounded-2xl bg-[#D1EBE1] text-[#1D5E4D] flex items-center justify-between text-xs font-bold animate-in zoom-in-95">
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4" />
-                    Semua Enzim Terpasang Sempurna! (+40 XP)
-                  </span>
+                    <div className="p-3.5 rounded-2xl bg-[#EBF6F2] border border-[rgba(29,94,77,0.1)] text-xs text-[#1D5E4D] font-medium leading-relaxed whitespace-pre-line">
+                      {activeDoc.rawText}
+                    </div>
+                  </section>
+
+                  {/* AI Companion Visual Cue Card */}
+                  <section className="clay-card clay-sky p-4 text-[#153A66] flex items-start gap-3">
+                    <Sparkles className="w-5 h-5 text-[#21518A] shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-xs font-extrabold text-[#21518A]">
+                        Petunjuk Visual AI Companion
+                      </h4>
+                      <p className="text-[11px] text-[#153A66] mt-0.5 leading-relaxed">
+                        Fokus pada keterkaitan antarkonsep di atas sebelum menyelesaikan tantangan evaluasi adaptif.
+                      </p>
+                    </div>
+                  </section>
+
+                  {/* Action to Quiz */}
                   <button
-                    onClick={handleResetSimulation}
-                    className="clay-btn clay-btn-white px-2.5 py-1 rounded-xl text-[10px] font-bold text-[#1D5E4D]"
+                    onClick={() => {
+                      audioSynth.playClickSound();
+                      navigate("/quiz");
+                    }}
+                    className="clay-btn clay-btn-dark w-full py-3 rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-xs cursor-pointer"
                   >
-                    Ulangi
-                  </button>
-                </div>
-              ) : (
-                <div className="flex justify-between items-center text-[10px] text-[#785308] font-bold pt-1">
-                  <span>Progres: {Object.keys(matchedItems).length} dari 4 terpasang</span>
-                  <button
-                    onClick={handleResetSimulation}
-                    className="hover:underline flex items-center gap-1"
-                  >
-                    <RotateCcw className="w-3 h-3" /> Reset Lab
+                    <span>Uji Pemahaman di Kuis Adaptif DDA</span>
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               )}
-            </section>
 
-            {/* Hands-on Experiment Steps */}
-            <section className="clay-card p-5 space-y-3 bg-white">
-              <h3 className="text-xs sm:text-sm font-extrabold text-[#010105]">
-                Misi Eksperimen Biokimia Mandiri
-              </h3>
-              <div className="space-y-2 text-xs">
-                <div className="p-3 rounded-2xl bg-[#F8F9FD] border border-[rgba(28,30,38,0.06)]">
-                  <span className="font-bold text-[#785308]">Langkah 1: Uji Reaksi Amilum Saliva</span>
-                  <p className="text-[11px] text-[#5A5E70] mt-0.5">
-                    Mengamati perubahan warna iodin saat amilum dihidrolisis menjadi maltosa dalam tabung reaksi bersuhu 37°C.
-                  </p>
-                </div>
-                <div className="p-3 rounded-2xl bg-[#F8F9FD] border border-[rgba(28,30,38,0.06)]">
-                  <span className="font-bold text-[#785308]">Langkah 2: Simulasi Denaturasi Protein</span>
-                  <p className="text-[11px] text-[#5A5E70] mt-0.5">
-                    Uji pemecahan albumin telur oleh enzim pepsin dalam suasana asam HCl pekat.
-                  </p>
-                </div>
-              </div>
-            </section>
+              {/* ========================================================= */}
+              {/* 2. AUDITORY MODE DYNAMIC CONTENT                         */}
+              {/* ========================================================= */}
+              {style === "AUDITORI" && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  {/* Podcast Master Player Card */}
+                  <section className="clay-card clay-lavender p-5 text-[#2D2152] space-y-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#4B3B7A]/80 block">
+                          Now Playing • Bagian {activeEpisode + 1}
+                        </span>
+                        <h2 className="text-sm sm:text-base font-black text-[#1E143D] mt-0.5">
+                          {dynamicEpisodes[activeEpisode]?.title || "Audio Pembelajaran"}
+                        </h2>
+                      </div>
 
-            {/* Action to Quiz */}
-            <button
-              onClick={() => {
-                audioSynth.playClickSound();
-                navigate("/quiz");
-              }}
-              className="clay-btn clay-btn-dark w-full py-3 rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-xs cursor-pointer"
-            >
-              <span>Uji Hasil Eksperimen di Kuis DDA</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+                      <button
+                        type="button"
+                        onClick={handleToggleAudio}
+                        className="clay-btn clay-btn-white w-12 h-12 rounded-full flex items-center justify-center text-[#4B3B7A] shrink-0 cursor-pointer shadow-xs"
+                        title={isPlaying ? "Jeda Audio" : "Putar Audio"}
+                      >
+                        {isPlaying ? (
+                          <Pause className="w-6 h-6 fill-current" />
+                        ) : (
+                          <Play className="w-6 h-6 fill-current ml-0.5" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Speed Controls & TTS */}
+                    <div className="flex items-center justify-between pt-2 border-t border-[#4B3B7A]/15">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-[#4B3B7A]">Kecepatan:</span>
+                        {[1.0, 1.25, 1.5].map((spd) => (
+                          <button
+                            key={spd}
+                            onClick={() => setPlaybackSpeed(spd)}
+                            className={`px-2 py-0.5 rounded-lg text-[10px] font-bold cursor-pointer ${
+                              playbackSpeed === spd
+                                ? "bg-[#4B3B7A] text-white"
+                                : "bg-white/60 text-[#4B3B7A]"
+                            }`}
+                          >
+                            {spd}x
+                          </button>
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          handleTTSRead(
+                            dynamicEpisodes[activeEpisode]?.transcript || activeDoc.rawText
+                          )
+                        }
+                        className="clay-btn clay-btn-white px-3 py-1 text-[11px] font-bold text-[#4B3B7A] flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Volume2 className="w-3.5 h-3.5" />
+                        <span>{isSpeakingSummary ? "Hentikan Suara" : "Bacakan Teks"}</span>
+                      </button>
+                    </div>
+                  </section>
+
+                  {/* Playlist of Episodes */}
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-bold text-[#5A5E70] uppercase px-1">
+                      Daftar Bagian Pembelajaran Audio
+                    </h3>
+                    {dynamicEpisodes.map((ep, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          audioSynth.playClickSound();
+                          setActiveEpisode(idx);
+                        }}
+                        className={`clay-card p-3.5 flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                          activeEpisode === idx
+                            ? "border-2 border-[#4B3B7A] bg-[#F4F0FD]"
+                            : "bg-white hover:bg-[#FAF8FD]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                              activeEpisode === idx
+                                ? "bg-[#4B3B7A] text-white"
+                                : "bg-[#ECE8F7] text-[#4B3B7A]"
+                            }`}
+                          >
+                            {idx + 1}
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold text-[#1C1E26]">{ep.title}</h4>
+                            <p className="text-[10px] text-[#5A5E70] truncate max-w-xs sm:max-w-md">
+                              {ep.transcript}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-mono font-bold text-[#5A5E70]">
+                          {ep.duration}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      audioSynth.playClickSound();
+                      navigate("/quiz");
+                    }}
+                    className="clay-btn clay-btn-dark w-full py-3 rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                  >
+                    <span>Mulai Kuis Adaptif Berbasis Audio</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {/* ========================================================= */}
+              {/* 3. KINESTHETIC MODE DYNAMIC CONTENT                      */}
+              {/* ========================================================= */}
+              {style === "KINESTETIK" && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <section className="clay-card clay-butter p-5 text-[#4A3205] space-y-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#785308]/80 block">
+                          Lab Interaktif &amp; Eksperimen Mandiri
+                        </span>
+                        <h2 className="text-base sm:text-lg font-black text-[#2C1D02] mt-0.5">
+                          Klasifikasi &amp; Pemetaan Konsep Praktik
+                        </h2>
+                      </div>
+                      <div className="w-9 h-9 rounded-2xl bg-white text-[#785308] flex items-center justify-center shrink-0">
+                        <FlaskConical className="w-5 h-5" />
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-[#785308] font-medium leading-relaxed bg-white/60 p-3 rounded-2xl">
+                      Pilih kartu konsep di bawah, lalu klik target langkah yang sesuai untuk menguji pemahaman kontekstualmu.
+                    </p>
+
+                    {/* Step 1: Clickable Concepts */}
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold text-[#785308] uppercase block">
+                        1. Pilih Kartu Konsep:
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {simulationItems.map((item) => {
+                          const isPlaced = Boolean(matchedItems[item.id]);
+                          const isSelected = selectedItem === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              disabled={isPlaced}
+                              onClick={() => {
+                                audioSynth.playClickSound();
+                                setSelectedItem(isSelected ? null : item.id);
+                              }}
+                              className={`p-3 rounded-2xl text-left text-xs font-bold transition-all cursor-pointer ${
+                                isPlaced
+                                  ? "bg-white/40 text-[#A69B82] line-through cursor-not-allowed"
+                                  : isSelected
+                                  ? "bg-[#785308] text-white shadow-xs scale-102"
+                                  : "bg-white text-[#4A3205] hover:bg-[#FFF9EE] shadow-2xs"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span>{item.name}</span>
+                                <span className="text-[9px] font-mono uppercase bg-black/5 px-1.5 py-0.5 rounded-sm">
+                                  {item.label}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Step 2: Target Drop Zones */}
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold text-[#785308] uppercase block">
+                        2. Pasangkan ke Target Langkah:
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {simulationZones.map((zone) => {
+                          const matchedEntry = Object.entries(matchedItems).find(
+                            ([, zId]) => zId === zone.id
+                          );
+                          const matchedObj = matchedEntry
+                            ? simulationItems.find((it) => it.id === matchedEntry[0])
+                            : null;
+
+                          return (
+                            <div
+                              key={zone.id}
+                              onClick={() => handleZoneClick(zone.id)}
+                              className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
+                                matchedObj
+                                  ? "bg-white border-[#785308]/30 shadow-xs"
+                                  : selectedItem
+                                  ? "border-dashed border-[#785308] bg-[#FFF9EE] animate-pulse"
+                                  : "border-dashed border-[#785308]/30 bg-white/40"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-[#2C1D02]">{zone.name}</span>
+                                <span className="text-[10px] text-[#785308]">{zone.desc}</span>
+                              </div>
+                              {matchedObj && (
+                                <div className="mt-2 p-1.5 rounded-xl bg-[#EBF6F2] text-[#1D5E4D] text-[11px] font-bold flex items-center gap-1.5">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>{matchedObj.name}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {simulationCompleted && (
+                      <div className="p-3.5 rounded-2xl bg-[#EBF6F2] text-[#1D5E4D] text-xs font-bold text-center animate-in zoom-in-95">
+                        🎉 Selamat! Seluruh konsep berhasil dipetakan secara akurat!
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-end pt-1">
+                      <button
+                        onClick={handleResetSimulation}
+                        className="text-[11px] font-bold text-[#785308] hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Reset Skenario</span>
+                      </button>
+                    </div>
+                  </section>
+
+                  <button
+                    onClick={() => {
+                      audioSynth.playClickSound();
+                      navigate("/quiz");
+                    }}
+                    className="clay-btn clay-btn-dark w-full py-3 rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                  >
+                    <span>Lanjutkan ke Evaluasi Praktik DDA</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </main>
       </div>
 

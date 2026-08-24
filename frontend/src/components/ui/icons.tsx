@@ -69,6 +69,9 @@ export {
   Camera,
   Image,
   Menu,
+  KeyRound,
+  UserCheck,
+  Hash,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";

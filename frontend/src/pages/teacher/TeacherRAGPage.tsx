@@ -9,31 +9,66 @@ import {
   FileText,
   Trash2,
   Database,
-  ShieldCheck,
-  CheckCircle2,
+  Plus,
+  X,
+  BookOpen,
 } from "@/components/ui/icons";
 
 export default function TeacherRAGPage() {
   const { documents, uploadDocument, deleteDocument, classrooms } = useApp();
 
-  const [selectedClassId, setSelectedClassId] = useState<string>("cls_bio_10a");
+  const [selectedClassId, setSelectedClassId] = useState<string>(
+    classrooms[0]?.id || "cls_bio_10a"
+  );
   const [strictGrounding, setStrictGrounding] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
 
-  const handleSimulateUpload = (fileName: string, text: string) => {
+  // Custom upload form state
+  const [customTitle, setCustomTitle] = useState("");
+  const [customSummary, setCustomSummary] = useState("");
+  const [customRawText, setCustomRawText] = useState("");
+
+  const handleCustomUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customTitle.trim() || !customRawText.trim()) return;
+
     setIsUploading(true);
     audioSynth.playClickSound();
 
-    setTimeout(() => {
-      uploadDocument(
+    try {
+      await uploadDocument(
         selectedClassId,
-        fileName,
-        text,
-        "Ekstraksi modul PDF kurikulum resmi."
+        customTitle.trim(),
+        customRawText.trim(),
+        customSummary.trim() || customRawText.slice(0, 120) + "..."
       );
-      setIsUploading(false);
       audioSynth.playSuccessSound();
-    }, 1200);
+      setIsCustomModalOpen(false);
+      setCustomTitle("");
+      setCustomSummary("");
+      setCustomRawText("");
+    } catch (err) {
+      console.error("Upload error", err);
+      audioSynth.playErrorSound();
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handlePresetUpload = async (title: string, rawText: string, summary: string) => {
+    setIsUploading(true);
+    audioSynth.playClickSound();
+
+    try {
+      await uploadDocument(selectedClassId, title, rawText, summary);
+      audioSynth.playSuccessSound();
+    } catch (err) {
+      console.error("Preset upload error", err);
+      audioSynth.playErrorSound();
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -61,9 +96,20 @@ export default function TeacherRAGPage() {
                 Knowledge Base &amp; RAG Ingestion Center
               </h1>
               <p className="text-xs sm:text-sm text-[#5A5E70] font-medium mt-1">
-                Unggah modul PDF dan buku ajar. AI hanya menghasilkan materi dan kuis yang ter-grounding 100% dari sumber ini.
+                Unggah modul PDF dan silabus ajar. AI hanya menghasilkan materi dan kuis yang ter-grounding 100% dari sumber ini.
               </p>
             </div>
+
+            <button
+              onClick={() => {
+                audioSynth.playClickSound();
+                setIsCustomModalOpen(true);
+              }}
+              className="clay-btn clay-btn-dark px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 cursor-pointer shrink-0 shadow-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Unggah Modul Kustom</span>
+            </button>
           </div>
 
           {/* STRICT GROUNDING TOGGLE & CLASS SELECTOR */}
@@ -118,32 +164,26 @@ export default function TeacherRAGPage() {
 
           {/* UPLOAD SIMULATION DROPZONE */}
           <div className="clay-card p-8 bg-[#FAF8FD] border-2 border-dashed border-[#E0DAF5] rounded-3xl text-center space-y-4">
-            <div className="clay-card clay-white w-14 h-14 rounded-2xl flex items-center justify-center text-[#4B3B7A] mx-auto">
+            <div className="clay-card clay-white w-14 h-14 rounded-2xl flex items-center justify-center text-[#4B3B7A] mx-auto shadow-2xs">
               <UploadCloud className="w-7 h-7" />
             </div>
 
             <div className="max-w-md mx-auto space-y-1">
               <h3 className="text-base font-black text-[#010105]">
-                Unggah Dokumen PDF Modul Ajar
+                Unggah Dokumen Silabus / Modul Ajar
               </h3>
               <p className="text-xs text-[#5A5E70] font-medium">
-                Sistem akan melakukan ekstraksi teks otomatis, semantic chunking, dan pembobotan embedding vektor.
+                Sistem akan melakukan ekstraksi teks otomatis, semantic chunking, dan pembobotan embedding vektor ke database backend.
               </p>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-2 pt-2">
+            <div className="flex justify-center pt-2">
               <button
-                onClick={() =>
-                  handleSimulateUpload(
-                    "BAB 5 - Sistem Sirkulasi & Jantung.pdf",
-                    "Jantung manusia terdiri dari empat ruang: atrium dekstra, atrium sinistra, ventrikel dekstra, dan ventrikel sinistra..."
-                  )
-                }
-                disabled={isUploading}
-                className="clay-btn clay-btn-dark px-5 py-2.5 text-xs font-black flex items-center gap-2 cursor-pointer"
+                onClick={() => setIsCustomModalOpen(true)}
+                className="clay-btn clay-btn-dark px-6 py-3 text-xs font-black flex items-center gap-2 cursor-pointer shadow-xs"
               >
-                <Database className="w-4 h-4" />
-                <span>{isUploading ? "Memproses Chunking..." : "Simulasi Upload: Modul Bab 5 Sirkulasi.pdf"}</span>
+                <Plus className="w-4 h-4" />
+                <span>Input Modul / Silabus Baru</span>
               </button>
             </div>
           </div>
@@ -153,10 +193,10 @@ export default function TeacherRAGPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-black text-[#010105]">
-                  Daftar Modul Terindeks di ChromaDB
+                  Daftar Modul Terindeks di Database &amp; ChromaDB
                 </h2>
                 <p className="text-xs text-[#5A5E70]">
-                  Dokumen yang aktif menjadi basis data generative AI kuis dan pembelajaran.
+                  Dokumen yang aktif menjadi basis data generative AI kuis dan pembelajaran adaptif.
                 </p>
               </div>
               <span className="clay-pill clay-mint px-3 py-1 text-xs font-extrabold text-[#1D5E4D]">
@@ -164,51 +204,148 @@ export default function TeacherRAGPage() {
               </span>
             </div>
 
-            <div className="space-y-3">
-              {documents.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="clay-card clay-card-hover clay-white p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                  <div className="flex items-start gap-3.5">
-                    <div className="clay-card clay-mint w-11 h-11 rounded-2xl flex items-center justify-center text-[#1D5E4D] shrink-0">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="clay-pill clay-mint text-[10px] font-extrabold px-2.5 py-0.5 text-[#1D5E4D]">
-                          {doc.status}
-                        </span>
-                        <span className="clay-pill clay-dark text-[10px] font-mono font-bold px-2 py-0.5">
-                          {doc.vectorId}
-                        </span>
+            {documents.length === 0 ? (
+              <div className="clay-card clay-white p-8 rounded-3xl border border-black/5 text-center space-y-3">
+                <BookOpen className="w-8 h-8 text-[#9195A8] mx-auto" />
+                <h3 className="text-sm font-bold text-[#1C1E26]">
+                  Belum Ada Dokumen Modul Terunggah
+                </h3>
+                <p className="text-xs text-[#5A5E70] max-w-sm mx-auto">
+                  Klik tombol "Unggah Modul Kustom" di atas untuk menambahkan silabus pembelajaran pertama Anda.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {documents.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="clay-card clay-card-hover clay-white p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  >
+                    <div className="flex items-start gap-3.5">
+                      <div className="clay-card clay-mint w-11 h-11 rounded-2xl flex items-center justify-center text-[#1D5E4D] shrink-0">
+                        <FileText className="w-5 h-5" />
                       </div>
-                      <h4 className="text-sm font-black text-[#010105]">{doc.title}</h4>
-                      <p className="text-xs text-[#5A5E70] mt-0.5">{doc.summary}</p>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="clay-pill clay-mint text-[10px] font-extrabold px-2.5 py-0.5 text-[#1D5E4D]">
+                            {doc.status}
+                          </span>
+                          <span className="clay-pill clay-dark text-[10px] font-mono font-bold px-2 py-0.5">
+                            {doc.vectorId}
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-black text-[#010105]">{doc.title}</h4>
+                        <p className="text-xs text-[#5A5E70] mt-0.5">{doc.summary}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 self-end sm:self-center">
+                      <span className="clay-pill bg-[#F8F9FD] px-3 py-1 text-xs font-bold text-[#5A5E70]">
+                        {doc.chunksCount} Semantic Chunks
+                      </span>
+                      <button
+                        onClick={() => {
+                          audioSynth.playClickSound();
+                          deleteDocument(doc.id);
+                        }}
+                        className="clay-btn clay-btn-white w-9 h-9 rounded-xl text-[#ba1a1a] flex items-center justify-center cursor-pointer"
+                        title="Hapus Modul"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-3 self-end sm:self-center">
-                    <span className="clay-pill bg-[#F8F9FD] px-3 py-1 text-xs font-bold text-[#5A5E70]">
-                      {doc.chunksCount} Semantic Chunks
-                    </span>
-                    <button
-                      onClick={() => {
-                        audioSynth.playClickSound();
-                        deleteDocument(doc.id);
-                      }}
-                      className="clay-btn clay-btn-white w-9 h-9 rounded-xl text-[#ba1a1a] flex items-center justify-center cursor-pointer"
-                      title="Hapus Modul"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
         </main>
       </div>
+
+      {/* CUSTOM UPLOAD MODAL */}
+      {isCustomModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="clay-card clay-white w-full max-w-lg p-6 sm:p-8 rounded-3xl border border-black/10 shadow-2xl space-y-5 animate-in zoom-in-95">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#EBF6F2] text-[#1D5E4D] flex items-center justify-center">
+                  <UploadCloud className="w-4 h-4" />
+                </div>
+                <h3 className="text-base font-black text-[#1C1E26]">
+                  Unggah Modul / Silabus Pembelajaran
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsCustomModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-[#5A5E70] cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCustomUpload} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-[#5A5E70] block mb-1">
+                  Judul Modul / Topik Bab:
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Bab 4 - Sistem Ekskresi Ginjal Manusia"
+                  value={customTitle}
+                  onChange={(e) => setCustomTitle(e.target.value)}
+                  className="w-full p-3 rounded-2xl border border-[rgba(28,30,38,0.12)] text-xs font-bold text-[#1C1E26] bg-[#F8F9FD] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#5A5E70] block mb-1">
+                  Ringkasan Modul (Opsional):
+                </label>
+                <input
+                  type="text"
+                  placeholder="Penjelasan ringkas materi untuk siswa"
+                  value={customSummary}
+                  onChange={(e) => setCustomSummary(e.target.value)}
+                  className="w-full p-3 rounded-2xl border border-[rgba(28,30,38,0.12)] text-xs font-bold text-[#1C1E26] bg-[#F8F9FD] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#5A5E70] block mb-1">
+                  Isi / Teks Modul Pembelajaran (Grounding AI):
+                </label>
+                <textarea
+                  required
+                  rows={6}
+                  placeholder="Tempelkan isi rangkuman silabus, konsep utama, dan definisi yang akan dijadikan rujukan oleh Asisten AI Tutor dan Generator Kuis DDA..."
+                  value={customRawText}
+                  onChange={(e) => setCustomRawText(e.target.value)}
+                  className="w-full p-3 rounded-2xl border border-[rgba(28,30,38,0.12)] text-xs text-[#1C1E26] bg-[#F8F9FD] focus:outline-none leading-relaxed"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCustomModalOpen(false)}
+                  className="clay-btn clay-btn-white px-4 py-2.5 rounded-2xl text-xs font-bold text-[#5A5E70] cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUploading}
+                  className="clay-btn clay-btn-dark px-5 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 cursor-pointer"
+                >
+                  <Database className="w-4 h-4" />
+                  <span>{isUploading ? "Memproses..." : "Simpan Dokumen"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

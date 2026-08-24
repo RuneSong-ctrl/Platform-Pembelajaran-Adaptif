@@ -48,8 +48,9 @@ export default function StudentSchedulePage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed">("all");
 
   // Modal State
+  const currentDayName = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"][new Date().getDay()];
   const [modalOpen, setModalOpen] = useState(false);
-  const [day, setDay] = useState("Jumat");
+  const [day, setDay] = useState(currentDayName);
   const [time, setTime] = useState("16:00 - 16:30");
   const [duration, setDuration] = useState("30 mnt");
   const [title, setTitle] = useState("");

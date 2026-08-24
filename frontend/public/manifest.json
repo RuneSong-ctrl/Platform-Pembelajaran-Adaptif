@@ -1,7 +1,7 @@
 {
-  "name": "Adaptika — Platform Pembelajaran Adaptif AI",
-  "short_name": "Adaptika",
-  "description": "Platform Pembelajaran Adaptif Berbasis AI & Dynamic Difficulty Adjustment",
+  "name": "EduAdapt — Platform Pembelajaran Adaptif K-12",
+  "short_name": "EduAdapt",
+  "description": "Platform Pembelajaran Adaptif K-12 Berbasis AI Brain & Blockchain Vault",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -1,11 +1,163 @@
 /**
  * EduAdapt API Client
- * Penghubung Frontend React ke Backend FastAPI (Python 3 & MySQL)
+ * Penghubung Frontend React ke Backend FastAPI (Python 3 & MySQL/SQLite)
  */
+
+import {
+  User,
+  Classroom,
+  GroundedDocument,
+  GroundedTask,
+  BlockchainCredential,
+  AssignmentSubmission,
+  ParentTeacherNote,
+  LearningScheduleItem,
+} from "@/types";
 
 const API_BASE_URL =
   (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE_URL) ||
   "http://localhost:8000/api/v1";
+
+// --- NORMALIZERS (Snake_case Backend to CamelCase Frontend) ---
+export function normalizeUser(u: any): User {
+  if (!u) return {} as User;
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    avatar: u.avatar || u.role?.slice(0, 2) || "ED",
+    grade: u.grade ?? 10,
+    learningStyle: u.learning_style || u.learningStyle || "VISUAL",
+    modalityScores: u.modality_scores || u.modalityScores || { visual: 0, audio: 0, practice: 0 },
+    processingSpeed: u.processing_speed || u.processingSpeed || "MODERATE",
+    xpTotal: u.xp_total ?? u.xpTotal ?? 0,
+    streakDays: u.streak_days ?? u.streakDays ?? 1,
+    hearts: u.hearts ?? 5,
+    currentDDALevel: u.current_dda_level || u.currentDDALevel || "BASIC",
+    childrenIds: u.children_ids || u.childrenIds || [],
+    subjectSpecialization: u.subject_specialization || u.subjectSpecialization,
+  };
+}
+
+export function normalizeClassroom(c: any): Classroom {
+  if (!c) return {} as Classroom;
+  return {
+    id: c.id,
+    name: c.name,
+    grade: c.grade ?? 10,
+    subject: c.subject || "Sains",
+    joinCode: c.join_code || c.joinCode || "UDU000",
+    teacherId: c.teacher_id || c.teacherId || "",
+    teacherName: c.teacher_name || c.teacherName || "Guru Pengajar",
+    studentIds: c.student_ids || c.studentIds || [],
+    documentsCount: c.documents_count ?? c.documentsCount ?? 0,
+    tasksCount: c.tasks_count ?? c.tasksCount ?? 0,
+    createdAt: c.created_at || c.createdAt || new Date().toISOString(),
+  };
+}
+
+export function normalizeDocument(d: any): GroundedDocument {
+  if (!d) return {} as GroundedDocument;
+  return {
+    id: d.id,
+    classroomId: d.classroom_id || d.classroomId || "",
+    title: d.title || "Dokumen Modul",
+    fileUrl: d.file_url || d.fileUrl || "#",
+    rawText: d.raw_text || d.rawText || "",
+    chunksCount: d.chunks_count ?? d.chunksCount ?? 1,
+    vectorId: d.vector_id || d.vectorId || "",
+    status: d.status || "READY",
+    uploadedAt: d.uploaded_at || d.uploadedAt || new Date().toISOString(),
+    summary: d.summary || "",
+  };
+}
+
+export function normalizeTask(t: any): GroundedTask {
+  if (!t) return {} as GroundedTask;
+  return {
+    id: t.id,
+    classroomId: t.classroom_id || t.classroomId || "",
+    classroomName: t.classroom_name || t.classroomName || "",
+    type: t.type || "quiz",
+    title: t.title || "Tugas Adaptif",
+    chapter: t.chapter || "",
+    sourceReference: t.source_reference || t.sourceReference || "",
+    difficultyLevel: t.difficulty_level || t.difficultyLevel || "MEDIUM",
+    isPublished: t.is_published ?? t.isPublished ?? true,
+    dueDate: t.due_date || t.dueDate,
+    contentJson: t.content_json || t.contentJson || {},
+    createdAt: t.created_at || t.createdAt || new Date().toISOString(),
+  };
+}
+
+export function normalizeCredential(c: any): BlockchainCredential {
+  if (!c) return {} as BlockchainCredential;
+  return {
+    id: c.id,
+    certificateId: c.certificate_id || c.certificateId || "",
+    studentId: c.student_id || c.studentId || "",
+    studentName: c.student_name || c.studentName || "Siswa",
+    classroomId: c.classroom_id || c.classroomId || "",
+    className: c.classroom_name || c.className || "Kelas Sains",
+    competencyTitle: c.competency_title || c.competencyTitle || "Kompetensi Pembelajaran",
+    score: c.score ?? 100,
+    blockIndex: c.block_index ?? c.blockIndex ?? 1,
+    previousHash: c.previous_hash || c.previousHash || "0000000000000000000000000000000000000000000000000000000000000000",
+    blockHash: c.block_hash || c.blockHash || "",
+    transactionId: c.transaction_id || c.transactionId || "",
+    verifiedBy: c.verified_by || c.verifiedBy || "Universitas Udayana & Riset Fundamental HPF",
+    issuedAt: c.issued_at || c.issuedAt || new Date().toISOString(),
+  };
+}
+
+export function normalizeSchedule(s: any): LearningScheduleItem {
+  if (!s) return {} as LearningScheduleItem;
+  return {
+    id: s.id,
+    studentId: s.student_id || s.studentId || "",
+    day: s.day || "Senin",
+    time: s.time || "16:00 - 16:30",
+    duration: s.duration || "30 mnt",
+    title: s.title || "Materi Belajar",
+    format: s.format || "Visual",
+    completed: s.completed ?? false,
+  };
+}
+
+export function normalizeSubmission(sub: any): AssignmentSubmission {
+  if (!sub) return {} as AssignmentSubmission;
+  return {
+    id: sub.id,
+    taskId: sub.task_id || sub.taskId || "",
+    taskTitle: sub.task_title || sub.taskTitle || "Tugas",
+    studentId: sub.student_id || sub.studentId || "",
+    studentName: sub.student_name || sub.studentName || "Siswa",
+    submittedAt: sub.submitted_at || sub.submittedAt || new Date().toISOString(),
+    content: sub.content || "",
+    attachmentName: sub.attachment_name || sub.attachmentName || "Tugas.pdf",
+    grade: sub.grade,
+    feedback: sub.feedback,
+    status: sub.status || "Submitted",
+  };
+}
+
+export function normalizeNote(n: any): ParentTeacherNote {
+  if (!n) return {} as ParentTeacherNote;
+  return {
+    id: n.id,
+    senderId: n.sender_id || n.senderId || "",
+    senderName: n.sender_name || n.senderName || "Pengirim",
+    receiverId: n.receiver_id || n.receiverId || "",
+    receiverName: n.receiver_name || n.receiverName || "Penerima",
+    studentId: n.student_id || n.studentId || "",
+    studentName: n.student_name || n.studentName || "Siswa",
+    message: n.message || "",
+    sentAt: n.created_at || n.sentAt || new Date().toISOString(),
+    reply: n.reply,
+    replyAt: n.replied_at || n.replyAt,
+  };
+}
 
 export class ApiService {
   private static async request<T>(endpoint: string, options?: RequestInit): Promise<T | null> {
@@ -27,14 +179,42 @@ export class ApiService {
 
       return (await response.json()) as T;
     } catch (err) {
-      console.warn(`[API] Backend unreachable at ${API_BASE_URL}${endpoint}. Running on local resilient state.`, err);
+      console.warn(`[API] Backend unreachable at ${API_BASE_URL}${endpoint}. Running on local state.`, err);
       return null;
     }
   }
 
-  // --- USERS & PROFILES ---
+  // --- AUTH & USERS ---
+  static async login(identifier: string, password?: string) {
+    return this.request<{ success: boolean; message: string; token?: string; user: any }>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ identifier, password }),
+    });
+  }
+
+  static async registerUser(data: {
+    name: string;
+    email: string;
+    role: string;
+    password?: string;
+    grade?: number;
+    subject_specialization?: string;
+  }) {
+    return this.request<{ success: boolean; message: string; token?: string; user: any }>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
   static async getUsers() {
     return this.request<any[]>("/users");
+  }
+
+  static async createUser(data: any) {
+    return this.request<any>("/users", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   }
 
   static async updateUserProfile(userId: string, updates: any) {
@@ -49,7 +229,13 @@ export class ApiService {
     return this.request<any[]>("/classrooms");
   }
 
-  static async createClassroom(data: any) {
+  static async createClassroom(data: {
+    name: string;
+    grade: number;
+    subject: string;
+    teacher_id: string;
+    teacher_name: string;
+  }) {
     return this.request<any>("/classrooms", {
       method: "POST",
       body: JSON.stringify(data),
@@ -69,7 +255,13 @@ export class ApiService {
     return this.request<any[]>(`/documents${query}`);
   }
 
-  static async uploadDocument(data: any) {
+  static async uploadDocument(data: {
+    classroom_id: string;
+    title: string;
+    raw_text: string;
+    summary?: string;
+    file_url?: string;
+  }) {
     return this.request<any>("/documents/upload", {
       method: "POST",
       body: JSON.stringify(data),
@@ -88,7 +280,18 @@ export class ApiService {
     return this.request<any[]>(`/tasks${query}`);
   }
 
-  static async createTask(data: any) {
+  static async createTask(data: {
+    classroom_id: string;
+    classroom_name?: string;
+    type?: string;
+    title: string;
+    chapter?: string;
+    source_reference?: string;
+    difficulty_level?: string;
+    is_published?: boolean;
+    due_date?: string;
+    content_json?: any;
+  }) {
     return this.request<any>("/tasks", {
       method: "POST",
       body: JSON.stringify(data),
@@ -168,4 +371,107 @@ export class ApiService {
       method: "PATCH",
     });
   }
+
+  // --- SUBMISSIONS ---
+  static async getSubmissions(taskId?: string, studentId?: string) {
+    const params = new URLSearchParams();
+    if (taskId) params.append("task_id", taskId);
+    if (studentId) params.append("student_id", studentId);
+    const query = params.toString() ? `?${params.toString()}` : "";
+    return this.request<any[]>(`/submissions${query}`);
+  }
+
+  static async submitAssignment(data: {
+    task_id: string;
+    task_title: string;
+    student_id: string;
+    student_name: string;
+    content: string;
+    attachment_name?: string;
+  }) {
+    return this.request<any>("/submissions", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async gradeSubmission(submissionId: string, grade: number, feedback: string) {
+    return this.request<any>(`/submissions/${submissionId}/grade`, {
+      method: "PATCH",
+      body: JSON.stringify({ grade, feedback }),
+    });
+  }
+
+  // --- PARENT-TEACHER NOTES ---
+  static async getNotes(userId?: string, studentId?: string) {
+    const params = new URLSearchParams();
+    if (userId) params.append("user_id", userId);
+    if (studentId) params.append("student_id", studentId);
+    const query = params.toString() ? `?${params.toString()}` : "";
+    return this.request<any[]>(`/notes${query}`);
+  }
+
+  static async sendNote(data: {
+    sender_id: string;
+    sender_name: string;
+    sender_role: string;
+    receiver_id: string;
+    student_id: string;
+    student_name: string;
+    message: string;
+  }) {
+    return this.request<any>("/notes", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async replyNote(noteId: string, reply: string) {
+    return this.request<any>(`/notes/${noteId}/reply`, {
+      method: "POST",
+      body: JSON.stringify({ reply }),
+    });
+  }
+
+  // --- GEMINI AI & RAG INTELLIGENCE ---
+  static async chatWithAI(data: {
+    message: string;
+    history?: { sender: string; text: string }[];
+    classroom_id?: string;
+    document_id?: string;
+    learning_style?: string;
+    student_name?: string;
+    student_id?: string;
+  }) {
+    return this.request<{
+      text: string;
+      citation: string;
+      is_grounded: boolean;
+      cached: boolean;
+      model: string;
+    }>("/ai/chat", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async generateQuizAI(data: {
+    document_id: string;
+    topic: string;
+    difficulty?: string;
+    num_questions?: number;
+  }) {
+    return this.request<{ questions: any[]; cached: boolean }>("/ai/generate-quiz", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async generateDiagramAI(concept: string) {
+    return this.request<{ type: string; code: string; title: string; cached: boolean }>("/ai/diagram", {
+      method: "POST",
+      body: JSON.stringify({ concept }),
+    });
+  }
 }
+

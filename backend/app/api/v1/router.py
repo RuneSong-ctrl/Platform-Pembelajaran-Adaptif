@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
+    auth,
     users,
     classrooms,
     documents,
@@ -10,10 +11,12 @@ from app.api.v1.endpoints import (
     blockchain,
     schedules,
     notes,
+    ai,
 )
 
 api_router = APIRouter()
 
+api_router.include_router(auth.router)
 api_router.include_router(users.router)
 api_router.include_router(classrooms.router)
 api_router.include_router(documents.router)
@@ -24,3 +27,4 @@ api_router.include_router(submissions.router)
 api_router.include_router(blockchain.router)
 api_router.include_router(schedules.router)
 api_router.include_router(notes.router)
+api_router.include_router(ai.router)

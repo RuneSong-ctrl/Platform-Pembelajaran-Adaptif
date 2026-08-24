@@ -1,5 +1,5 @@
-// Service Worker for Adaptika PWA
-const CACHE_NAME = "adaptika-pwa-v1";
+// Service Worker for EduAdapt PWA
+const CACHE_NAME = "eduadapt-pwa-v1";
 const STATIC_ASSETS = [
   "/",
   "/index.html",

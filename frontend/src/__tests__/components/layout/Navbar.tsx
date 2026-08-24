@@ -33,7 +33,7 @@ export default function Navbar() {
         <div className="flex items-center gap-2">
           <Link to="/" className="flex items-center gap-1.5">
             <span className="font-extrabold text-[#010105] text-lg sm:text-xl tracking-tight">
-              EduFlow
+              EduAdapt
             </span>
             <span className="hidden sm:inline-block text-[10px] uppercase font-bold bg-[#D1EBE1] text-[#1D5E4D] px-2 py-0.5 rounded-full">
               Adaptive

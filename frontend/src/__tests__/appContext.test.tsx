@@ -5,6 +5,11 @@ import { AppProvider, useApp } from "../contexts/AppContext";
 
 function TestConsumer() {
   const {
+    isAuthenticated,
+    login,
+    registerUser,
+    loginWithClassCode,
+    logout,
     currentUser,
     switchUser,
     classrooms,
@@ -16,66 +21,117 @@ function TestConsumer() {
 
   return (
     <div>
+      <span data-testid="is-auth">{isAuthenticated ? "YES" : "NO"}</span>
       <span data-testid="user-name">{currentUser.name}</span>
       <span data-testid="user-role">{currentUser.role}</span>
       <span data-testid="class-count">{classrooms.length}</span>
       <span data-testid="doc-count">{documents.length}</span>
 
       <button
-        data-testid="switch-to-teacher"
-        onClick={() => switchUser("user_teacher_01")}
+        data-testid="register-student"
+        onClick={() =>
+          registerUser({
+            name: "Devan Rama",
+            email: "devan@student.id",
+            role: "SISWA",
+            grade: 10,
+          })
+        }
       >
-        Switch to Guru
+        Register Siswa
+      </button>
+
+      <button
+        data-testid="register-teacher"
+        onClick={() =>
+          registerUser({
+            name: "Bapak Guru Budi",
+            email: "guru.budi@sekolah.id",
+            role: "GURU",
+          })
+        }
+      >
+        Register Guru
+      </button>
+
+      <button
+        data-testid="login-user"
+        onClick={() => login("devan@student.id")}
+      >
+        Login User
+      </button>
+
+      <button
+        data-testid="logout-btn"
+        onClick={() => logout()}
+      >
+        Logout
       </button>
 
       <button
         data-testid="create-class"
-        onClick={() => createClassroom("Biologi 10-C", "Biologi", 10)}
+        onClick={() => createClassroom("Biologi 10-A", "Biologi", 10)}
       >
         Create Class
-      </button>
-
-      <button
-        data-testid="join-class"
-        onClick={() => joinClassroom("UDU802")}
-      >
-        Join Class
       </button>
     </div>
   );
 }
 
-describe("AppContext State & Actions", () => {
-  it("should render default student user Ayu Lestari", () => {
+describe("AppContext Dynamic State & Actions", () => {
+  it("should initialize cleanly without hardcoded state", () => {
     render(
       <AppProvider>
         <TestConsumer />
       </AppProvider>
     );
 
-    expect(screen.getByTestId("user-name").textContent).toBe("Ayu Lestari");
-    expect(screen.getByTestId("user-role").textContent).toBe("SISWA");
-    expect(Number(screen.getByTestId("class-count").textContent)).toBeGreaterThan(0);
-    expect(Number(screen.getByTestId("doc-count").textContent)).toBeGreaterThan(0);
+    expect(screen.getByTestId("is-auth").textContent).toBe("NO");
+    expect(screen.getByTestId("class-count").textContent).toBe("0");
+    expect(screen.getByTestId("doc-count").textContent).toBe("0");
   });
 
-  it("should switch user persona to Guru Pak Made", async () => {
+  it("should support dynamic registration of new students", async () => {
     render(
       <AppProvider>
         <TestConsumer />
       </AppProvider>
     );
 
-    const switchBtn = screen.getByTestId("switch-to-teacher");
+    const regBtn = screen.getByTestId("register-student");
     await act(async () => {
-      switchBtn.click();
+      regBtn.click();
     });
 
-    expect(screen.getByTestId("user-name").textContent).toContain("Made Sukadana");
-    expect(screen.getByTestId("user-role").textContent).toBe("GURU");
+    expect(screen.getByTestId("is-auth").textContent).toBe("YES");
+    expect(screen.getByTestId("user-name").textContent).toBe("Devan Rama");
+    expect(screen.getByTestId("user-role").textContent).toBe("SISWA");
   });
 
-  it("should allow creating a new classroom", async () => {
+  it("should support login and logout flow", async () => {
+    render(
+      <AppProvider>
+        <TestConsumer />
+      </AppProvider>
+    );
+
+    const regTeacherBtn = screen.getByTestId("register-teacher");
+    await act(async () => {
+      regTeacherBtn.click();
+    });
+
+    expect(screen.getByTestId("is-auth").textContent).toBe("YES");
+    expect(screen.getByTestId("user-role").textContent).toBe("GURU");
+
+    const logoutBtn = screen.getByTestId("logout-btn");
+    await act(async () => {
+      logoutBtn.click();
+    });
+
+    expect(screen.getByTestId("is-auth").textContent).toBe("NO");
+  });
+
+  it("should allow creating dynamic classrooms", async () => {
     render(
       <AppProvider>
         <TestConsumer />

@@ -29,9 +29,26 @@ import {
   generateTransactionId,
   GENESIS_BLOCK_HASH,
 } from "@/services/blockchainVault";
-import { ApiService } from "@/services/apiClient";
+import {
+  ApiService,
+  normalizeUser,
+  normalizeClassroom,
+  normalizeDocument,
+  normalizeTask,
+  normalizeCredential,
+  normalizeSchedule,
+  normalizeSubmission,
+  normalizeNote,
+} from "@/services/apiClient";
 
 interface AppContextType {
+  // Auth & User Management
+  isAuthenticated: boolean;
+  login: (identifier: string, password?: string) => { success: boolean; user?: User; message?: string };
+  registerUser: (data: { name: string; email: string; role: "SISWA" | "GURU" | "ORTU"; password?: string; grade?: number }) => { success: boolean; user?: User; message?: string };
+  loginWithClassCode: (studentName: string, classCode: string) => { success: boolean; user?: User; message?: string; isNewStudent?: boolean };
+  logout: () => void;
+
   // User & Role Switching
   currentUser: User;
   users: User[];
@@ -94,6 +111,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
+  AUTH: "eduadapt_is_authenticated",
   USER: "eduadapt_current_user_id",
   USERS: "eduadapt_users",
   CLASSROOMS: "eduadapt_classrooms",
@@ -106,56 +124,34 @@ const STORAGE_KEYS = {
 };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
-  const [currentUserId, setCurrentUserId] = useState<string>("user_ayu_01");
-  const [classrooms, setClassrooms] = useState<Classroom[]>(MOCK_CLASSROOMS);
-  const [documents, setDocuments] = useState<GroundedDocument[]>(MOCK_GROUNDED_DOCUMENTS);
-  const [tasks, setTasks] = useState<GroundedTask[]>(MOCK_TASKS);
-  const [credentials, setCredentials] = useState<BlockchainCredential[]>(MOCK_CREDENTIALS);
-  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>(MOCK_SUBMISSIONS);
-  const [notes, setNotes] = useState<ParentTeacherNote[]>(MOCK_NOTES);
-  const [selectedParentChildId, setSelectedParentChildId] = useState<string>("user_ayu_01");
-  const [offlinePackages, setOfflinePackages] = useState<OfflinePackage[]>(MOCK_OFFLINE_PACKAGES);
-
+  const [users, setUsers] = useState<User[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string>(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEYS.USER) || "";
+    } catch {
+      return "";
+    }
+  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEYS.AUTH) === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
+  const [documents, setDocuments] = useState<GroundedDocument[]>([]);
+  const [tasks, setTasks] = useState<GroundedTask[]>([]);
+  const [credentials, setCredentials] = useState<BlockchainCredential[]>([]);
+  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([]);
+  const [notes, setNotes] = useState<ParentTeacherNote[]>([]);
+  const [selectedParentChildId, setSelectedParentChildId] = useState<string>("");
+  const [offlinePackages, setOfflinePackages] = useState<OfflinePackage[]>([]);
 
   const [userMood, setUserMood] = useState<"Great" | "Good" | "Okay" | "Tired" | null>(null);
-  const [studyTimeMinutes, setStudyTimeMinutes] = useState<number>(35);
+  const [studyTimeMinutes, setStudyTimeMinutes] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
-
-  const DEFAULT_SCHEDULES: LearningScheduleItem[] = [
-    {
-      id: "sch_1",
-      studentId: "user_ayu_01",
-      day: "Jumat",
-      time: "16:00 - 16:30",
-      duration: "30 mnt",
-      title: "Bab 3: Eksplorasi Diagram & Reaksi Enzim",
-      format: "Visual",
-      completed: true,
-    },
-    {
-      id: "sch_2",
-      studentId: "user_ayu_01",
-      day: "Sabtu",
-      time: "10:00 - 10:45",
-      duration: "45 mnt",
-      title: "Evaluasi Adaptif Kuis DDA Bab 3",
-      format: "Kuis",
-      completed: false,
-    },
-    {
-      id: "sch_3",
-      studentId: "user_ayu_01",
-      day: "Minggu",
-      time: "19:00 - 19:30",
-      duration: "30 mnt",
-      title: "Persiapan Materi Bab 4 Sistem Peredaran Darah",
-      format: "Visual",
-      completed: false,
-    },
-  ];
-
-  const [learningSchedules, setLearningSchedules] = useState<LearningScheduleItem[]>(DEFAULT_SCHEDULES);
+  const [learningSchedules, setLearningSchedules] = useState<LearningScheduleItem[]>([]);
 
   const addLearningSchedule = (item: Omit<LearningScheduleItem, "id">) => {
     const newItem: LearningScheduleItem = {
@@ -173,11 +169,86 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setLearningSchedules((prev) =>
       prev.map((s) => (s.id === id ? { ...s, completed: !s.completed } : s))
     );
+    // Persist to backend
+    ApiService.toggleSchedule(id).catch(() => {});
   };
+
+  // Auto-sync with FastAPI backend on mount
+  useEffect(() => {
+    const fetchBackendData = async () => {
+      setIsSyncing(true);
+      try {
+        const [
+          backendUsers,
+          backendClassrooms,
+          backendDocs,
+          backendTasks,
+          backendCreds,
+          backendSchedules,
+          backendSubs,
+          backendNotes,
+        ] = await Promise.all([
+          ApiService.getUsers(),
+          ApiService.getClassrooms(),
+          ApiService.getDocuments(),
+          ApiService.getTasks(),
+          ApiService.getCredentials(),
+          ApiService.getSchedules(),
+          ApiService.getSubmissions(),
+          ApiService.getNotes(),
+        ]);
+
+        if (backendUsers !== null && backendUsers.length > 0) {
+          const normalized = backendUsers.map(normalizeUser);
+          setUsers(normalized);
+
+          // Preserve active user if stored in localStorage, otherwise pick the first user
+          const storedUid = localStorage.getItem(STORAGE_KEYS.USER);
+          if (storedUid && normalized.some((u) => u.id === storedUid)) {
+            setCurrentUserId(storedUid);
+          } else if (storedUid && !normalized.some((u) => u.id === storedUid)) {
+            // keep currentUserId as is
+          } else if (!storedUid && normalized.length > 0) {
+            setCurrentUserId(normalized[0].id);
+          }
+        }
+        if (backendClassrooms !== null) {
+          setClassrooms(backendClassrooms.map(normalizeClassroom));
+        }
+        if (backendDocs !== null) {
+          setDocuments(backendDocs.map(normalizeDocument));
+        }
+        if (backendTasks !== null) {
+          setTasks(backendTasks.map(normalizeTask));
+        }
+        if (backendCreds !== null) {
+          setCredentials(backendCreds.map(normalizeCredential));
+        }
+        if (backendSchedules !== null) {
+          setLearningSchedules(backendSchedules.map(normalizeSchedule));
+        }
+        if (backendSubs !== null) {
+          setSubmissions(backendSubs.map(normalizeSubmission));
+        }
+        if (backendNotes !== null) {
+          setNotes(backendNotes.map(normalizeNote));
+        }
+      } catch (e) {
+        console.warn("[AppContext] Backend sync fallback to local state", e);
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+
+    fetchBackendData();
+  }, []);
 
   // Load from local storage if available
   useEffect(() => {
     try {
+      const savedAuth = localStorage.getItem(STORAGE_KEYS.AUTH);
+      if (savedAuth === "true") setIsAuthenticated(true);
+
       const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
       if (savedUser) setCurrentUserId(savedUser);
 
@@ -197,7 +268,228 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const currentUser = users.find((u) => u.id === currentUserId) || users[0];
+  const DEFAULT_EMPTY_USER: User = {
+    id: "",
+    name: "Pengguna",
+    email: "",
+    role: "SISWA",
+    avatar: "ED",
+    grade: 10,
+    learningStyle: "VISUAL",
+    modalityScores: { visual: 0, audio: 0, practice: 0 },
+    processingSpeed: "MODERATE",
+    xpTotal: 0,
+    streakDays: 0,
+    hearts: 5,
+    currentDDALevel: "BASIC",
+  };
+
+  const currentUser = users.find((u) => u.id === currentUserId) || users[0] || DEFAULT_EMPTY_USER;
+
+  const login = (identifier: string, password?: string): { success: boolean; user?: User; message?: string } => {
+    const cleanId = identifier.trim().toLowerCase();
+    if (!cleanId) {
+      return { success: false, message: "Harap masukkan email, NISN, atau NIP." };
+    }
+
+    // Find matching user by email, id, or partial name
+    const foundUser = users.find(
+      (u) =>
+        u.email.toLowerCase() === cleanId ||
+        u.id.toLowerCase() === cleanId ||
+        u.name.toLowerCase().includes(cleanId)
+    );
+
+    if (!foundUser) {
+      return { success: false, message: "Akun tidak terdaftar. Periksa kembali kredensial Anda." };
+    }
+
+    setCurrentUserId(foundUser.id);
+    setIsAuthenticated(true);
+    try {
+      localStorage.setItem(STORAGE_KEYS.AUTH, "true");
+      localStorage.setItem(STORAGE_KEYS.USER, foundUser.id);
+    } catch {
+      // safe fallback
+    }
+
+    // Background sync to backend
+    ApiService.login(cleanId, password).catch(() => {});
+
+    return { success: true, user: foundUser };
+  };
+
+  const registerUser = (data: {
+    name: string;
+    email: string;
+    role: "SISWA" | "GURU" | "ORTU";
+    password?: string;
+    grade?: number;
+  }): { success: boolean; user?: User; message?: string } => {
+    const cleanName = data.name.trim();
+    const cleanEmail = data.email.trim().toLowerCase();
+
+    if (!cleanName) {
+      return { success: false, message: "Harap masukkan nama lengkap Anda." };
+    }
+    if (!cleanEmail) {
+      return { success: false, message: "Harap masukkan alamat email Anda." };
+    }
+
+    const existing = users.find((u) => u.email.toLowerCase() === cleanEmail);
+    if (existing) {
+      return { success: false, message: "Email ini sudah terdaftar. Silakan langsung masuk." };
+    }
+
+    const initials = cleanName
+      .split(" ")
+      .map((p) => p[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+
+    const newUser: User = {
+      id: `user_${data.role.toLowerCase()}_${Date.now().toString(36)}`,
+      name: cleanName,
+      email: cleanEmail,
+      role: data.role,
+      avatar: initials || data.role.slice(0, 2),
+      grade: data.role === "SISWA" ? (data.grade || 10) : undefined,
+      learningStyle: undefined,
+      xpTotal: data.role === "SISWA" ? 100 : 0,
+      streakDays: 1,
+      hearts: 5,
+      currentDDALevel: "BASIC",
+    };
+
+    setUsers((prev) => [newUser, ...prev]);
+    setCurrentUserId(newUser.id);
+    setIsAuthenticated(true);
+    try {
+      localStorage.setItem(STORAGE_KEYS.AUTH, "true");
+      localStorage.setItem(STORAGE_KEYS.USER, newUser.id);
+    } catch {
+      // safe fallback
+    }
+
+    // Background sync to backend FastAPI / Database
+    ApiService.registerUser({
+      name: cleanName,
+      email: cleanEmail,
+      role: data.role,
+      password: data.password,
+      grade: data.grade,
+    }).then((res) => {
+      if (res && res.user) {
+        const backendUser = normalizeUser(res.user);
+        setUsers((prev) => [backendUser, ...prev.filter((u) => u.id !== newUser.id && u.id !== backendUser.id)]);
+        setCurrentUserId(backendUser.id);
+        try {
+          localStorage.setItem(STORAGE_KEYS.USER, backendUser.id);
+        } catch {}
+      }
+    }).catch(() => {});
+
+    return { success: true, user: newUser };
+  };
+
+  const loginWithClassCode = (
+    studentName: string,
+    classCode: string
+  ): { success: boolean; user?: User; message?: string; isNewStudent?: boolean } => {
+    const cleanName = studentName.trim();
+    const cleanCode = classCode.trim().toUpperCase();
+
+    if (!cleanName) {
+      return { success: false, message: "Harap masukkan nama lengkap siswa." };
+    }
+    if (!cleanCode) {
+      return { success: false, message: "Harap masukkan 6 digit kode kelas." };
+    }
+
+    const targetClass = classrooms.find((c) => c.joinCode.toUpperCase() === cleanCode);
+    if (!targetClass) {
+      return { success: false, message: "Kode kelas tidak ditemukan. Minta kode 6-digit dari guru Anda." };
+    }
+
+    // Check if student with same name exists, else create new
+    let studentUser = users.find(
+      (u) => u.role === "SISWA" && u.name.toLowerCase() === cleanName.toLowerCase()
+    );
+    let isNew = false;
+
+    if (!studentUser) {
+      isNew = true;
+      const initials = cleanName
+        .split(" ")
+        .map((p) => p[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+      studentUser = {
+        id: `user_siswa_${Date.now().toString(36)}`,
+        name: cleanName,
+        email: `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, "")}@student.eduadapt.id`,
+        role: "SISWA",
+        avatar: initials || "ST",
+        grade: targetClass.grade || 10,
+        learningStyle: undefined, // Needs initial assessment!
+        xpTotal: 100,
+        streakDays: 1,
+        hearts: 5,
+        currentDDALevel: "BASIC",
+      };
+      setUsers((prev) => [studentUser!, ...prev]);
+
+      // Persist new student user to backend database
+      ApiService.createUser({
+        id: studentUser.id,
+        name: studentUser.name,
+        email: studentUser.email,
+        role: "SISWA",
+        avatar: studentUser.avatar,
+        grade: studentUser.grade,
+        learning_style: "VISUAL",
+        xp_total: 100,
+        streak_days: 1,
+        hearts: 5,
+        current_dda_level: "BASIC",
+      }).catch(() => {});
+    }
+
+    // Add to classroom if not already in
+    if (!targetClass.studentIds.includes(studentUser.id)) {
+      setClassrooms((prev) =>
+        prev.map((c) =>
+          c.id === targetClass.id
+            ? { ...c, studentIds: [...c.studentIds, studentUser!.id] }
+            : c
+        )
+      );
+      ApiService.joinClassroom(cleanCode, studentUser.id).catch(() => {});
+    }
+
+    setCurrentUserId(studentUser.id);
+    setIsAuthenticated(true);
+    try {
+      localStorage.setItem(STORAGE_KEYS.AUTH, "true");
+      localStorage.setItem(STORAGE_KEYS.USER, studentUser.id);
+    } catch {
+      // safe fallback
+    }
+
+    return { success: true, user: studentUser, isNewStudent: isNew || !studentUser.learningStyle };
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+    try {
+      localStorage.removeItem(STORAGE_KEYS.AUTH);
+      localStorage.removeItem(STORAGE_KEYS.USER);
+    } catch {
+      // safe fallback
+    }
+  };
 
   const switchUser = (userId: string) => {
     setCurrentUserId(userId);
@@ -212,6 +504,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setUsers((prev) =>
       prev.map((u) => (u.id === currentUser.id ? { ...u, ...updates } : u))
     );
+
+    // Persist profile changes directly to backend database
+    if (currentUser.id) {
+      ApiService.updateUserProfile(currentUser.id, {
+        name: updates.name,
+        email: updates.email,
+        avatar: updates.avatar,
+        grade: updates.grade,
+        learning_style: updates.learningStyle,
+        modality_scores: updates.modalityScores,
+        processing_speed: updates.processingSpeed,
+        xp_total: updates.xpTotal,
+        streak_days: updates.streakDays,
+        hearts: updates.hearts,
+        current_dda_level: updates.currentDDALevel,
+      }).catch((err) => {
+        console.warn("[AppContext] Profile update backend sync error", err);
+      });
+    }
   };
 
   const addClassroom = (name: string, grade: number, subject: string): Classroom => {
@@ -224,12 +535,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       joinCode: randomCode,
       teacherId: currentUser.id,
       teacherName: currentUser.name,
-      studentIds: ["user_ayu_01", "user_budi_02"],
+      studentIds: [],
       documentsCount: 0,
       tasksCount: 0,
       createdAt: new Date().toISOString(),
     };
     setClassrooms((prev) => [newClass, ...prev]);
+
+    // Persist to backend
+    ApiService.createClassroom({
+      name,
+      grade,
+      subject,
+      teacher_id: currentUser.id,
+      teacher_name: currentUser.name,
+    })
+      .then((res) => {
+        if (res) {
+          const norm = normalizeClassroom(res);
+          setClassrooms((prev) => prev.map((c) => (c.id === newClass.id ? norm : c)));
+        }
+      })
+      .catch(() => {});
+
     return newClass;
   };
 
@@ -249,6 +577,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     const updated = { ...target, studentIds: [...target.studentIds, currentUser.id] };
     setClassrooms((prev) => prev.map((c) => (c.id === target.id ? updated : c)));
+
+    // Persist to backend
+    ApiService.joinClassroom(joinCode, currentUser.id).catch(() => {});
+
     return { success: true, message: `Berhasil bergabung ke kelas ${target.name}!` };
   };
 
@@ -276,11 +608,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         c.id === classroomId ? { ...c, documentsCount: c.documentsCount + 1 } : c
       )
     );
+
+    // Persist to backend
+    try {
+      const res = await ApiService.uploadDocument({
+        classroom_id: classroomId,
+        title,
+        raw_text: rawText,
+        summary: summary || newDoc.summary,
+      });
+      if (res) {
+        const norm = normalizeDocument(res);
+        setDocuments((prev) => prev.map((d) => (d.id === newDoc.id ? norm : d)));
+        return norm;
+      }
+    } catch {
+      // offline fallback
+    }
+
     return newDoc;
   };
 
   const deleteDocument = (docId: string) => {
     setDocuments((prev) => prev.filter((d) => d.id !== docId));
+    ApiService.deleteDocument(docId).catch(() => {});
   };
 
   const createTask = (taskData: Omit<GroundedTask, "id" | "createdAt">): GroundedTask => {
@@ -295,6 +646,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         c.id === taskData.classroomId ? { ...c, tasksCount: c.tasksCount + 1 } : c
       )
     );
+
+    // Persist to backend
+    ApiService.createTask({
+      classroom_id: taskData.classroomId,
+      classroom_name: taskData.classroomName,
+      type: taskData.type,
+      title: taskData.title,
+      chapter: taskData.chapter,
+      source_reference: taskData.sourceReference,
+      difficulty_level: taskData.difficultyLevel,
+      is_published: taskData.isPublished,
+      due_date: taskData.dueDate,
+      content_json: taskData.contentJson,
+    })
+      .then((res) => {
+        if (res) {
+          const norm = normalizeTask(res);
+          setTasks((prev) => prev.map((t) => (t.id === newTask.id ? norm : t)));
+        }
+      })
+      .catch(() => {});
+
     return newTask;
   };
 
@@ -312,6 +685,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       status: "Submitted",
     };
     setSubmissions((prev) => [newSub, ...prev]);
+
+    // Persist to backend
+    ApiService.submitAssignment({
+      task_id: taskId,
+      task_title: newSub.taskTitle,
+      student_id: currentUser.id,
+      student_name: currentUser.name,
+      content,
+      attachment_name: newSub.attachmentName,
+    }).catch(() => {});
   };
 
   const gradeSubmission = (submissionId: string, grade: number, feedback: string) => {
@@ -322,6 +705,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           : s
       )
     );
+
+    // Persist to backend
+    ApiService.gradeSubmission(submissionId, grade, feedback).catch(() => {});
   };
 
   const gradeAssignmentSubmission = gradeSubmission;
@@ -382,6 +768,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return updated;
     });
 
+    // Persist to backend
+    try {
+      const res = await ApiService.mintCredential({
+        student_id: studentId,
+        classroom_id: classroomId,
+        competency_title: competencyTitle,
+        score,
+      });
+      if (res) {
+        const norm = normalizeCredential(res);
+        setCredentials((prev) => prev.map((c) => (c.id === newCert.id ? norm : c)));
+        return norm;
+      }
+    } catch {
+      // safe fallback
+    }
+
     return newCert;
   };
 
@@ -414,9 +817,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       sentAt: new Date().toISOString(),
     };
     setNotes((prev) => [newNote, ...prev]);
+
+    // Persist to backend
+    ApiService.sendNote({
+      sender_id: currentUser.id,
+      sender_name: currentUser.name,
+      sender_role: currentUser.role,
+      receiver_id: receiverId,
+      student_id: studentId,
+      student_name: student?.name || "Siswa",
+      message,
+    }).catch(() => {});
+
     return newNoteId;
   };
-
 
   const sendParentTeacherNote = sendNote;
 
@@ -428,6 +842,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           : n
       )
     );
+
+    // Persist to backend
+    ApiService.replyNote(noteId, reply).catch(() => {});
   };
 
   const toggleDownloadPackage = (id: string) => {
@@ -485,6 +902,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider
       value={{
+        isAuthenticated,
+        login,
+        registerUser,
+        loginWithClassCode,
+        logout,
         currentUser,
         users,
         switchUser,

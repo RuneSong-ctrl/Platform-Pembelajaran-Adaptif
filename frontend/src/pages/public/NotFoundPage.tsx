@@ -24,8 +24,8 @@ export default function NotFoundPage() {
         </div>
       </main>
 
-      <footer className="text-center py-6 text-xs text-[#9195A8]">
-        © 2026 EduFlow Adaptive Ecosystem
+      <footer className="text-center py-6 text-xs text-[#595F72]">
+        © 2026 EduAdapt • Riset Hibah Fundamental Universitas Udayana
       </footer>
     </div>
   );

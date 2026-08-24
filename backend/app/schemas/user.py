@@ -24,10 +24,25 @@ class UserBase(BaseModel):
     subject_specialization: Optional[str] = None
 
 class UserCreate(UserBase):
-    id: str
+    id: Optional[str] = None
+
+class UserRegister(BaseModel):
+    name: str
+    email: EmailStr
+    role: str = "SISWA" # "SISWA", "GURU", "ORTU"
+    password: Optional[str] = None
+    grade: Optional[int] = 10
+    subject_specialization: Optional[str] = None
+
+class UserLogin(BaseModel):
+    identifier: str
+    password: Optional[str] = None
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    avatar: Optional[str] = None
+    grade: Optional[int] = None
     learning_style: Optional[str] = None
     modality_scores: Optional[Dict[str, int]] = None
     processing_speed: Optional[str] = None
@@ -41,3 +56,9 @@ class UserResponse(UserBase):
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class AuthResponse(BaseModel):
+    success: bool = True
+    message: str = "Autentikasi berhasil"
+    token: Optional[str] = None
+    user: UserResponse

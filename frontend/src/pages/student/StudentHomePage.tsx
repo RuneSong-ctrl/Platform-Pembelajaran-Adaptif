@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
+import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
 import {
   Eye,
@@ -25,43 +26,97 @@ import {
   TrendingUp,
   Plus,
   Layers,
+  School,
+  Bot,
 } from "@/components/ui/icons";
-
-import StudentSidebar from "@/components/layout/StudentSidebar";
 
 export default function StudentHomePage() {
   const navigate = useNavigate();
   const {
     currentUser,
-    switchUser,
     learningSchedules,
     toggleLearningSchedule,
+    tasks,
+    documents,
+    submissions,
+    classrooms,
   } = useApp();
 
-  const [selectedDayIdx, setSelectedDayIdx] = useState<number>(4); // Default: Friday (Jum)
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
   const [isSpeakingSummary, setIsSpeakingSummary] = useState<boolean>(false);
 
-  // Ensure student persona is active if visited directly
-  useEffect(() => {
-    if (currentUser.role !== "SISWA") {
-      switchUser("user_ayu_01");
-    }
-  }, [currentUser.role, switchUser]);
+  const style = currentUser?.learningStyle || "VISUAL";
+  const userGrade = currentUser?.grade ? `Kelas ${currentUser.grade}` : "Kelas 10";
 
-  const daysOfWeek = [
-    { day: "Sen", fullDay: "Senin", date: "17", completed: true },
-    { day: "Sel", fullDay: "Selasa", date: "18", completed: true },
-    { day: "Rab", fullDay: "Rabu", date: "19", completed: true },
-    { day: "Kam", fullDay: "Kamis", date: "20", completed: true },
-    { day: "Jum", fullDay: "Jumat", date: "21", completed: false, isToday: true },
-    { day: "Sab", fullDay: "Sabtu", date: "22", completed: false },
-    { day: "Min", fullDay: "Minggu", date: "23", completed: false },
+  // Dynamic active learning topic from student's enrolled classrooms
+  const myClassrooms = classrooms.filter(
+    (c) => Boolean(currentUser?.id && c.studentIds?.includes(currentUser.id))
+  );
+  const myTasks = tasks.filter(
+    (t) => myClassrooms.some((c) => c.id === t.classroomId)
+  );
+  const activeTask = myTasks[0];
+  const activeDoc = documents.find((d) => myClassrooms.some((c) => c.id === d.classroomId));
+  const hasActiveContent = Boolean(activeTask || activeDoc);
+  const currentChapterTitle =
+    activeTask?.title ||
+    activeTask?.chapter ||
+    activeDoc?.title ||
+    "Belum ada modul aktif dari guru";
+
+  // Student's dynamic schedules strictly for current user
+  const studentSchedules = learningSchedules.filter(
+    (s) => s.studentId === currentUser?.id
+  );
+
+  // Dynamic Real-Time 7-Day Calendar (Senin - Minggu)
+  const now = new Date();
+  const currentDayOfWeek = now.getDay(); // 0 is Sunday, 1 is Monday, ..., 6 is Saturday
+  const mondayOffset = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
+  const mondayDate = new Date(now);
+  mondayDate.setDate(now.getDate() + mondayOffset);
+
+  const dayMetadata = [
+    { day: "Sen", fullDay: "Senin" },
+    { day: "Sel", fullDay: "Selasa" },
+    { day: "Rab", fullDay: "Rabu" },
+    { day: "Kam", fullDay: "Kamis" },
+    { day: "Jum", fullDay: "Jumat" },
+    { day: "Sab", fullDay: "Sabtu" },
+    { day: "Min", fullDay: "Minggu" },
   ];
 
-  const style = currentUser.learningStyle || "VISUAL";
+  const monthNames = [
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+  ];
 
-  // Configuration based on active student learning style
+  const daysOfWeek = dayMetadata.map((meta, index) => {
+    const itemDate = new Date(mondayDate);
+    itemDate.setDate(mondayDate.getDate() + index);
+    const dateNum = itemDate.getDate();
+    const monthName = monthNames[itemDate.getMonth()];
+    const isToday =
+      itemDate.getDate() === now.getDate() &&
+      itemDate.getMonth() === now.getMonth() &&
+      itemDate.getFullYear() === now.getFullYear();
+
+    return {
+      day: meta.day,
+      fullDay: meta.fullDay,
+      date: String(dateNum),
+      monthName,
+      isToday,
+      completed: studentSchedules.some((s) => s.day === meta.fullDay && s.completed),
+    };
+  });
+
+  const todayIndex = daysOfWeek.findIndex((d) => d.isToday);
+  const [selectedDayIdx, setSelectedDayIdx] = useState<number>(
+    todayIndex !== -1 ? todayIndex : 0
+  );
+
+  // Dynamic style configuration
   const getStyleConfig = () => {
     switch (style) {
       case "AUDITORI":
@@ -74,11 +129,10 @@ export default function StudentHomePage() {
           HeroIcon: Headphones,
           modalityLabel: "Auditori",
           btnColor: "text-[#3C2D68]",
-          topBgGradient: "from-[#C4B2F5] via-[#E3DBF8]/75 via-45% to-transparent",
+          topBgGradient: "from-[#C4B2F5]/70 via-[#E3DBF8]/40 to-transparent",
           calendarCard: {
             cardBg: "bg-[#EFEAFB]",
             cardBorder: "border-[#D8CDF8]/80",
-            shadow: "shadow-[0_12px_28px_rgba(75,59,122,0.08),inset_2px_2px_4px_#fff,inset_-2px_-2px_5px_rgba(75,59,122,0.03)]",
             textColor: "text-[#2D2152]",
             subTextColor: "text-[#4B3B7A]",
             iconBox: "bg-white text-[#4B3B7A]",
@@ -88,7 +142,7 @@ export default function StudentHomePage() {
             completedDayLabel: "text-[#4B3B7A]",
             completedDateLabel: "text-[#2D2152]",
             checkBadge: "bg-[#4B3B7A] text-white",
-            activePill: "bg-white text-[#2D2152] shadow-[0_8px_20px_rgba(75,59,122,0.18),inset_1px_1px_2px_#fff]",
+            activePill: "bg-white text-[#2D2152] shadow-[0_8px_20px_rgba(75,59,122,0.18)]",
             activeDayLabel: "text-[#2D2152]",
             activeDateLabel: "text-[#2D2152]",
             activeDot: "bg-[#4B3B7A]",
@@ -113,11 +167,10 @@ export default function StudentHomePage() {
           HeroIcon: FlaskConical,
           modalityLabel: "Kinestetik",
           btnColor: "text-[#694503]",
-          topBgGradient: "from-[#FCD678] via-[#FEE7B3]/75 via-45% to-transparent",
+          topBgGradient: "from-[#FCD678]/70 via-[#FEE7B3]/40 to-transparent",
           calendarCard: {
             cardBg: "bg-[#FFF4DC]",
             cardBorder: "border-[#FCE0A2]/80",
-            shadow: "shadow-[0_12px_28px_rgba(120,83,8,0.08),inset_2px_2px_4px_#fff,inset_-2px_-2px_5px_rgba(120,83,8,0.03)]",
             textColor: "text-[#4A3205]",
             subTextColor: "text-[#785308]",
             iconBox: "bg-white text-[#785308]",
@@ -127,7 +180,7 @@ export default function StudentHomePage() {
             completedDayLabel: "text-[#785308]",
             completedDateLabel: "text-[#4A3205]",
             checkBadge: "bg-[#785308] text-white",
-            activePill: "bg-white text-[#4A3205] shadow-[0_8px_20px_rgba(120,83,8,0.18),inset_1px_1px_2px_#fff]",
+            activePill: "bg-white text-[#4A3205] shadow-[0_8px_20px_rgba(120,83,8,0.18)]",
             activeDayLabel: "text-[#4A3205]",
             activeDateLabel: "text-[#4A3205]",
             activeDot: "bg-[#785308]",
@@ -153,11 +206,10 @@ export default function StudentHomePage() {
           HeroIcon: Eye,
           modalityLabel: "Visual",
           btnColor: "text-[#124B3D]",
-          topBgGradient: "from-[#9DE1CA] via-[#D1EBE1]/75 via-45% to-transparent",
+          topBgGradient: "from-[#9DE1CA]/70 via-[#D1EBE1]/40 to-transparent",
           calendarCard: {
             cardBg: "bg-[#E6F5EE]",
             cardBorder: "border-[#C7EAD9]/80",
-            shadow: "shadow-[0_12px_28px_rgba(29,94,77,0.08),inset_2px_2px_4px_#fff,inset_-2px_-2px_5px_rgba(29,94,77,0.03)]",
             textColor: "text-[#0E3D31]",
             subTextColor: "text-[#1D5E4D]",
             iconBox: "bg-white text-[#1D5E4D]",
@@ -167,7 +219,7 @@ export default function StudentHomePage() {
             completedDayLabel: "text-[#1D5E4D]",
             completedDateLabel: "text-[#0E3D31]",
             checkBadge: "bg-[#1D5E4D] text-white",
-            activePill: "bg-white text-[#0E3D31] shadow-[0_8px_20px_rgba(29,94,77,0.18),inset_1px_1px_2px_#fff]",
+            activePill: "bg-white text-[#0E3D31] shadow-[0_8px_20px_rgba(29,94,77,0.18)]",
             activeDayLabel: "text-[#0E3D31]",
             activeDateLabel: "text-[#0E3D31]",
             activeDot: "bg-[#1D5E4D]",
@@ -182,7 +234,6 @@ export default function StudentHomePage() {
             missionTitle: "text-[#0E3D31]",
           },
         };
-
     }
   };
 
@@ -190,8 +241,7 @@ export default function StudentHomePage() {
   const HeroIconComponent = styleConfig.HeroIcon;
   const cal = styleConfig.calendarCard;
 
-
-  // Audio Speech Synthesis Handler
+  // Web Speech Audio Synthesizer Handler
   const handleToggleSpeak = () => {
     audioSynth.playClickSound();
     if ("speechSynthesis" in window) {
@@ -199,8 +249,9 @@ export default function StudentHomePage() {
         window.speechSynthesis.cancel();
         setIsSpeakingSummary(false);
       } else {
-        const text =
-          "Ringkasan Bab 3: Sistem pencernaan manusia memproses nutrisi secara mekanik dan kimiawi, dimulai dari mulut dengan bantuan enzim ptialin hingga lambung dan usus halus.";
+        const text = hasActiveContent
+          ? `Ringkasan Pembelajaran: ${currentChapterTitle}. Materi ini telah dioptimasi khusus untuk gaya belajar ${styleConfig.modalityLabel}. Silakan pelajari konsep kunci dan selesaikan tantangan adaptif.`
+          : `Selamat datang di EduAdapt. Belum ada materi aktif yang diunggah oleh guru di kelasmu. Kamu bisa mulai dengan berdiskusi bersama Asisten AI Tutor atau meminta kode kelas dari gurumu.`;
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = "id-ID";
         utterance.onend = () => setIsSpeakingSummary(false);
@@ -211,909 +262,802 @@ export default function StudentHomePage() {
     }
   };
 
-  // Student's schedules
-  const studentSchedules = learningSchedules.filter(
-    (s) => s.studentId === currentUser.id
-  );
-
   const selectedDayObj = daysOfWeek[selectedDayIdx];
   const activeDaySchedule = studentSchedules.find(
     (s) => s.day === selectedDayObj.fullDay
   );
 
+  // Dynamic Modality Accuracy Calculation
+  const visualAcc = currentUser?.modalityScores?.visual || 0;
+  const audioAcc = currentUser?.modalityScores?.audio || 0;
+  const practiceAcc = currentUser?.modalityScores?.practice || 0;
+
+  const currentModalityAccuracy =
+    style === "AUDITORI" ? audioAcc : style === "KINESTETIK" ? practiceAcc : visualAcc;
+
+  const completedSchedulesCount = studentSchedules.filter((s) => s.completed).length;
+  const totalSchedulesCount = studentSchedules.length;
+  const scheduleProgressPercent = totalSchedulesCount > 0 ? Math.round((completedSchedulesCount / totalSchedulesCount) * 100) : 0;
+
   return (
     <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8 relative overflow-hidden">
-      {/* Vibrant Ambient Top Gradient per Modality */}
+      {/* Dynamic Ambient Top Gradient */}
       <div
-        className={`absolute top-0 left-0 right-0 h-[460px] sm:h-[520px] bg-gradient-to-b ${styleConfig.topBgGradient} pointer-events-none transition-all duration-500`}
+        className={`absolute top-0 left-0 right-0 h-[420px] bg-gradient-to-b ${styleConfig.topBgGradient} pointer-events-none transition-all duration-500`}
         aria-hidden="true"
       />
-
 
       <div className="relative z-10">
         <Navbar />
       </div>
 
-      <div className="flex flex-1 relative z-10">
-        {/* Desktop Student Sidebar */}
+      <div className="flex flex-1 relative z-10 max-w-7xl mx-auto w-full">
+        {/* Clean Desktop Sidebar */}
         <StudentSidebar />
 
-
-        {/* Responsive auto-fit main stream */}
-        <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
+        {/* Responsive Bento Grid Dashboard */}
+        <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-5">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             {/* LEFT MAIN STREAM (7 cols on lg) */}
             <div className="lg:col-span-7 flex flex-col gap-4 sm:gap-5">
-            {/* 1. HERO LEARNING OVERVIEW (Clay Tactile) */}
-            <section className={`${styleConfig.heroClass} p-5 sm:p-6 relative overflow-hidden`}>
-              <div className="flex items-start justify-between gap-3 relative z-10">
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="clay-pill clay-white px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#1C1E26]">
-                      Kelas 10-A
-                    </span>
-                    <span className={`px-2.5 py-0.5 text-[10px] font-extrabold ${styleConfig.heroBadgeBg}`}>
-                      Modalitas {styleConfig.modalityLabel}
-                    </span>
-                  </div>
-                  <h1 className={`text-xl sm:text-2xl font-black tracking-tight ${styleConfig.heroTitleColor}`}>
-                    {currentUser.name}
-                  </h1>
-                  <p className={`text-xs ${styleConfig.heroSubColor} font-medium mt-0.5`}>
-                    Target: Bab 3 Sistem Pencernaan &amp; Enzim
-                  </p>
-                </div>
-
-                <div className={`w-11 h-11 ${styleConfig.heroIconBg} flex items-center justify-center shrink-0`}>
-                  <HeroIconComponent className="w-6 h-6" />
-                </div>
-              </div>
-
-              {/* 3 Metrics Mini Grid in Clay Pills */}
-              <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-black/10 relative z-10">
-                <div className="clay-pill clay-white p-2.5 text-center flex flex-col items-center justify-center">
-                  <div className="flex items-center justify-center gap-1 text-[#785308] font-black text-xs">
-                    <Flame className="w-3.5 h-3.5 fill-[#785308]" />
-                    <span>{currentUser.streakDays || 14} Hari</span>
-                  </div>
-                  <span className={`text-[9px] ${styleConfig.heroSubColor} font-bold block mt-0.5`}>Streak</span>
-                </div>
-
-                <div className="clay-pill clay-white p-2.5 text-center flex flex-col items-center justify-center">
-                  <div className="flex items-center justify-center gap-1 text-[#1D5E4D] font-black text-xs">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>82%</span>
-                  </div>
-                  <span className={`text-[9px] ${styleConfig.heroSubColor} font-bold block mt-0.5`}>Akurasi DDA</span>
-                </div>
-
-                <div className="clay-pill clay-white p-2.5 text-center flex flex-col items-center justify-center">
-                  <div className="flex items-center justify-center gap-1 text-[#21518A] font-black text-xs">
-                    <Star className="w-3.5 h-3.5 fill-[#21518A]" />
-                    <span>{currentUser.xpTotal || 450} XP</span>
-                  </div>
-                  <span className={`text-[9px] ${styleConfig.heroSubColor} font-bold block mt-0.5`}>Total XP</span>
-                </div>
-              </div>
-
-              {/* Direct Continue Button */}
-              <div className="mt-3.5 relative z-10">
-                <button
-                  onClick={() => {
-                    audioSynth.playClickSound();
-                    navigate("/student/learn");
-                  }}
-                  className={`clay-btn clay-btn-white w-full py-2.5 px-4 text-xs font-black ${styleConfig.btnColor} flex items-center justify-center gap-1.5 cursor-pointer`}
-                >
-                  <span>Lanjutkan Eksplorasi Materi</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </section>
-
-            {/* 2. UNIFIED WEEKLY SCHEDULE & TARGET HUB (Harmonious Modality Theme) */}
-            <section className={`clay-card ${cal.cardBg} ${cal.textColor} p-4 sm:p-5 rounded-[28px] border ${cal.cardBorder} ${cal.shadow} space-y-3.5`}>
-              {/* Header Bar */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl ${cal.iconBox} flex items-center justify-center shadow-xs shrink-0`}>
-                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <h2 className={`text-xs sm:text-sm font-black ${cal.textColor} truncate tracking-tight`}>
-                      Agustus 2026 • Minggu 3
-                    </h2>
-                    <p className={`text-[10px] sm:text-[11px] ${cal.subTextColor} font-bold truncate`}>
-                      2 dari 3 Misi Adaptif Selesai Hari Ini
+              {/* 1. HERO LEARNING OVERVIEW (Dynamic Tactile) */}
+              <section className={`${styleConfig.heroClass} p-5 sm:p-6 relative overflow-hidden`}>
+                <div className="flex items-start justify-between gap-3 relative z-10">
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="clay-pill clay-white px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#1C1E26]">
+                        {userGrade}
+                      </span>
+                      <span className={`px-2.5 py-0.5 text-[10px] font-extrabold ${styleConfig.heroBadgeBg}`}>
+                        Modalitas {styleConfig.modalityLabel}
+                      </span>
+                    </div>
+                    <h1 className={`text-xl sm:text-2xl font-black tracking-tight ${styleConfig.heroTitleColor}`}>
+                      {currentUser?.name || "Siswa EduAdapt"}
+                    </h1>
+                    <p className={`text-xs ${styleConfig.heroSubColor} font-bold mt-0.5`}>
+                      {hasActiveContent ? `Target: ${currentChapterTitle}` : "Belum ada target modul aktif dari guru"}
                     </p>
                   </div>
+
+                  <div className={`w-11 h-11 ${styleConfig.heroIconBg} flex items-center justify-center shrink-0 shadow-xs`}>
+                    <HeroIconComponent className="w-6 h-6" />
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className={`${cal.targetBadge} text-[11px] sm:text-xs font-black px-3 py-1 shadow-2xs`}>
-                    67% Target
-                  </span>
-                  <Link
-                    to="/student/schedule"
-                    onClick={() => audioSynth.playClickSound()}
-                    className={`p-1.5 rounded-xl ${cal.chevronBtn} transition-transform hover:scale-105 shrink-0 shadow-2xs focus-visible:ring-2 focus-visible:ring-[#1C1E26]`}
-                    title="Kelola Jadwal Penuh"
-                    aria-label="Buka Halaman Kelola Jadwal Belajar"
+                {/* 3 Real Metrics from Backend */}
+                <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-black/10 relative z-10">
+                  <div className="clay-pill clay-white p-2.5 text-center flex flex-col items-center justify-center shadow-2xs">
+                    <div className="flex items-center justify-center gap-1 text-[#785308] font-black text-xs">
+                      <Flame className="w-3.5 h-3.5 fill-[#785308]" />
+                      <span>{currentUser?.streakDays || 0} Hari</span>
+                    </div>
+                    <span className={`text-[9px] ${styleConfig.heroSubColor} font-extrabold block mt-0.5`}>Streak Aktif</span>
+                  </div>
+
+                  <div className="clay-pill clay-white p-2.5 text-center flex flex-col items-center justify-center shadow-2xs">
+                    <div className="flex items-center justify-center gap-1 text-[#1D5E4D] font-black text-xs">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{currentModalityAccuracy}%</span>
+                    </div>
+                    <span className={`text-[9px] ${styleConfig.heroSubColor} font-extrabold block mt-0.5`}>Akurasi DDA</span>
+                  </div>
+
+                  <div className="clay-pill clay-white p-2.5 text-center flex flex-col items-center justify-center shadow-2xs">
+                    <div className="flex items-center justify-center gap-1 text-[#21518A] font-black text-xs">
+                      <Star className="w-3.5 h-3.5 fill-[#21518A]" />
+                      <span>{currentUser?.xpTotal || 0} XP</span>
+                    </div>
+                    <span className={`text-[9px] ${styleConfig.heroSubColor} font-extrabold block mt-0.5`}>Total XP</span>
+                  </div>
+                </div>
+
+                {/* Direct Action Button */}
+                <div className="mt-3.5 relative z-10">
+                  <button
+                    onClick={() => {
+                      audioSynth.playClickSound();
+                      if (hasActiveContent) {
+                        navigate("/student/learn");
+                      } else {
+                        navigate("/student/class");
+                      }
+                    }}
+                    className={`clay-btn clay-btn-white w-full py-2.5 px-4 text-xs font-black ${styleConfig.btnColor} flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-98`}
                   >
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-
-              {/* 7-Day Clay Selector (SEN 17 - MIN 23) */}
-              <div className="grid grid-cols-7 gap-1 sm:gap-1.5 items-end" role="group" aria-label="Pilih Hari Jadwal Mingguan">
-                {daysOfWeek.map((item, idx) => {
-                  const isSelected = selectedDayIdx === idx;
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        audioSynth.playClickSound();
-                        setSelectedDayIdx(idx);
-                      }}
-                      aria-label={`Pilih Hari ${item.fullDay}, Tanggal ${item.date} Agustus${item.completed ? " (Selesai)" : ""}`}
-                      aria-pressed={isSelected}
-                      className={`flex flex-col items-center justify-center transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#1C1E26] ${
-                        isSelected
-                          ? `${cal.activePill} rounded-2xl py-3 sm:py-3.5 scale-105 z-10 -my-1`
-                          : item.completed
-                          ? `${cal.completedPill} rounded-2xl py-2 sm:py-2.5 shadow-2xs`
-                          : `${cal.upcomingPill} rounded-2xl py-2 sm:py-2.5`
-                      }`}
-                    >
-                      <span
-                        className={`text-[9px] sm:text-[10px] uppercase font-black tracking-wide ${
-                          isSelected
-                            ? cal.activeDayLabel
-                            : item.completed
-                            ? cal.completedDayLabel
-                            : cal.upcomingDayLabel
-                        }`}
-                      >
-                        {item.day}
-                      </span>
-                      <span
-                        className={`text-xs sm:text-sm font-black mt-0.5 ${
-                          isSelected
-                            ? `${cal.activeDateLabel} text-sm sm:text-base`
-                            : item.completed
-                            ? cal.completedDateLabel
-                            : cal.upcomingDateLabel
-                        }`}
-                      >
-                        {item.date}
-                      </span>
-
-                      <div className="mt-1 flex items-center justify-center min-h-[16px]">
-                        {item.completed ? (
-                          <div className={`w-4 h-4 rounded-full ${cal.checkBadge} flex items-center justify-center shadow-2xs`}>
-                            <Check className="w-2.5 h-2.5 stroke-[3]" />
-                          </div>
-                        ) : isSelected ? (
-                          <div className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${cal.activeDot} shadow-xs`}></div>
-                        ) : (
-                          <div className={`w-1.5 h-1.5 rounded-full ${cal.upcomingDot}`}></div>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Bottom Target Progress Bar */}
-              <div className="w-full bg-white/60 h-2.5 rounded-full p-0.5 shadow-inner mt-1">
-                <div className={`${cal.progressBar} h-full rounded-full w-[67%] transition-all duration-500 shadow-xs`} />
-              </div>
-
-              {/* Active Selected Day Mission in Clay Card */}
-              <div className={`clay-card p-3 sm:p-3.5 ${cal.innerCardBg} flex items-center justify-between gap-3 shadow-xs rounded-2xl`}>
-                {activeDaySchedule ? (
-                  <div className="flex items-center gap-3 min-w-0">
-                    <button
-                      onClick={() => {
-                        audioSynth.playClickSound();
-                        toggleLearningSchedule(activeDaySchedule.id);
-                      }}
-                      className={`clay-checkbox shrink-0 ${
-                        activeDaySchedule.completed ? "clay-checkbox-checked" : ""
-                      }`}
-                      title={activeDaySchedule.completed ? "Tandai Belum Selesai" : "Tandai Selesai"}
-                    >
-                      {activeDaySchedule.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                    </button>
-
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className={`clay-pill ${cal.missionTag1} text-[9px] font-extrabold px-2 py-0.5`}>
-                          {activeDaySchedule.day} • {activeDaySchedule.time}
-                        </span>
-                        <span className={`clay-pill ${cal.missionTag2} text-[9px] font-bold px-2 py-0.5`}>
-                          {activeDaySchedule.format}
-                        </span>
-                      </div>
-                      <h4
-                        className={`text-xs font-bold truncate ${
-                          activeDaySchedule.completed
-                            ? "line-through text-[#9195A8]"
-                            : cal.missionTitle
-                        }`}
-                      >
-                        {activeDaySchedule.title}
-                      </h4>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between w-full">
-                    <div className="text-xs">
-                      <span className={`font-bold ${cal.textColor} block`}>
-                        {selectedDayObj.fullDay}, {selectedDayObj.date} Agustus
-                      </span>
-                      <span className={`text-[10px] ${cal.subTextColor}`}>
-                        Belajar mandiri fleksibel (Eksplorasi modul bebas)
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        audioSynth.playClickSound();
-                        navigate("/student/schedule");
-                      }}
-                      className={`clay-pill bg-white ${cal.subTextColor} text-[10px] font-black px-2.5 py-1 flex items-center gap-1 shadow-2xs hover:scale-105 transition-transform shrink-0 cursor-pointer`}
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span>Atur</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </section>
-
-
-
-            {/* 3. MODALITY-SPECIFIC CONTENT (Tactile Clay Cards) */}
-            {style === "VISUAL" && (
-              <section className="space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-1.5">
-                    <Eye className="w-4 h-4 text-[#1D5E4D]" />
-                    <h2 className="text-sm sm:text-base font-extrabold text-[#010105]">
-                      Rencana Belajar Visual Hari Ini
-                    </h2>
-                  </div>
-                  <Link
-                    to="/student/learn"
-                    className="text-[11px] font-bold text-[#1D5E4D] hover:underline"
-                  >
-                    Buka Semua
-                  </Link>
-                </div>
-
-                {/* Featured Visual Card: Diagram Organ */}
-                <div
-                  onClick={() => {
-                    audioSynth.playClickSound();
-                    navigate("/student/learn");
-                  }}
-                  className="clay-card clay-card-hover p-4 flex items-center justify-between gap-3 cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div className="clay-card clay-mint w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
-                      <Eye className="w-6 h-6 text-[#124B3D]" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="clay-pill clay-mint text-[10px] font-extrabold px-2 py-0.5 text-[#1D5E4D]">
-                          Diagram Interaktif
-                        </span>
-                        <span className="text-[10px] text-[#9195A8] font-semibold flex items-center gap-0.5">
-                          <Clock className="w-3 h-3" /> 20 mnt
-                        </span>
-                      </div>
-                      <h3 className="text-xs sm:text-sm font-black text-[#010105] group-hover:text-[#1D5E4D] transition-colors mt-0.5">
-                        Bab 3: Fisiologi Sistem Pencernaan
-                      </h3>
-                      <p className="text-[11px] text-[#5A5E70] font-medium">
-                        Diagram anatomi saluran cerna &amp; struktur vili ileum.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="clay-pill clay-mint text-[10px] font-extrabold text-[#1D5E4D] px-2.5 py-1 hidden sm:inline-block">
-                      65% Selesai
-                    </span>
-                    <div className="clay-btn clay-btn-white w-8 h-8 rounded-full flex items-center justify-center text-[#010105]">
-                      <ChevronRight className="w-4 h-4" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Visual Card 2: Infografis Enzim */}
-                <div
-                  onClick={() => {
-                    audioSynth.playClickSound();
-                    navigate("/student/learn");
-                  }}
-                  className="clay-card clay-card-hover p-4 flex items-center justify-between gap-3 cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div className="clay-card clay-sky w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
-                      <Layers className="w-6 h-6 text-[#21518A]" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="clay-pill clay-sky text-[10px] font-extrabold px-2 py-0.5 text-[#21518A]">
-                          Peta Infografis
-                        </span>
-                        <span className="text-[10px] text-[#9195A8] font-semibold flex items-center gap-0.5">
-                          <Clock className="w-3 h-3" /> 10 mnt
-                        </span>
-                      </div>
-                      <h3 className="text-xs sm:text-sm font-black text-[#010105] group-hover:text-[#21518A] transition-colors mt-0.5">
-                        Bagan Alur Reaksi Enzimatis
-                      </h3>
-                      <p className="text-[11px] text-[#5A5E70] font-medium">
-                        Infografis peruraian amilum, pepsin, dan lipase.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="clay-btn clay-btn-white w-8 h-8 rounded-full flex items-center justify-center text-[#010105] shrink-0">
-                    <ChevronRight className="w-4 h-4" />
-                  </div>
-                </div>
-
-                {/* Visual DDA Quiz Banner */}
-                <div
-                  onClick={() => {
-                    audioSynth.playClickSound();
-                    navigate("/quiz");
-                  }}
-                  className="clay-card clay-card-hover clay-butter p-4 flex items-center justify-between gap-3 cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div className="clay-card clay-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
-                      <Sparkles className="w-6 h-6 text-[#694503]" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="clay-pill clay-white text-[10px] font-extrabold px-2 py-0.5 text-[#785308]">
-                          Kuis DDA Visual
-                        </span>
-                        <span className="text-[10px] text-[#785308] font-bold">
-                          +50 XP Capaian
-                        </span>
-                      </div>
-                      <h3 className="text-xs sm:text-sm font-black text-[#4A3205] mt-0.5">
-                        Evaluasi Adaptif Diagram Bab 3
-                      </h3>
-                      <p className="text-[11px] text-[#785308] font-medium">
-                        4 Soal pemahaman bagan dengan penyesuaian dinamis.
-                      </p>
-                    </div>
-                  </div>
-
-                  <button className="clay-btn clay-btn-dark px-4 py-2 rounded-xl text-xs font-black shrink-0">
-                    Mulai
+                    <span>{hasActiveContent ? "Lanjutkan Eksplorasi Materi Adaptif" : "Gabung ke Ruang Kelas Guru"}</span>
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               </section>
-            )}
 
-            {style === "AUDITORI" && (
-              <section className="space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-1.5">
-                    <Headphones className="w-4 h-4 text-[#4B3B7A]" />
-                    <h2 className="text-sm sm:text-base font-extrabold text-[#010105]">
-                      Audio Studio &amp; Podcast Belajar
-                    </h2>
-                  </div>
-                  <span className="clay-pill clay-lavender text-[11px] font-bold text-[#4B3B7A] px-2.5 py-0.5">
-                    3 Episode Siap
-                  </span>
-                </div>
-
-                {/* Now Playing Podcast Widget */}
-                <div className="clay-card clay-lavender p-4 sm:p-5 text-[#2D2152] space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#4B3B7A]/80 block">
-                        Now Playing • Podcast Ep. 1
-                      </span>
-                      <h3 className="text-sm sm:text-base font-black text-[#1E143D] mt-0.5">
-                        Petualangan Menembus Saluran Cerna
-                      </h3>
-                      <p className="text-[11px] text-[#4B3B7A] font-medium">
-                        Narasi peran mekanik rongga mulut &amp; enzim ptialin.
+              {/* 2. DYNAMIC WEEKLY SCHEDULE & TARGET HUB */}
+              <section className={`clay-card ${cal.cardBg} ${cal.textColor} p-4 sm:p-5 rounded-[28px] border ${cal.cardBorder} space-y-3.5 shadow-xs`}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl ${cal.iconBox} flex items-center justify-center shadow-xs shrink-0`}>
+                      <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className={`text-xs sm:text-sm font-black ${cal.textColor} truncate tracking-tight`}>
+                        Jadwal Belajar Pekanan
+                      </h2>
+                      <p className={`text-[10px] sm:text-[11px] ${cal.subTextColor} font-bold truncate`}>
+                        {totalSchedulesCount > 0
+                          ? `${completedSchedulesCount} dari ${totalSchedulesCount} Misi Selesai`
+                          : "Belum ada agenda belajar terjadwal di database"}
                       </p>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        audioSynth.playClickSound();
-                        setIsPlayingAudio(!isPlayingAudio);
-                      }}
-                      className="clay-btn clay-btn-white w-12 h-12 rounded-full flex items-center justify-center text-[#4B3B7A] shrink-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4B3B7A]"
-                      title={isPlayingAudio ? "Jeda Podcast" : "Putar Podcast"}
-                      aria-label={isPlayingAudio ? "Jeda Podcast Bab 3" : "Putar Podcast Bab 3"}
-                      aria-pressed={isPlayingAudio}
-                    >
-                      {isPlayingAudio ? (
-                        <Pause className="w-6 h-6 fill-current" />
-                      ) : (
-                        <Play className="w-6 h-6 fill-current ml-0.5" />
-                      )}
-                    </button>
                   </div>
 
-                  {/* Audio Progress Bar */}
-                  <div className="space-y-1">
-                    <div className="w-full bg-white/70 h-2.5 rounded-full overflow-hidden shadow-inner" role="progressbar" aria-valuenow={isPlayingAudio ? 65 : 35} aria-valuemin={0} aria-valuemax={100} aria-label="Progres Pemutaran Podcast">
-                      <div
-                        className="bg-[#4B3B7A] h-full rounded-full transition-all duration-300"
-                        style={{ width: isPlayingAudio ? "65%" : "35%" }}
-                      ></div>
-                    </div>
-                    <div className="flex justify-between text-[10px] text-[#4B3B7A] font-bold">
-                      <span>{isPlayingAudio ? "03:28" : "01:54"}</span>
-                      <span>05:24</span>
-                    </div>
-                  </div>
-
-                  {/* Text to Speech Trigger */}
-                  <div className="pt-2 border-t border-[#4B3B7A]/15 flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={handleToggleSpeak}
-                      className="clay-btn clay-btn-white py-1.5 px-3 text-[11px] font-bold text-[#4B3B7A] flex items-center gap-1.5 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4B3B7A]"
-                      aria-label={isSpeakingSummary ? "Hentikan Pembacaan Suara AI" : "Bacakan Ringkasan Teks dengan Suara AI"}
-                      aria-pressed={isSpeakingSummary}
-                    >
-                      <Volume2 className="w-3.5 h-3.5" />
-                      <span>{isSpeakingSummary ? "Hentikan Suara" : "Bacakan Ringkasan Teks"}</span>
-                    </button>
-
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`${cal.targetBadge} text-[11px] sm:text-xs font-black px-3 py-1 shadow-2xs`}>
+                      {scheduleProgressPercent}% Target
+                    </span>
                     <Link
-                      to="/student/learn"
-                      className="text-[11px] font-bold text-[#4B3B7A] hover:underline flex items-center gap-1"
+                      to="/student/schedule"
+                      onClick={() => audioSynth.playClickSound()}
+                      className={`p-1.5 rounded-xl ${cal.chevronBtn} transition-transform hover:scale-105 shrink-0 shadow-2xs`}
+                      title="Buka Halaman Jadwal Penuh"
+                      aria-label="Buka Halaman Jadwal Penuh"
                     >
-                      <span>Buka Player Penuh</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </Link>
                   </div>
                 </div>
 
-                {/* Audio DDA Quiz Banner */}
-                <div
-                  onClick={() => {
-                    audioSynth.playClickSound();
-                    navigate("/quiz");
-                  }}
-                  className="clay-card clay-card-hover clay-butter p-4 flex items-center justify-between gap-3 cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div className="clay-card clay-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
-                      <Sparkles className="w-6 h-6 text-[#694503]" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="clay-pill clay-white text-[10px] font-extrabold px-2 py-0.5 text-[#785308]">
-                          Kuis DDA Audio
+                {/* 7-Day Interactive Selector */}
+                <div className="grid grid-cols-7 gap-1 sm:gap-1.5 items-end" role="group" aria-label="Pilih Hari Jadwal">
+                  {daysOfWeek.map((item, idx) => {
+                    const isSelected = selectedDayIdx === idx;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          audioSynth.playClickSound();
+                          setSelectedDayIdx(idx);
+                        }}
+                        aria-pressed={isSelected}
+                        className={`flex flex-col items-center justify-center transition-all cursor-pointer ${
+                          isSelected
+                            ? `${cal.activePill} rounded-2xl py-3 sm:py-3.5 scale-105 z-10 -my-1`
+                            : item.completed
+                            ? `${cal.completedPill} rounded-2xl py-2 sm:py-2.5 shadow-2xs`
+                            : `${cal.upcomingPill} rounded-2xl py-2 sm:py-2.5`
+                        }`}
+                      >
+                        <span
+                          className={`text-[9px] sm:text-[10px] uppercase font-black tracking-wide ${
+                            isSelected
+                              ? cal.activeDayLabel
+                              : item.completed
+                              ? cal.completedDayLabel
+                              : cal.upcomingDayLabel
+                          }`}
+                        >
+                          {item.day}
                         </span>
-                        <span className="text-[10px] text-[#785308] font-bold">
-                          +50 XP Capaian
+                        <span
+                          className={`text-xs sm:text-sm font-black mt-0.5 ${
+                            isSelected
+                              ? `${cal.activeDateLabel} text-sm sm:text-base`
+                              : item.completed
+                              ? cal.completedDateLabel
+                              : cal.upcomingDateLabel
+                          }`}
+                        >
+                          {item.date}
+                        </span>
+
+                        <div className="mt-1 flex items-center justify-center min-h-[16px]">
+                          {item.completed ? (
+                            <div className={`w-4 h-4 rounded-full ${cal.checkBadge} flex items-center justify-center shadow-2xs`}>
+                              <Check className="w-2.5 h-2.5 stroke-[3]" />
+                            </div>
+                          ) : isSelected ? (
+                            <div className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${cal.activeDot} shadow-xs`}></div>
+                          ) : (
+                            <div className={`w-1.5 h-1.5 rounded-full ${cal.upcomingDot}`}></div>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Active Selected Day Schedule Card */}
+                <div className={`clay-card p-3 sm:p-3.5 ${cal.innerCardBg} flex items-center justify-between gap-3 shadow-xs rounded-2xl`}>
+                  {activeDaySchedule ? (
+                    <div className="flex items-center gap-3 min-w-0 w-full justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <button
+                          onClick={() => {
+                            audioSynth.playClickSound();
+                            toggleLearningSchedule(activeDaySchedule.id);
+                          }}
+                          className={`clay-checkbox shrink-0 ${
+                            activeDaySchedule.completed ? "clay-checkbox-checked" : ""
+                          }`}
+                          title={activeDaySchedule.completed ? "Tandai Belum Selesai" : "Tandai Selesai"}
+                        >
+                          {activeDaySchedule.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        </button>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className={`clay-pill ${cal.missionTag1} text-[9px] font-extrabold px-2 py-0.5`}>
+                              {activeDaySchedule.day} • {activeDaySchedule.time}
+                            </span>
+                            <span className={`clay-pill ${cal.missionTag2} text-[9px] font-bold px-2 py-0.5`}>
+                              {activeDaySchedule.format}
+                            </span>
+                          </div>
+                          <h4
+                            className={`text-xs font-bold truncate ${
+                              activeDaySchedule.completed
+                                ? "line-through text-[#9195A8]"
+                                : cal.missionTitle
+                            }`}
+                          >
+                            {activeDaySchedule.title}
+                          </h4>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          audioSynth.playClickSound();
+                          navigate("/student/schedule");
+                        }}
+                        className="text-[10px] font-bold text-[#595F72] hover:text-[#1C1E26] underline shrink-0 cursor-pointer"
+                      >
+                        Detail
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between w-full">
+                      <div className="text-xs">
+                        <span className={`font-bold ${cal.textColor} block`}>
+                          {selectedDayObj.fullDay}, {selectedDayObj.date} {selectedDayObj.monthName}
+                        </span>
+                        <span className={`text-[10px] ${cal.subTextColor}`}>
+                          Belum ada jadwal khusus hari ini
                         </span>
                       </div>
-                      <h3 className="text-xs sm:text-sm font-black text-[#4A3205] mt-0.5">
-                        Evaluasi Adaptif Berbasis Podcast
-                      </h3>
-                      <p className="text-[11px] text-[#785308] font-medium">
-                        Uji pemahaman narasi audio yang telah didengarkan.
-                      </p>
+                      <button
+                        onClick={() => {
+                          audioSynth.playClickSound();
+                          navigate("/student/schedule");
+                        }}
+                        className={`clay-pill bg-white ${cal.subTextColor} text-[10px] font-black px-2.5 py-1 flex items-center gap-1 shadow-2xs hover:scale-105 transition-transform shrink-0 cursor-pointer`}
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Tambah</span>
+                      </button>
                     </div>
-                  </div>
-
-                  <button className="clay-btn clay-btn-dark px-4 py-2 rounded-xl text-xs font-black shrink-0">
-                    Mulai
-                  </button>
+                  )}
                 </div>
               </section>
-            )}
 
-            {style === "KINESTETIK" && (
-              <section className="space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-1.5">
-                    <FlaskConical className="w-4 h-4 text-[#785308]" />
-                    <h2 className="text-sm sm:text-base font-extrabold text-[#010105]">
-                      Lab Virtual &amp; Misi Praktik
-                    </h2>
+              {/* 3. MODALITY-SPECIFIC CONTENT OR CLEAN EMPTY STATE */}
+              {!hasActiveContent ? (
+                <section className="clay-card clay-white p-6 rounded-3xl border border-black/5 text-center space-y-3.5 shadow-xs">
+                  <div className="w-12 h-12 rounded-2xl bg-[#F0EEF6] text-[#595F72] flex items-center justify-center mx-auto shadow-2xs">
+                    <BookOpen className="w-6 h-6" />
                   </div>
-                  <span className="clay-pill clay-butter text-[11px] font-bold text-[#785308] px-2.5 py-0.5">
-                    Hands-on Active
-                  </span>
-                </div>
-
-                {/* Active Challenge Card */}
-                <div className="clay-card clay-butter p-4 sm:p-5 text-[#4A3205] space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#785308]/80 block">
-                        Tantangan Simulasi Interaktif
-                      </span>
-                      <h3 className="text-sm sm:text-base font-black text-[#2C1D02] mt-0.5">
-                        Pasangkan Enzim ke Organ yang Tepat
-                      </h3>
-                      <p className="text-[11px] text-[#785308] font-medium">
-                        Drag-and-drop molekul ptialin, pepsin, dan lipase ke zona organ.
-                      </p>
-                    </div>
-
-                    <div className="clay-card clay-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
-                      <FlaskConical className="w-6 h-6 text-[#785308]" />
-                    </div>
+                  <div>
+                    <h3 className="text-sm font-black text-[#1C1E26]">Belum Ada Modul atau Tugas Aktif</h3>
+                    <p className="text-xs text-[#595F72] mt-1 max-w-md mx-auto leading-relaxed">
+                      Guru di kelasmu belum mengunggah modul pembelajaran atau materi RAG. Kamu dapat bergabung ke kelas guru menggunakan kode kelas atau mulai berdiskusi mandiri bersama AI Tutor.
+                    </p>
                   </div>
-
-                  <div className="pt-2 border-t border-[#785308]/15 flex items-center justify-between gap-2">
-                    <button
-                      onClick={() => {
-                        audioSynth.playClickSound();
-                        navigate("/student/learn");
-                      }}
-                      className="clay-btn clay-btn-dark py-2.5 px-4 text-xs font-black w-full flex items-center justify-center gap-1.5 cursor-pointer"
+                  <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+                    <Link
+                      to="/student/class"
+                      onClick={() => audioSynth.playClickSound()}
+                      className="clay-btn clay-btn-dark px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-xs"
                     >
-                      <span>Lanjutkan Lab Interaktif</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
+                      <School className="w-3.5 h-3.5" />
+                      <span>Gabung Ruang Kelas</span>
+                    </Link>
+                    <Link
+                      to="/student/ai"
+                      onClick={() => audioSynth.playClickSound()}
+                      className="clay-btn clay-btn-white px-4 py-2.5 rounded-xl text-xs font-bold text-[#1C1E26] flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                    >
+                      <Bot className="w-3.5 h-3.5 text-[#4B3B7A]" />
+                      <span>Tanya AI Tutor</span>
+                    </Link>
                   </div>
-                </div>
+                </section>
+              ) : (
+                <>
+                  {style === "VISUAL" && (
+                    <section className="space-y-3">
+                      <div className="flex items-center justify-between px-1">
+                        <div className="flex items-center gap-1.5">
+                          <Eye className="w-4 h-4 text-[#1D5E4D]" />
+                          <h2 className="text-sm sm:text-base font-extrabold text-[#010105]">
+                            Rencana Belajar Visual Hari Ini
+                          </h2>
+                        </div>
+                        <Link
+                          to="/student/learn"
+                          className="text-[11px] font-bold text-[#1D5E4D] hover:underline"
+                        >
+                          Buka Semua Modul
+                        </Link>
+                      </div>
 
-                {/* Kinesthetic DDA Quiz Banner */}
-                <div
-                  onClick={() => {
-                    audioSynth.playClickSound();
-                    navigate("/quiz");
-                  }}
-                  className="clay-card clay-card-hover clay-butter p-4 flex items-center justify-between gap-3 cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div className="clay-card clay-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
-                      <Sparkles className="w-6 h-6 text-[#694503]" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="clay-pill clay-white text-[10px] font-extrabold px-2 py-0.5 text-[#785308]">
-                          Kuis DDA Praktik
-                        </span>
-                        <span className="text-[10px] text-[#785308] font-bold">
-                          +50 XP Capaian
+                      {/* Visual Card: Active Chapter */}
+                      <div
+                        onClick={() => {
+                          audioSynth.playClickSound();
+                          navigate("/student/learn");
+                        }}
+                        className="clay-card clay-card-hover p-4 flex items-center justify-between gap-3 cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-3.5">
+                          <div className="clay-card clay-mint w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
+                            <Eye className="w-6 h-6 text-[#124B3D]" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="clay-pill clay-mint text-[10px] font-extrabold px-2 py-0.5 text-[#1D5E4D]">
+                                Modul Adaptif
+                              </span>
+                              <span className="text-[10px] text-[#9195A8] font-semibold flex items-center gap-0.5">
+                                <Clock className="w-3 h-3" /> 20 mnt
+                              </span>
+                            </div>
+                            <h3 className="text-xs sm:text-sm font-black text-[#010105] group-hover:text-[#1D5E4D] transition-colors mt-0.5">
+                              {currentChapterTitle}
+                            </h3>
+                            <p className="text-[11px] text-[#5A5E70] font-medium">
+                              Materi pelajaran aktif yang telah dikalibrasi untuk gaya belajar visualmu.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="clay-btn clay-btn-white w-8 h-8 rounded-full flex items-center justify-center text-[#010105] shrink-0">
+                          <ChevronRight className="w-4 h-4" />
+                        </div>
+                      </div>
+
+                      {/* Visual DDA Quiz Banner */}
+                      <div
+                        onClick={() => {
+                          audioSynth.playClickSound();
+                          navigate("/quiz");
+                        }}
+                        className="clay-card clay-card-hover clay-butter p-4 flex items-center justify-between gap-3 cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-3.5">
+                          <div className="clay-card clay-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
+                            <Sparkles className="w-6 h-6 text-[#694503]" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="clay-pill clay-white text-[10px] font-extrabold px-2 py-0.5 text-[#785308]">
+                                Kuis DDA Visual
+                              </span>
+                              <span className="text-[10px] text-[#785308] font-bold">
+                                +50 XP Capaian
+                              </span>
+                            </div>
+                            <h3 className="text-xs sm:text-sm font-black text-[#4A3205] mt-0.5">
+                              Evaluasi Adaptif Pemahaman Visual
+                            </h3>
+                            <p className="text-[11px] text-[#785308] font-medium">
+                              Tantangan adaptif dengan penyesuaian tingkat kesulitan dinamis.
+                            </p>
+                          </div>
+                        </div>
+
+                        <button className="clay-btn clay-btn-dark px-4 py-2 rounded-xl text-xs font-black shrink-0">
+                          Mulai
+                        </button>
+                      </div>
+                    </section>
+                  )}
+
+                  {style === "AUDITORI" && (
+                    <section className="space-y-3">
+                      <div className="flex items-center justify-between px-1">
+                        <div className="flex items-center gap-1.5">
+                          <Headphones className="w-4 h-4 text-[#4B3B7A]" />
+                          <h2 className="text-sm sm:text-base font-extrabold text-[#010105]">
+                            Audio Studio &amp; Podcast Belajar
+                          </h2>
+                        </div>
+                        <span className="clay-pill clay-lavender text-[11px] font-bold text-[#4B3B7A] px-2.5 py-0.5">
+                          Audio Podcast Aktif
                         </span>
                       </div>
-                      <h3 className="text-xs sm:text-sm font-black text-[#4A3205] mt-0.5">
-                        Evaluasi Adaptif Studi Kasus Lab
-                      </h3>
-                      <p className="text-[11px] text-[#785308] font-medium">
-                        Soal pemecahan masalah berdasarkan hasil simulasi organ.
-                      </p>
+
+                      <div className="clay-card clay-lavender p-4 sm:p-5 text-[#2D2152] space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#4B3B7A]/80 block">
+                              Audio Pembelajaran Adaptif
+                            </span>
+                            <h3 className="text-sm sm:text-base font-black text-[#1E143D] mt-0.5">
+                              {currentChapterTitle}
+                            </h3>
+                            <p className="text-[11px] text-[#4B3B7A] font-medium">
+                              Penjelasan konsep materi via suara narasi terarah.
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              audioSynth.playClickSound();
+                              setIsPlayingAudio(!isPlayingAudio);
+                            }}
+                            className="clay-btn clay-btn-white w-12 h-12 rounded-full flex items-center justify-center text-[#4B3B7A] shrink-0 cursor-pointer"
+                            title={isPlayingAudio ? "Jeda Audio" : "Putar Audio"}
+                          >
+                            {isPlayingAudio ? (
+                              <Pause className="w-6 h-6 fill-current" />
+                            ) : (
+                              <Play className="w-6 h-6 fill-current ml-0.5" />
+                            )}
+                          </button>
+                        </div>
+
+                        <div className="pt-2 border-t border-[#4B3B7A]/15 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={handleToggleSpeak}
+                            className="clay-btn clay-btn-white py-1.5 px-3 text-[11px] font-bold text-[#4B3B7A] flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Volume2 className="w-3.5 h-3.5" />
+                            <span>{isSpeakingSummary ? "Hentikan Suara" : "Bacakan Ringkasan Teks"}</span>
+                          </button>
+
+                          <Link
+                            to="/student/learn"
+                            className="text-[11px] font-bold text-[#4B3B7A] hover:underline flex items-center gap-1"
+                          >
+                            <span>Buka Modul Lengkap</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </Link>
+                        </div>
+                      </div>
+
+                      {/* Audio DDA Quiz Banner */}
+                      <div
+                        onClick={() => {
+                          audioSynth.playClickSound();
+                          navigate("/quiz");
+                        }}
+                        className="clay-card clay-card-hover clay-butter p-4 flex items-center justify-between gap-3 cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-3.5">
+                          <div className="clay-card clay-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
+                            <Sparkles className="w-6 h-6 text-[#694503]" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="clay-pill clay-white text-[10px] font-extrabold px-2 py-0.5 text-[#785308]">
+                                Kuis DDA Audio
+                              </span>
+                              <span className="text-[10px] text-[#785308] font-bold">
+                                +50 XP Capaian
+                              </span>
+                            </div>
+                            <h3 className="text-xs sm:text-sm font-black text-[#4A3205] mt-0.5">
+                              Evaluasi Adaptif Berbasis Audio
+                            </h3>
+                            <p className="text-[11px] text-[#785308] font-medium">
+                              Uji pemahaman narasi audio yang telah didengarkan.
+                            </p>
+                          </div>
+                        </div>
+
+                        <button className="clay-btn clay-btn-dark px-4 py-2 rounded-xl text-xs font-black shrink-0">
+                          Mulai
+                        </button>
+                      </div>
+                    </section>
+                  )}
+
+                  {style === "KINESTETIK" && (
+                    <section className="space-y-3">
+                      <div className="flex items-center justify-between px-1">
+                        <div className="flex items-center gap-1.5">
+                          <FlaskConical className="w-4 h-4 text-[#785308]" />
+                          <h2 className="text-sm sm:text-base font-extrabold text-[#010105]">
+                            Lab Virtual &amp; Misi Praktik
+                          </h2>
+                        </div>
+                        <span className="clay-pill clay-butter text-[11px] font-bold text-[#785308] px-2.5 py-0.5">
+                          Hands-on Active
+                        </span>
+                      </div>
+
+                      <div className="clay-card clay-butter p-4 sm:p-5 text-[#4A3205] space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#785308]/80 block">
+                              Tantangan Simulasi Interaktif
+                            </span>
+                            <h3 className="text-sm sm:text-base font-black text-[#2C1D02] mt-0.5">
+                              {currentChapterTitle}
+                            </h3>
+                            <p className="text-[11px] text-[#785308] font-medium">
+                              Eksperimen studi kasus mandiri dengan interaksi langsung.
+                            </p>
+                          </div>
+
+                          <div className="clay-card clay-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
+                            <FlaskConical className="w-6 h-6 text-[#785308]" />
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-[#785308]/15">
+                          <button
+                            onClick={() => {
+                              audioSynth.playClickSound();
+                              navigate("/student/learn");
+                            }}
+                            className="clay-btn clay-btn-dark py-2.5 px-4 text-xs font-black w-full flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <span>Lanjutkan Lab Interaktif</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Kinesthetic DDA Quiz Banner */}
+                      <div
+                        onClick={() => {
+                          audioSynth.playClickSound();
+                          navigate("/quiz");
+                        }}
+                        className="clay-card clay-card-hover clay-butter p-4 flex items-center justify-between gap-3 cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-3.5">
+                          <div className="clay-card clay-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
+                            <Sparkles className="w-6 h-6 text-[#694503]" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="clay-pill clay-white text-[10px] font-extrabold px-2 py-0.5 text-[#785308]">
+                                Kuis DDA Praktik
+                              </span>
+                              <span className="text-[10px] text-[#785308] font-bold">
+                                +50 XP Capaian
+                              </span>
+                            </div>
+                            <h3 className="text-xs sm:text-sm font-black text-[#4A3205] mt-0.5">
+                              Evaluasi Adaptif Studi Kasus Lab
+                            </h3>
+                            <p className="text-[11px] text-[#785308] font-medium">
+                              Pemecahan masalah berbasis skenario praktis dinamis.
+                            </p>
+                          </div>
+                        </div>
+
+                        <button className="clay-btn clay-btn-dark px-4 py-2 rounded-xl text-xs font-black shrink-0">
+                          Mulai
+                        </button>
+                      </div>
+                    </section>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* RIGHT SIDEBAR STREAM (5 cols on lg) */}
+            <div className="lg:col-span-5 flex flex-col gap-4 sm:gap-5">
+              {/* 4. COGNITIVE ANALYTICS & MASTERY DISTRIBUTION */}
+              <section className="clay-card clay-sky p-5 sm:p-6 text-[#153A66] space-y-4 shadow-xs">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="clay-pill clay-white text-[10px] font-extrabold px-2.5 py-0.5 text-[#21518A]">
+                        Analitik Kognitif DDA
+                      </span>
+                      <span className="clay-pill clay-mint text-[10px] font-bold text-[#1D5E4D] px-2.5 py-0.5">
+                        Level: {currentUser?.currentDDALevel || "BASIC"}
+                      </span>
                     </div>
+                    <h3 className="text-base sm:text-lg font-black text-[#102C4C]">
+                      Status Penguasaan Kompetensi
+                    </h3>
+                    <p className="text-[11px] text-[#21518A] font-medium mt-0.5">
+                      Pemetaan kapasitas kompetensi adaptif berbasis Python Engine.
+                    </p>
                   </div>
 
-                  <button className="clay-btn clay-btn-dark px-4 py-2 rounded-xl text-xs font-black shrink-0">
-                    Mulai
-                  </button>
-                </div>
-              </section>
-            )}
-          </div>
-
-          {/* RIGHT SIDEBAR STREAM (5 cols on lg) */}
-          <div className="lg:col-span-5 flex flex-col gap-4 sm:gap-5">
-            {/* 4. CREATIVE ANALYTICS & DIAGRAM CENTERPIECE */}
-            <section className="clay-card clay-sky p-5 sm:p-6 text-[#153A66] space-y-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="clay-pill clay-white text-[10px] font-extrabold px-2.5 py-0.5 text-[#21518A]">
-                      Analitik Kognitif DDA
-                    </span>
-                    <span className="clay-pill clay-mint text-[10px] font-bold text-[#1D5E4D] px-2.5 py-0.5">
-                      Level 2 Aktif
-                    </span>
+                  <div className="clay-pill clay-white w-11 h-11 text-[#21518A] flex items-center justify-center shrink-0 shadow-2xs">
+                    <TrendingUp className="w-5 h-5" />
                   </div>
-                  <h3 className="text-base sm:text-lg font-black text-[#102C4C]">
-                    Status Jalur Belajar &amp; Penguasaan
-                  </h3>
-                  <p className="text-[11px] text-[#21518A] font-medium mt-0.5">
-                    Pemetaan kapasitas kompetensi adaptif berbasis generative AI.
-                  </p>
                 </div>
 
-                <div className="clay-pill clay-white w-11 h-11 text-[#21518A] flex items-center justify-center shrink-0">
-                  <TrendingUp className="w-5 h-5" />
-                </div>
-              </div>
-
-              {/* DIAGRAM VISUALIZATION (Clay Embedded) */}
-              {style === "VISUAL" && (
-                <div className="clay-card clay-white p-4 text-[#1C1E26] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-[#102C4C] flex items-center gap-1.5">
-                      <Eye className="w-3.5 h-3.5 text-[#1D5E4D]" />
-                      Distribusi Pemahaman Visual
-                    </span>
-                    <span className="clay-pill clay-mint text-[10px] font-extrabold text-[#1D5E4D] px-2 py-0.5">
-                      92% Retensi
-                    </span>
-                  </div>
-
-                  {/* Graphical Visual Bars with Clay Insets */}
+                {/* Graphical Visual Bars */}
+                <div className="clay-card clay-white p-4 text-[#1C1E26] space-y-3 shadow-2xs">
                   <div className="space-y-2.5">
                     <div>
                       <div className="flex justify-between text-[11px] font-bold text-[#102C4C] mb-1">
-                        <span>Bagan Anatomi Saluran Cerna</span>
-                        <span className="text-[#1D5E4D]">94%</span>
+                        <span>Modalitas Visual</span>
+                        <span className="text-[#1D5E4D]">{visualAcc}%</span>
                       </div>
-                      <div className="w-full bg-[#EBF6F2] h-3 rounded-full overflow-hidden shadow-inner">
-                        <div className="bg-[#1D5E4D] h-full rounded-full w-[94%] transition-all duration-500"></div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-[11px] font-bold text-[#102C4C] mb-1">
-                        <span>Peta Konsep Reaksi Enzim</span>
-                        <span className="text-[#21518A]">88%</span>
-                      </div>
-                      <div className="w-full bg-[#EBF6F2] h-3 rounded-full overflow-hidden shadow-inner">
-                        <div className="bg-[#21518A] h-full rounded-full w-[88%] transition-all duration-500"></div>
+                      <div className="w-full bg-[#EBF6F2] h-2.5 rounded-full overflow-hidden shadow-inner">
+                        <div
+                          className="bg-[#1D5E4D] h-full rounded-full transition-all duration-500"
+                          style={{ width: `${visualAcc}%` }}
+                        />
                       </div>
                     </div>
 
                     <div>
                       <div className="flex justify-between text-[11px] font-bold text-[#102C4C] mb-1">
-                        <span>Diagram Vili Usus Halus</span>
-                        <span className="text-[#4B3B7A]">76%</span>
+                        <span>Modalitas Auditori</span>
+                        <span className="text-[#21518A]">{audioAcc}%</span>
                       </div>
-                      <div className="w-full bg-[#EBF6F2] h-3 rounded-full overflow-hidden shadow-inner">
-                        <div className="bg-[#4B3B7A] h-full rounded-full w-[76%] transition-all duration-500"></div>
+                      <div className="w-full bg-[#EBF6F2] h-2.5 rounded-full overflow-hidden shadow-inner">
+                        <div
+                          className="bg-[#21518A] h-full rounded-full transition-all duration-500"
+                          style={{ width: `${audioAcc}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11px] font-bold text-[#102C4C] mb-1">
+                        <span>Modalitas Kinestetik / Praktik</span>
+                        <span className="text-[#4B3B7A]">{practiceAcc}%</span>
+                      </div>
+                      <div className="w-full bg-[#EBF6F2] h-2.5 rounded-full overflow-hidden shadow-inner">
+                        <div
+                          className="bg-[#4B3B7A] h-full rounded-full transition-all duration-500"
+                          style={{ width: `${practiceAcc}%` }}
+                        />
                       </div>
                     </div>
                   </div>
 
-                  {/* 2 Micro KPI Chips in Clay Pills */}
+                  {/* Micro KPI Chips */}
                   <div className="grid grid-cols-2 gap-2 pt-2 border-t border-black/5 text-center text-xs">
                     <div className="clay-pill bg-[#F8F9FD] p-2">
-                      <span className="text-sm font-black text-[#102C4C] block">200 Score</span>
-                      <span className="text-[9px] text-[#21518A] font-bold">Skor DDA</span>
+                      <span className="text-sm font-black text-[#102C4C] block">{currentUser?.xpTotal || 0}</span>
+                      <span className="text-[9px] text-[#21518A] font-bold">Skor XP</span>
                     </div>
                     <div className="clay-pill bg-[#F8F9FD] p-2">
-                      <span className="text-sm font-black text-[#102C4C] block">12 Tuntas</span>
-                      <span className="text-[9px] text-[#21518A] font-bold">Kompetensi</span>
+                      <span className="text-sm font-black text-[#102C4C] block">{submissions.length} Misi</span>
+                      <span className="text-[9px] text-[#21518A] font-bold">Tugas Selesai</span>
                     </div>
                   </div>
                 </div>
-              )}
 
-              {style === "AUDITORI" && (
-                <div className="clay-card clay-white p-4 text-[#1C1E26] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-[#102C4C] flex items-center gap-1.5">
-                      <Headphones className="w-3.5 h-3.5 text-[#4B3B7A]" />
-                      Spektrum Frekuensi &amp; Retensi Audio
+                <button
+                  onClick={() => {
+                    audioSynth.playClickSound();
+                    navigate("/student/status");
+                  }}
+                  className="clay-btn clay-btn-white w-full py-2.5 px-4 rounded-2xl text-xs font-black text-[#21518A] flex items-center justify-between cursor-pointer shadow-2xs"
+                >
+                  <span>Buka Analitik Kognitif Lengkap</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </section>
+
+              {/* 5. LEARNING PATHWAY (Stepping Stones 3D Map) */}
+              <section className="clay-card clay-white p-5 sm:p-6 space-y-4 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#9195A8] block">
+                      Peta Jalur Belajar
                     </span>
-                    <span className="clay-pill clay-lavender text-[10px] font-extrabold text-[#4B3B7A] px-2 py-0.5">
-                      48.5 Mnt Dengar
-                    </span>
+                    <h2 className="text-sm sm:text-base font-black text-[#010105]">
+                      Jalur Petualangan Belajar
+                    </h2>
                   </div>
-
-                  {/* Animated Waveform Visualizer */}
-                  <div
-                    className="clay-card clay-dark p-3 rounded-xl flex items-end justify-between gap-1 h-12 overflow-hidden"
-                    role="img"
-                    aria-label={isPlayingAudio || isSpeakingSummary ? "Visualisasi Spektrum Suara Aktif Berputar" : "Visualisasi Spektrum Suara Jeda"}
-                  >
-                    {[35, 60, 80, 95, 65, 45, 85, 90, 70, 50, 75, 90, 60, 80, 95, 70, 55, 40, 65, 80].map((val, i) => (
-                      <div
-                        key={i}
-                        className={`w-full bg-[#E3DBF8] rounded-t-sm transition-all ${
-                          isPlayingAudio || isSpeakingSummary ? "animate-audio-bar" : ""
-                        }`}
-                        style={{
-                          height: isPlayingAudio || isSpeakingSummary ? undefined : `${val}%`,
-                          animationDelay: `${(i % 6) * 0.15}s`,
-                          animationDuration: `${0.8 + ((i % 4) * 0.2)}s`,
-                        }}
-                      ></div>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-1 text-center text-xs">
-                    <div className="clay-pill bg-[#F8F9FD] p-2">
-                      <span className="text-sm font-black text-[#4B3B7A] block">91% Recall</span>
-                      <span className="text-[9px] text-[#5A5E70] font-bold">Retensi Podcast</span>
-                    </div>
-                    <div className="clay-pill bg-[#F8F9FD] p-2">
-                      <span className="text-sm font-black text-[#1D5E4D] block">3 Episode</span>
-                      <span className="text-[9px] text-[#5A5E70] font-bold">Audio Selesai</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {style === "KINESTETIK" && (
-                <div className="clay-card clay-white p-4 text-[#1C1E26] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-[#102C4C] flex items-center gap-1.5">
-                      <FlaskConical className="w-3.5 h-3.5 text-[#785308]" />
-                      Akurasi Lab &amp; Presisi Simulasi
-                    </span>
-                    <span className="clay-pill clay-butter text-[10px] font-extrabold text-[#785308] px-2 py-0.5">
-                      95% Akurat
-                    </span>
-                  </div>
-
-                  {/* Progress Radial Meter */}
-                  <div className="space-y-2">
-                    <div>
-                      <div className="flex justify-between text-[11px] font-bold text-[#102C4C] mb-1">
-                        <span>Pasang Molekul Enzim</span>
-                        <span className="text-[#785308]">95% (Tinggi)</span>
-                      </div>
-                      <div className="w-full bg-[#FFF6DF] h-3 rounded-full overflow-hidden shadow-inner">
-                        <div className="bg-[#785308] h-full rounded-full w-[95%]"></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-[11px] font-bold text-[#102C4C] mb-1">
-                        <span>Studi Kasus Lab Mandiri</span>
-                        <span className="text-[#785308]">86% (Mandiri)</span>
-                      </div>
-                      <div className="w-full bg-[#FFF6DF] h-3 rounded-full overflow-hidden shadow-inner">
-                        <div className="bg-[#785308] h-full rounded-full w-[86%]"></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-1 text-center text-xs">
-                    <div className="clay-pill bg-[#F8F9FD] p-2">
-                      <span className="text-sm font-black text-[#785308] block">3.4 Mnt</span>
-                      <span className="text-[9px] text-[#5A5E70] font-bold">Waktu Misi</span>
-                    </div>
-                    <div className="clay-pill bg-[#F8F9FD] p-2">
-                      <span className="text-sm font-black text-[#1D5E4D] block">96% Indeks</span>
-                      <span className="text-[9px] text-[#5A5E70] font-bold">Interaktif</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Action Link to Full Analytics */}
-              <button
-                onClick={() => {
-                  audioSynth.playClickSound();
-                  navigate("/student/status");
-                }}
-                className="clay-btn clay-btn-white w-full py-2.5 px-4 rounded-2xl text-xs font-black text-[#21518A] flex items-center justify-between cursor-pointer"
-              >
-                <span>Buka Laporan Status &amp; Analitik Lengkap</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </section>
-
-            {/* 5. LEARNING PATHWAY (Stepping Stones 3D Map) */}
-            <section className="clay-card clay-white p-5 sm:p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#9195A8] block">
-                    Peta Kompetensi Kurikulum
+                  <span className="clay-pill clay-mint px-3 py-1 text-[#1D5E4D] text-[10px] font-extrabold shadow-2xs">
+                    Level {currentUser?.currentDDALevel || "Aktif"}
                   </span>
-                  <h2 className="text-sm sm:text-base font-black text-[#010105]">
-                    Jalur Petualangan Belajar
-                  </h2>
-                </div>
-                <span className="clay-pill clay-mint px-3 py-1 text-[#1D5E4D] text-[10px] font-extrabold">
-                  Level 2 Aktif
-                </span>
-              </div>
-
-              {/* Stepping Stones Vertical Journey */}
-              <div className="py-2 flex flex-col items-center gap-4 relative">
-                {/* Step 1 - Completed */}
-                <div className="flex items-center gap-4 w-full max-w-xs justify-start">
-                  <div
-                    onClick={() => {
-                      audioSynth.playSuccessSound();
-                      navigate("/student/learn");
-                    }}
-                    className="clay-stone-node clay-mint shrink-0 cursor-pointer"
-                    title="Bab 3.1: Pengenalan Organ (Selesai)"
-                  >
-                    <Check className="w-7 h-7 stroke-[3]" />
-                  </div>
-                  <div className="text-left">
-                    <span className="text-[10px] font-bold text-[#1D5E4D] uppercase block">
-                      Langkah 1 • Selesai
-                    </span>
-                    <p className="text-xs font-extrabold text-[#010105]">
-                      Organ &amp; Rongga Mulut
-                    </p>
-                  </div>
                 </div>
 
-                {/* Step 2 - Current Active (Pulsing) */}
-                <div className="flex items-center gap-4 w-full max-w-xs justify-end">
-                  <div className="text-right">
-                    <span className="text-[10px] font-bold text-[#4B3B7A] uppercase block">
-                      Langkah 2 • Sedang Berjalan
-                    </span>
-                    <p className="text-xs font-extrabold text-[#010105]">
-                      Ventrikulus &amp; Enzim Pepsin
-                    </p>
-                  </div>
-                  <div
-                    onClick={() => {
-                      audioSynth.playLevelUpSound();
-                      navigate("/quiz");
-                    }}
-                    className="clay-stone-node clay-lavender shrink-0 ring-4 ring-[#E3DBF8] ring-offset-2 animate-soft-pulse cursor-pointer"
-                    title="Bab 3.2: Reaksi Enzimatis Lambung (Tantangan Aktif)"
-                  >
-                    <Sparkles className="w-7 h-7" />
-                  </div>
-                </div>
-
-                {/* Step 3 - Locked */}
-                <div className="flex items-center gap-4 w-full max-w-xs justify-start opacity-60">
-                  <div className="clay-stone-node bg-[#E4E2DD] text-[#5A5E70] border border-[rgba(28,30,38,0.1)] shrink-0 cursor-not-allowed">
-                    <Lock className="w-5 h-5" />
-                  </div>
-                  <div className="text-left">
-                    <span className="text-[10px] font-bold text-[#9195A8] uppercase block">
-                      Langkah 3 • Terkunci
-                    </span>
-                    <p className="text-xs font-bold text-[#5A5E70]">
-                      Usus Halus &amp; Penyerapan Vili
-                    </p>
-                  </div>
-                </div>
-
-                {/* Boss Challenge: Final Evaluation */}
-                <div className="flex items-center gap-4 w-full max-w-xs justify-center pt-2">
-                  <div
-                    onClick={() => {
-                      audioSynth.playClickSound();
-                      navigate("/quiz");
-                    }}
-                    className="clay-card clay-dark p-4 rounded-3xl flex items-center gap-3 cursor-pointer hover:scale-105 active:scale-95 transition-transform border border-white/20 w-full"
-                  >
-                    <div className="w-10 h-10 rounded-2xl bg-white/10 text-white flex items-center justify-center shrink-0">
-                      <Award className="w-5 h-5 text-[#FEE7B3]" />
+                {/* Stepping Stones Vertical Journey */}
+                <div className="py-2 flex flex-col items-center gap-4 relative">
+                  {/* Step 1 - Asesmen / Eksplorasi Awal */}
+                  <div className="flex items-center gap-4 w-full max-w-xs justify-start">
+                    <div
+                      onClick={() => {
+                        audioSynth.playSuccessSound();
+                        navigate("/assessment");
+                      }}
+                      className="clay-stone-node clay-mint shrink-0 cursor-pointer"
+                      title="Langkah 1: Asesmen Diagnostik Kognitif"
+                    >
+                      <Check className="w-6 h-6 stroke-[3]" />
                     </div>
                     <div className="text-left">
-                      <span className="text-[10px] font-extrabold text-[#FEE7B3] uppercase block">
-                        Target Akhir Bab 3
+                      <span className="text-[10px] font-bold text-[#1D5E4D] uppercase block">
+                        Langkah 1 • Terkalibrasi
                       </span>
-                      <p className="text-xs font-bold text-white">
-                        Evaluasi Akhir &amp; Penguasaan Materi
+                      <p className="text-xs font-extrabold text-[#010105]">
+                        Profil Kognitif &amp; Modalitas
                       </p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-white/60 ml-auto" />
+                  </div>
+
+                  {/* Step 2 - Current Active (Pulsing) */}
+                  <div className="flex items-center gap-4 w-full max-w-xs justify-end">
+                    <div className="text-right">
+                      <span className="text-[10px] font-bold text-[#4B3B7A] uppercase block">
+                        Langkah 2 • Tantangan Aktif
+                      </span>
+                      <p className="text-xs font-extrabold text-[#010105]">
+                        {hasActiveContent ? "Kuis Adaptif Bab Aktif" : "Eksplorasi AI Tutor"}
+                      </p>
+                    </div>
+                    <div
+                      onClick={() => {
+                        audioSynth.playLevelUpSound();
+                        if (hasActiveContent) {
+                          navigate("/quiz");
+                        } else {
+                          navigate("/student/ai");
+                        }
+                      }}
+                      className="clay-stone-node clay-lavender shrink-0 ring-4 ring-[#E3DBF8] ring-offset-2 animate-soft-pulse cursor-pointer"
+                      title="Langkah 2: Uji Kemampuan Adaptif (Tantangan Aktif)"
+                    >
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                  {/* Step 3 - Locked */}
+                  <div className="flex items-center gap-4 w-full max-w-xs justify-start opacity-60">
+                    <div className="clay-stone-node bg-[#E4E2DD] text-[#5A5E70] border border-[rgba(28,30,38,0.1)] shrink-0 cursor-not-allowed">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <span className="text-[10px] font-bold text-[#9195A8] uppercase block">
+                        Langkah 3 • Terkunci
+                      </span>
+                      <p className="text-xs font-bold text-[#5A5E70]">
+                        Uji Kompetensi Lanjutan
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Final Evaluation Boss Card */}
+                  <div className="flex items-center gap-4 w-full max-w-xs justify-center pt-2">
+                    <div
+                      onClick={() => {
+                        audioSynth.playClickSound();
+                        navigate("/passport");
+                      }}
+                      className="clay-card clay-dark p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer hover:scale-102 active:scale-98 transition-transform border border-white/20 w-full shadow-xs"
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-white/10 text-white flex items-center justify-center shrink-0">
+                        <Award className="w-5 h-5 text-[#FEE7B3]" />
+                      </div>
+                      <div className="text-left">
+                        <span className="text-[10px] font-extrabold text-[#FEE7B3] uppercase block">
+                          Target Akhir Modul
+                        </span>
+                        <p className="text-xs font-bold text-white">
+                          Verifikasi Paspor Kompetensi
+                        </p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-white/60 ml-auto" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </section>
+              </section>
+            </div>
           </div>
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
 
-    <BottomNav />
-  </div>
+      <BottomNav />
+    </div>
   );
 }

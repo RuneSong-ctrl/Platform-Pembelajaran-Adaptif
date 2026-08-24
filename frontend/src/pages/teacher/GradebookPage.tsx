@@ -15,12 +15,17 @@ import {
 } from "@/components/ui/icons";
 
 export default function GradebookPage() {
-  const { users, credentials } = useApp();
+  const { users, credentials, classrooms } = useApp();
 
   const [isBatchMinting, setIsBatchMinting] = useState(false);
   const [batchMintSuccess, setBatchMintSuccess] = useState(false);
 
   const students = users.filter((u) => u.role === "SISWA");
+  const basicCount = students.filter((s) => s.currentDDALevel === "BASIC").length;
+  const mediumCount = students.filter((s) => s.currentDDALevel === "MEDIUM").length;
+  const challengingCount = students.filter((s) => s.currentDDALevel === "CHALLENGING").length;
+  const masteryCount = students.filter((s) => s.currentDDALevel === "MASTERY").length;
+  const primaryClass = classrooms[0];
 
   const handleBatchMint = () => {
     setIsBatchMinting(true);
@@ -65,8 +70,8 @@ export default function GradebookPage() {
 
             <button
               onClick={handleBatchMint}
-              disabled={isBatchMinting}
-              className="clay-btn clay-btn-dark px-5 py-2.5 text-xs font-black flex items-center gap-2 shadow-sm self-start sm:self-auto cursor-pointer"
+              disabled={isBatchMinting || students.length === 0}
+              className="clay-btn clay-btn-dark px-5 py-2.5 text-xs font-black flex items-center gap-2 shadow-sm self-start sm:self-auto cursor-pointer disabled:opacity-50"
             >
               <ShieldCheck className="w-4 h-4" />
               <span>{isBatchMinting ? "Memproses Minting..." : "Batch Minting Paspor Kelas"}</span>
@@ -77,7 +82,7 @@ export default function GradebookPage() {
             <div className="clay-card clay-mint p-4 flex items-center justify-between gap-3 animate-in fade-in">
               <div className="flex items-center gap-2 text-xs font-black text-[#1D5E4D]">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>Seluruh sertifikat siswa kelas 10-A berhasil diterbitkan dan dicatat ke dalam ledger blockchain.</span>
+                <span>Seluruh sertifikat siswa {primaryClass?.name || "kelas"} berhasil diterbitkan dan dicatat ke dalam ledger blockchain.</span>
               </div>
               <span className="clay-pill clay-white px-3 py-0.5 text-xs font-extrabold text-[#1D5E4D]">
                 Minted
@@ -91,7 +96,7 @@ export default function GradebookPage() {
               <span className="text-xs font-bold text-[#9195A8] uppercase tracking-wider">
                 Basic Level
               </span>
-              <p className="text-2xl font-black text-[#010105]">1 Siswa</p>
+              <p className="text-2xl font-black text-[#010105]">{basicCount} Siswa</p>
               <span className="clay-pill clay-coral text-[10px] text-[#7A2420] font-bold px-2 py-0.5 inline-flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" /> Perlu Bimbingan
               </span>
@@ -101,7 +106,7 @@ export default function GradebookPage() {
               <span className="text-xs font-bold text-[#9195A8] uppercase tracking-wider">
                 Medium Level
               </span>
-              <p className="text-2xl font-black text-[#010105]">1 Siswa</p>
+              <p className="text-2xl font-black text-[#010105]">{mediumCount} Siswa</p>
               <span className="clay-pill clay-butter text-[10px] text-[#694503] font-bold px-2 py-0.5 inline-block">
                 Progres Stabil
               </span>
@@ -111,7 +116,7 @@ export default function GradebookPage() {
               <span className="text-xs font-bold text-[#9195A8] uppercase tracking-wider">
                 Challenging Level
               </span>
-              <p className="text-2xl font-black text-[#010105]">1 Siswa</p>
+              <p className="text-2xl font-black text-[#010105]">{challengingCount} Siswa</p>
               <span className="clay-pill clay-lavender text-[10px] text-[#4B3B7A] font-bold px-2 py-0.5 inline-block">
                 Akselerasi Baik
               </span>
@@ -121,7 +126,7 @@ export default function GradebookPage() {
               <span className="text-xs font-bold text-[#9195A8] uppercase tracking-wider">
                 Mastery Level
               </span>
-              <p className="text-2xl font-black text-[#010105]">2 Siswa</p>
+              <p className="text-2xl font-black text-[#010105]">{masteryCount} Siswa</p>
               <span className="clay-pill clay-mint text-[10px] text-[#1D5E4D] font-bold px-2 py-0.5 inline-block">
                 Siap Pengayaan
               </span>
@@ -140,7 +145,7 @@ export default function GradebookPage() {
                 </p>
               </div>
               <span className="clay-pill clay-lavender px-3 py-1 text-xs font-extrabold text-[#4B3B7A]">
-                Kelas 10-A
+                {primaryClass?.name || `${students.length} Siswa Terdaftar`}
               </span>
             </div>
 
@@ -156,17 +161,24 @@ export default function GradebookPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[rgba(28,30,38,0.06)]">
-                  {students.map((st) => {
-                    const hasCert = credentials.some((c) => c.studentId === st.id);
+                  {students.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-[#9195A8] font-medium">
+                        Belum ada siswa yang mendaftar atau bergabung ke kelas. Berikan kode kelas kepada siswa untuk mulai memantau analitik DDA live.
+                      </td>
+                    </tr>
+                  ) : (
+                    students.map((st) => {
+                      const hasCert = credentials.some((c) => c.studentId === st.id);
 
-                    return (
-                      <tr key={st.id} className="hover:bg-[#F8F9FD] transition-colors">
-                        <td className="py-4 font-black text-[#010105] flex items-center gap-3">
-                          <div className="clay-card clay-lavender w-8 h-8 rounded-full flex items-center justify-center font-black text-xs text-[#4B3B7A] shrink-0">
-                            {st.avatar}
-                          </div>
-                          <span>{st.name}</span>
-                        </td>
+                      return (
+                        <tr key={st.id} className="hover:bg-[#F8F9FD] transition-colors">
+                          <td className="py-4 font-black text-[#010105] flex items-center gap-3">
+                            <div className="clay-card clay-lavender w-8 h-8 rounded-full flex items-center justify-center font-black text-xs text-[#4B3B7A] shrink-0">
+                              {st.avatar}
+                            </div>
+                            <span>{st.name}</span>
+                          </td>
 
                         <td className="py-4">
                           <span
@@ -213,7 +225,8 @@ export default function GradebookPage() {
                         </td>
                       </tr>
                     );
-                  })}
+                  })
+                )}
                 </tbody>
               </table>
             </div>

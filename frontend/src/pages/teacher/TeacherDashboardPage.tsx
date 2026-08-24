@@ -137,7 +137,7 @@ export default function TeacherDashboardPage() {
               </div>
               <p className="text-3xl font-black text-[#010105]">{documents.length}</p>
               <span className="clay-pill clay-lavender text-[10px] font-extrabold px-2.5 py-0.5 text-[#4B3B7A] inline-block">
-                44 Vektor Tersemat
+                {documents.reduce((acc, d) => acc + (d.chunksCount || 1), 0)} Vektor Tersemat
               </span>
             </div>
 
@@ -152,22 +152,24 @@ export default function TeacherDashboardPage() {
               </div>
               <p className="text-3xl font-black text-[#010105]">{submissions.length}</p>
               <span className="clay-pill clay-butter text-[10px] font-extrabold px-2.5 py-0.5 text-[#785308] inline-block">
-                {submissions.filter((s) => s.status !== "Graded").length} Menunggu Review
+                {submissions.filter((s) => !s.grade).length} Menunggu Review
               </span>
             </div>
 
             <div className="clay-card clay-card-hover clay-white p-5 space-y-2">
               <div className="flex justify-between items-center text-[#5A5E70]">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#9195A8]">
-                  Rata-rata Akurasi DDA
+                  Total Tugas &amp; Kuis
                 </span>
                 <div className="w-8 h-8 rounded-xl bg-[#D4E8FC] text-[#21518A] flex items-center justify-center">
                   <TrendingUp className="w-4 h-4" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-[#010105]">88.5%</p>
+              <p className="text-3xl font-black text-[#010105]">
+                {classrooms.reduce((acc, c) => acc + (c.tasksCount || 0), 0)}
+              </p>
               <span className="clay-pill clay-sky text-[10px] font-extrabold px-2.5 py-0.5 text-[#21518A] inline-block">
-                Level 2 DDA Stabil
+                Diterbitkan Guru
               </span>
             </div>
           </div>

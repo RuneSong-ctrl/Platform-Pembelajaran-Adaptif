@@ -60,7 +60,7 @@ export default function PWAInstallPrompt() {
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h4 className="text-xs font-black tracking-tight">Pasang Aplikasi Adaptika</h4>
+              <h4 className="text-xs font-black tracking-tight">Pasang Aplikasi EduAdapt</h4>
               <span className="w-1.5 h-1.5 rounded-full bg-[#34D399]"></span>
             </div>
             <p className="text-[10px] text-white/70 font-medium leading-tight mt-0.5">

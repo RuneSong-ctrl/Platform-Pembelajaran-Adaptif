@@ -1,6 +1,5 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useApp } from "@/contexts/AppContext";
 import {
   BookOpen,
   Layers,
@@ -9,21 +8,12 @@ import {
   Calendar,
   TrendingUp,
   User,
-  Flame,
-  Star,
-  Sparkles,
-  Eye,
-  Headphones,
-  FlaskConical,
 } from "@/components/ui/icons";
 import { audioSynth } from "@/services/audioSynth";
 
 export default function StudentSidebar() {
   const location = useLocation();
   const pathname = location.pathname;
-  const { currentUser } = useApp();
-
-  const style = currentUser.learningStyle || "VISUAL";
 
   const links = [
     {
@@ -71,56 +61,13 @@ export default function StudentSidebar() {
   ];
 
   return (
-    <aside className="w-64 bg-white border-r border-[rgba(28,30,38,0.06)] min-h-[calc(100vh-4rem)] p-4 hidden md:flex flex-col justify-between shrink-0 shadow-2xs">
-      <div className="space-y-6">
-        {/* Student Profile Quick Card */}
-        <div className="clay-card clay-white p-3.5 space-y-2">
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm shrink-0 ${
-                style === "AUDITORI"
-                  ? "clay-card clay-lavender text-[#4B3B7A]"
-                  : style === "KINESTETIK"
-                  ? "clay-card clay-butter text-[#785308]"
-                  : "clay-card clay-mint text-[#1D5E4D]"
-              }`}
-            >
-              {style === "AUDITORI" ? (
-                <Headphones className="w-5 h-5" />
-              ) : style === "KINESTETIK" ? (
-                <FlaskConical className="w-5 h-5" />
-              ) : (
-                <Eye className="w-5 h-5" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#9195A8] block">
-                Modalitas {style.charAt(0) + style.slice(1).toLowerCase()}
-              </span>
-              <h3 className="text-xs font-black text-[#010105] truncate">
-                {currentUser.name}
-              </h3>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-1.5 pt-1 text-center">
-            <div className="clay-pill clay-butter px-2 py-1 flex items-center justify-center gap-1 text-[#694503]">
-              <Flame className="w-3 h-3 fill-current" />
-              <span className="text-[10px] font-black">{currentUser.streakDays || 14} Hari</span>
-            </div>
-            <div className="clay-pill clay-sky px-2 py-1 flex items-center justify-center gap-1 text-[#174272]">
-              <Star className="w-3 h-3 fill-current" />
-              <span className="text-[10px] font-black">{currentUser.xpTotal || 450} XP</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation Menu */}
+    <aside className="w-60 bg-white/70 backdrop-blur-md border-r border-[rgba(28,30,38,0.06)] min-h-[calc(100vh-4rem)] p-3.5 hidden md:flex flex-col justify-between shrink-0">
+      <div className="space-y-4">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-wider text-[#9195A8] px-3">
-            Navigasi Siswa
+          <span className="text-[10px] font-black uppercase tracking-wider text-[#9195A8] px-3 block mb-2">
+            Menu Utama
           </span>
-          <nav className="mt-2 space-y-1.5">
+          <nav className="space-y-1">
             {links.map((item) => {
               const Icon = item.icon;
               return (
@@ -128,10 +75,10 @@ export default function StudentSidebar() {
                   key={item.href}
                   to={item.href}
                   onClick={() => audioSynth.playClickSound()}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                     item.active
-                      ? "clay-btn clay-btn-dark text-white font-black shadow-xs"
-                      : "text-[#5A5E70] hover:bg-[#F8F9FD] hover:text-[#010105]"
+                      ? "bg-[#1C1E26] text-white shadow-xs"
+                      : "text-[#595F72] hover:bg-[#F0EEF6]/70 hover:text-[#1C1E26]"
                   }`}
                 >
                   <Icon className="w-4 h-4 shrink-0" />
@@ -143,10 +90,9 @@ export default function StudentSidebar() {
         </div>
       </div>
 
-      {/* Footer Level Info */}
-      <div className="clay-pill clay-mint p-3 text-[11px] font-extrabold text-[#1D5E4D] flex items-center gap-2">
-        <Sparkles className="w-4 h-4 shrink-0" />
-        <span>Level 2 DDA Adaptif Aktif</span>
+      {/* Subtle Platform Version */}
+      <div className="px-3 py-2 text-[10px] font-bold text-[#A5A8B8] border-t border-black/5">
+        EduAdapt K-12 Engine v2.4
       </div>
     </aside>
   );
