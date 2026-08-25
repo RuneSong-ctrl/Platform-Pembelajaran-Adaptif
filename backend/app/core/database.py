@@ -30,6 +30,21 @@ except Exception as e:
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+def check_and_migrate_db():
+    try:
+        with engine.connect() as conn:
+            raw_conn = conn.connection
+            cursor = raw_conn.cursor()
+            if str(engine.url).startswith("sqlite"):
+                cursor.execute("PRAGMA table_info(users)")
+                cols = [c[1] for c in cursor.fetchall()]
+                if cols and "learning_progress" not in cols:
+                    cursor.execute("ALTER TABLE users ADD COLUMN learning_progress JSON")
+                    raw_conn.commit()
+                    logger.info("Auto-migrated users table: added learning_progress column.")
+    except Exception as e:
+        logger.warning(f"Database migration check notice: {e}")
+
 def get_db():
     db = SessionLocal()
     try:

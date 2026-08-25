@@ -107,6 +107,9 @@ interface AppContextType {
   addLearningSchedule: (item: Omit<LearningScheduleItem, "id">) => void;
   deleteLearningSchedule: (id: string) => void;
   toggleLearningSchedule: (id: string) => void;
+
+  // Learning Progress & Activity Tracking
+  trackLearningActivity: (type: "visual" | "audio" | "practice", amount?: number, title?: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -166,12 +169,72 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setLearningSchedules((prev) => prev.filter((s) => s.id !== id));
   };
 
+  const trackLearningActivity = async (
+    type: "visual" | "audio" | "practice",
+    amount: number = 1,
+    title?: string
+  ) => {
+    if (!currentUser?.id) return;
+    try {
+      const res = await ApiService.trackLearningActivity(currentUser.id, type, amount, title);
+      if (res) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === currentUser.id
+              ? {
+                  ...u,
+                  learningProgress: {
+                    visual: res.visual_progress,
+                    audio: res.audio_progress,
+                    practice: res.practice_progress,
+                    visualCompleted: res.visual_completed,
+                    visualTotal: res.visual_total,
+                    audioMinutes: res.audio_minutes,
+                    audioCompleted: res.audio_completed,
+                    practiceCompleted: res.practice_completed,
+                    practiceTotal: res.practice_total,
+                  },
+                }
+              : u
+          )
+        );
+      }
+    } catch (err) {
+      console.warn("[AppContext] trackLearningActivity error:", err);
+      // Local optimistic update
+      setUsers((prev) =>
+        prev.map((u) => {
+          if (u.id !== currentUser.id) return u;
+          const curProg = { ...(u.learningProgress || { visual: 0, audio: 0, practice: 0 }) };
+          if (type === "visual") curProg.visual = Math.min(100, (curProg.visual || 0) + 15);
+          if (type === "audio") curProg.audio = Math.min(100, (curProg.audio || 0) + 20);
+          if (type === "practice") curProg.practice = Math.min(100, (curProg.practice || 0) + 20);
+          return { ...u, learningProgress: curProg };
+        })
+      );
+    }
+  };
+
   const toggleLearningSchedule = (id: string) => {
+    const targetSchedule = learningSchedules.find((s) => s.id === id);
+    const willComplete = targetSchedule ? !targetSchedule.completed : false;
+
     setLearningSchedules((prev) =>
       prev.map((s) => (s.id === id ? { ...s, completed: !s.completed } : s))
     );
     // Persist to backend
     ApiService.toggleSchedule(id).catch(() => {});
+
+    // If completed, dynamically update learning modality activity progress
+    if (willComplete && targetSchedule) {
+      const formatType =
+        targetSchedule.format === "Visual"
+          ? "visual"
+          : targetSchedule.format === "Audio"
+          ? "audio"
+          : "practice";
+      trackLearningActivity(formatType, 1, targetSchedule.title);
+    }
   };
 
   // Auto-sync with FastAPI backend on mount
@@ -748,6 +811,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       content,
       attachment_name: newSub.attachmentName,
     }).catch(() => {});
+
+    // Update practice learning activity progress
+    trackLearningActivity("practice", 1, newSub.taskTitle);
   };
 
   const gradeSubmission = (submissionId: string, grade: number, feedback: string) => {
@@ -1000,6 +1066,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addLearningSchedule,
         deleteLearningSchedule,
         toggleLearningSchedule,
+        trackLearningActivity,
       }}
     >
       {children}
