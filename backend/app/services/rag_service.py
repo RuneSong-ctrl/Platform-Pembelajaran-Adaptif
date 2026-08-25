@@ -1,7 +1,7 @@
 import uuid
 from typing import List, Dict, Any
 
-def mock_vector_chunking(raw_text: str) -> Tuple_Chunks:
+def mock_vector_chunking(raw_text: str) -> List[str]:
     # Split text into semantic chunks
     paragraphs = [p.strip() for p in raw_text.split("\n\n") if p.strip()]
     if not paragraphs:

@@ -59,8 +59,8 @@ export default function TeacherSidebar() {
 
   return (
     <>
-      {/* 1. DESKTOP SIDEBAR (hidden on mobile, strictly full width w-64 on md/lg desktop) */}
-      <aside className="hidden md:flex w-64 bg-white border-r border-[rgba(28,30,38,0.06)] min-h-[calc(100vh-4rem)] p-4 flex-col justify-between shrink-0 shadow-2xs">
+      {/* 1. DESKTOP SIDEBAR (sticky top-16, fixed h-[calc(100vh-4rem)], w-64) */}
+      <aside className="hidden md:flex w-64 shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto bg-white/80 backdrop-blur-md border-r border-[rgba(28,30,38,0.06)] p-4 flex-col justify-between shadow-2xs z-20">
         <div className="space-y-6">
           {/* Header Title */}
           <div className="px-3 pt-1">

@@ -213,56 +213,63 @@ export default function AdaptiveQuizPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FBF9F4] text-[#1B1C19] pb-24">
-      <Navbar />
+    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 relative overflow-hidden">
+      {/* Dynamic Ambient Top Gradient */}
+      <div
+        className="absolute top-0 left-0 right-0 h-[400px] bg-gradient-to-b from-[#9DE1CA]/60 via-[#D1EBE1]/35 to-transparent pointer-events-none transition-all duration-500"
+        aria-hidden="true"
+      />
 
-      <main className="max-w-2xl mx-auto px-4 pt-4 sm:pt-6 space-y-5">
+      <div className="relative z-10">
+        <Navbar />
+      </div>
+
+      <main className="max-w-2xl mx-auto px-4 pt-4 sm:pt-6 space-y-5 relative z-10 w-full">
         {/* Top Back Navigation */}
         <div className="flex items-center justify-between">
           <Link
             to="/student"
             onClick={() => audioSynth.playClickSound()}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[rgba(28,30,38,0.08)] shadow-[0_4px_12px_rgba(28,30,38,0.04)] text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] hover:bg-[#F2EFFC] transition-all cursor-pointer group"
+            className="clay-pill clay-white inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] transition-all cursor-pointer group"
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
             <span>Kembali ke Beranda</span>
           </Link>
-          <span className="text-[11px] font-bold text-[#5A5E70] uppercase tracking-wider">
-            Sesi Kuis Adaptif
+          <span className="clay-pill clay-mint text-[11px] font-extrabold text-[#1D5E4D] uppercase tracking-wider px-3 py-1">
+            Sesi Kuis Adaptif DDA
           </span>
         </div>
 
         {!isQuizFinished ? (
           <>
             {/* DDA Live HUD Status */}
-            <div className="flex items-center justify-between gap-2 p-3.5 rounded-2xl bg-white border border-[rgba(28,30,38,0.06)] shadow-xs">
+            <div className="clay-card clay-white flex items-center justify-between gap-2 p-4 rounded-3xl shadow-xs">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-[#5A5E70]">Tingkat Kesulitan:</span>
-                <Badge
-                  variant={
+                <span
+                  className={`clay-pill px-3 py-0.5 text-xs font-extrabold ${
                     ddaState.currentLevel === "MASTERY"
-                      ? "mint"
+                      ? "clay-mint text-[#1D5E4D]"
                       : ddaState.currentLevel === "CHALLENGING"
-                      ? "lavender"
+                      ? "clay-lavender text-[#4B3B7A]"
                       : ddaState.currentLevel === "MEDIUM"
-                      ? "butter"
-                      : "slate"
-                  }
-                  className="font-bold text-xs"
+                      ? "clay-butter text-[#785308]"
+                      : "clay-white text-[#5A5E70]"
+                  }`}
                 >
                   {ddaState.currentLevel}
-                </Badge>
+                </span>
               </div>
 
               <div className="flex items-center gap-4 text-xs font-bold">
-                <div className="flex items-center gap-1 text-[#1D5E4D]">
+                <div className="flex items-center gap-1.5 text-[#1D5E4D] font-extrabold">
                   <Flame className="w-4 h-4 fill-[#1D5E4D]" />
                   <span>{streak} Streak</span>
                 </div>
 
-                <div className="flex items-center gap-1 text-[#5A5E70]">
+                <div className="flex items-center gap-1.5 text-[#5A5E70] font-extrabold">
                   <Timer className="w-4 h-4" />
-                  <span className={secondsLeft <= 5 ? "text-[#ba1a1a] font-bold" : ""}>
+                  <span className={secondsLeft <= 5 ? "text-[#ba1a1a] font-black animate-pulse" : ""}>
                     {secondsLeft}s
                   </span>
                 </div>
@@ -270,18 +277,18 @@ export default function AdaptiveQuizPage() {
             </div>
 
             {/* Progress Bar */}
-            <div className="space-y-1">
+            <div className="space-y-1.5 px-1">
               <div className="flex justify-between text-[11px] font-bold text-[#9195A8]">
                 <span>Pertanyaan {ddaState.history.length + 1} dari 4</span>
-                <span>{quizTask?.title || "Kuis Evaluasi Adaptif DDA"}</span>
+                <span className="truncate max-w-[200px]">{quizTask?.title || "Kuis Evaluasi Adaptif DDA"}</span>
               </div>
               <Progress value={((ddaState.history.length + 1) / 4) * 100} indicatorColor="bg-[#1C1E26]" />
             </div>
 
             {/* Question Card */}
-            <Card className="p-6 sm:p-8 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs space-y-6">
+            <div className="clay-card clay-white p-6 sm:p-8 rounded-3xl shadow-xs space-y-6">
               <div className="flex justify-between items-start gap-4">
-                <h2 className="text-base sm:text-lg font-bold text-[#010105] leading-snug">
+                <h2 className="text-base sm:text-lg font-black text-[#010105] leading-snug">
                   {activeQuestion?.questionText}
                 </h2>
                 <button
@@ -289,29 +296,29 @@ export default function AdaptiveQuizPage() {
                     audioSynth.playClickSound();
                     setHintModalOpen(true);
                   }}
-                  className="p-2.5 rounded-2xl bg-[#F0EEE9] hover:bg-[#E0DAF5] text-[#010105] transition-colors shrink-0 cursor-pointer"
+                  className="clay-btn clay-btn-white p-2.5 rounded-2xl text-[#785308] shrink-0 cursor-pointer shadow-2xs"
                   title="Minta Petunjuk AI Companion"
                 >
                   <Lightbulb className="w-5 h-5 text-[#785308]" />
                 </button>
               </div>
 
-              {/* Options */}
-              <div className="space-y-3">
+              {/* Options - Stacked Vertically */}
+              <div className="flex flex-col gap-3">
                 {activeQuestion?.options.map((opt: string, idx: number) => {
                   const isSelected = selectedOption === idx;
                   const isCorrectAnswer = idx === activeQuestion.correctIndex;
 
-                  let styleClass = "bg-[#FBF9F4] border-[rgba(28,30,38,0.08)] hover:bg-white text-[#010105]";
+                  let styleClass = "clay-card clay-card-hover clay-white text-[#010105]";
 
                   if (isAnswerSubmitted) {
                     if (isCorrectAnswer) {
-                      styleClass = "bg-[#D1EBE1] border-[#1D5E4D] text-[#1D5E4D] font-bold";
+                      styleClass = "clay-card clay-mint text-[#1D5E4D] font-bold ring-2 ring-[#1D5E4D]";
                     } else if (isSelected && !isCorrectAnswer) {
-                      styleClass = "bg-[#FCD9D7] border-[#ba1a1a] text-[#ba1a1a] font-bold";
+                      styleClass = "clay-card bg-[#FCD9D7] text-[#ba1a1a] font-bold ring-2 ring-[#ba1a1a]";
                     }
                   } else if (isSelected) {
-                    styleClass = "bg-[#1C1E26] text-white border-[#1C1E26]";
+                    styleClass = "clay-btn clay-btn-dark text-white font-bold";
                   }
 
                   return (
@@ -319,9 +326,14 @@ export default function AdaptiveQuizPage() {
                       key={idx}
                       disabled={isAnswerSubmitted}
                       onClick={() => handleAnswer(idx)}
-                      className={`w-full p-4 rounded-2xl border text-left text-xs sm:text-sm font-semibold transition-all flex items-center justify-between cursor-pointer ${styleClass}`}
+                      className={`w-full p-4 rounded-2xl text-left text-xs sm:text-sm font-semibold transition-all flex items-center justify-between cursor-pointer ${styleClass}`}
                     >
-                      <span>{opt}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="w-6 h-6 rounded-full bg-black/5 flex items-center justify-center text-xs font-black shrink-0">
+                          {String.fromCharCode(65 + idx)}
+                        </span>
+                        <span>{opt}</span>
+                      </div>
                       {isAnswerSubmitted && isCorrectAnswer && (
                         <CheckCircle2 className="w-5 h-5 text-[#1D5E4D] shrink-0 ml-2" />
                       )}
@@ -333,77 +345,75 @@ export default function AdaptiveQuizPage() {
                 })}
               </div>
 
-              {/* Submission Feedback */}
+              {/* Submission Feedback - Stacked Vertically */}
               {isAnswerSubmitted && (
-                <div className="pt-4 border-t border-[rgba(28,30,38,0.06)] space-y-4 animate-in fade-in">
+                <div className="pt-4 border-t border-black/5 flex flex-col gap-4 animate-in fade-in">
                   <div
-                    className={`p-4 rounded-2xl text-xs font-semibold ${
+                    className={`clay-card p-4 rounded-2xl text-xs font-semibold ${
                       selectedOption === activeQuestion.correctIndex
-                        ? "bg-[#D1EBE1] text-[#1D5E4D]"
+                        ? "clay-mint text-[#1D5E4D]"
                         : "bg-[#FCD9D7] text-[#ba1a1a]"
                     }`}
                   >
-                    <p className="font-bold mb-1">
+                    <p className="font-black mb-1">
                       {selectedOption === activeQuestion.correctIndex
-                        ? "Jawaban Tepat"
-                        : "Jawaban Kurang Tepat"}
+                        ? "✅ Jawaban Tepat!"
+                        : "❌ Jawaban Kurang Tepat"}
                     </p>
-                    <p className="opacity-90">{activeQuestion.explanation?.langkah}</p>
+                    <p className="opacity-90 leading-relaxed">{activeQuestion.explanation?.langkah}</p>
                   </div>
 
-                  <Button
+                  <button
                     onClick={handleNextQuestion}
-                    variant="primary"
-                    size="lg"
-                    className="w-full font-bold shadow-md"
+                    className="clay-btn clay-btn-dark w-full py-3.5 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 shadow-xs cursor-pointer"
                   >
-                    {ddaState.history.length >= 3 ? "Selesaikan Kuis" : "Lanjut Soal Berikutnya"}
+                    <span>{ddaState.history.length >= 3 ? "Selesaikan Kuis" : "Lanjut Soal Berikutnya"}</span>
                     <ArrowRight className="w-4 h-4 ml-1.5" />
-                  </Button>
+                  </button>
                 </div>
               )}
-            </Card>
+            </div>
           </>
         ) : (
-          /* RESULT SCREEN */
+          /* RESULT SCREEN - Pure Claymorphism */
           <div className="space-y-6 animate-in fade-in zoom-in-95">
             <div className="text-center space-y-2">
-              <div className="w-16 h-16 rounded-3xl bg-[#D1EBE1] flex items-center justify-center text-3xl mx-auto shadow-xs">
+              <div className="w-16 h-16 rounded-3xl clay-card clay-mint flex items-center justify-center mx-auto shadow-xs">
                 <Sparkles className="w-8 h-8 text-[#1D5E4D]" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#010105]">
-                Kuis DDA Selesai
+              <h1 className="text-2xl sm:text-3xl font-black text-[#010105]">
+                Kuis DDA Selesai!
               </h1>
               <p className="text-xs sm:text-sm text-[#5A5E70] font-medium">
-                Performa kognitif dan akurasimu telah dievaluasi oleh sistem DDA.
+                Performa kognitif dan akurasimu telah dievaluasi oleh engine DDA.
               </p>
             </div>
 
-            <Card className="p-6 sm:p-8 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs space-y-6">
+            <div className="clay-card clay-white p-6 sm:p-8 rounded-3xl shadow-xs space-y-6">
               <div className="grid grid-cols-2 gap-4 text-center">
-                <div className="p-4 rounded-2xl bg-[#FBF9F4]">
-                  <span className="text-xs text-[#5A5E70] font-bold block">Akurasi Soal</span>
-                  <span className="text-2xl font-extrabold text-[#010105] mt-1 block">
+                <div className="clay-card clay-butter p-4 rounded-2xl">
+                  <span className="text-xs text-[#785308] font-bold block">Akurasi Soal</span>
+                  <span className="text-2xl font-black text-[#010105] mt-1 block">
                     {ddaState.totalAnswered > 0
                       ? Math.round((ddaState.totalCorrect / ddaState.totalAnswered) * 100)
                       : 100}
                     %
                   </span>
                 </div>
-                <div className="p-4 rounded-2xl bg-[#FBF9F4]">
-                  <span className="text-xs text-[#5A5E70] font-bold block">Tingkat Capaian</span>
-                  <span className="text-2xl font-extrabold text-[#1D5E4D] mt-1 block">
+                <div className="clay-card clay-mint p-4 rounded-2xl">
+                  <span className="text-xs text-[#1D5E4D] font-bold block">Tingkat Capaian</span>
+                  <span className="text-2xl font-black text-[#1D5E4D] mt-1 block">
                     {ddaState.currentLevel}
                   </span>
                 </div>
               </div>
 
               {mintedCertId && (
-                <div className="p-4 rounded-2xl bg-[#D1EBE1] border border-[rgba(29,94,77,0.2)] flex items-center justify-between gap-3">
+                <div className="clay-card clay-mint p-4 rounded-2xl flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <ShieldCheck className="w-7 h-7 text-[#1D5E4D] shrink-0" />
                     <div>
-                      <h4 className="text-xs font-bold text-[#1D5E4D]">
+                      <h4 className="text-xs font-black text-[#1D5E4D]">
                         Kredensial Kompetensi Berhasil Diterbitkan
                       </h4>
                       <p className="text-[11px] text-[#5A5E70]">
@@ -411,34 +421,30 @@ export default function AdaptiveQuizPage() {
                       </p>
                     </div>
                   </div>
-                  <Button
+                  <button
                     onClick={() => navigate("/passport")}
-                    variant="primary"
-                    size="sm"
-                    className="text-xs font-bold shrink-0"
+                    className="clay-btn clay-btn-dark px-3.5 py-1.5 rounded-xl text-xs font-black shrink-0 cursor-pointer"
                   >
                     Buka Paspor
-                  </Button>
+                  </button>
                 </div>
               )}
 
               <div className="flex gap-3 pt-2">
-                <Button
+                <button
                   onClick={() => navigate("/student")}
-                  variant="outline"
-                  className="flex-1 font-bold"
+                  className="clay-btn clay-btn-white flex-1 py-3 rounded-2xl text-xs font-bold text-[#1C1E26] cursor-pointer"
                 >
                   Kembali ke Beranda
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={() => navigate("/student/learn")}
-                  variant="primary"
-                  className="flex-1 font-bold"
+                  className="clay-btn clay-btn-dark flex-1 py-3 rounded-2xl text-xs font-black text-white cursor-pointer"
                 >
                   Eksplorasi Modul
-                </Button>
+                </button>
               </div>
-            </Card>
+            </div>
           </div>
         )}
       </main>

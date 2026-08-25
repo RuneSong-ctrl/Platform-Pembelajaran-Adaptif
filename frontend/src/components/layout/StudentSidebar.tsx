@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useApp } from "@/contexts/AppContext";
 import {
   BookOpen,
   Layers,
@@ -14,6 +15,14 @@ import { audioSynth } from "@/services/audioSynth";
 export default function StudentSidebar() {
   const location = useLocation();
   const pathname = location.pathname;
+  const { currentUser } = useApp();
+  const style = currentUser?.learningStyle;
+
+  const getSidebarGradient = () => {
+    if (style === "AUDITORI") return "from-[#B7A9F3]/50 via-[#E3DBF8]/25 to-transparent";
+    if (style === "KINESTETIK") return "from-[#F9CF80]/50 via-[#FDF0CD]/25 to-transparent";
+    return "from-[#9DE1CA]/60 via-[#D1EBE1]/30 to-transparent";
+  };
 
   const links = [
     {
@@ -61,8 +70,14 @@ export default function StudentSidebar() {
   ];
 
   return (
-    <aside className="w-60 bg-white/70 backdrop-blur-md border-r border-[rgba(28,30,38,0.06)] min-h-[calc(100vh-4rem)] p-3.5 hidden md:flex flex-col justify-between shrink-0">
-      <div className="space-y-4">
+    <aside className="w-64 shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto bg-white/80 backdrop-blur-md border-r border-[rgba(28,30,38,0.06)] p-3.5 hidden md:flex flex-col justify-between z-20 relative overflow-hidden">
+      {/* Subtle Sidebar Top Ambient Gradient */}
+      <div
+        className={`absolute top-0 left-0 right-0 h-44 bg-gradient-to-b ${getSidebarGradient()} pointer-events-none transition-all duration-500`}
+        aria-hidden="true"
+      />
+
+      <div className="space-y-4 relative z-10">
         <div>
           <span className="text-[10px] font-black uppercase tracking-wider text-[#9195A8] px-3 block mb-2">
             Menu Utama

@@ -176,13 +176,13 @@ export default function StudentAIPage() {
         <Navbar />
       </div>
 
-      {/* 2. BODY CONTAINER (FIT VIEWPORT, ZERO GLOBAL SCROLL) */}
-      <div className="flex flex-1 overflow-hidden min-h-0 w-full">
+      {/* 2. BODY CONTAINER */}
+      <div className="flex flex-1 overflow-hidden min-h-0 w-full relative z-10">
         {/* Desktop Sidebar */}
         <StudentSidebar />
 
         {/* Fixed Viewport AI Tutor Main Content */}
-        <main className="flex-1 w-full max-w-4xl lg:max-w-5xl mx-auto px-3 sm:px-6 py-2 sm:py-3 flex flex-col gap-2 h-full overflow-hidden min-h-0">
+        <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-3 flex flex-col gap-2 h-full overflow-hidden min-h-0 min-w-0">
           {/* Header Bar */}
           <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-[rgba(28,30,38,0.06)] shadow-xs flex items-center justify-between gap-2 shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">

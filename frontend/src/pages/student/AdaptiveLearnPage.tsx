@@ -156,10 +156,10 @@ export default function AdaptiveLearnPage() {
     <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8">
       <Navbar />
 
-      <div className="flex flex-1">
+      <div className="flex flex-1 w-full">
         <StudentSidebar />
 
-        <main className="flex-1 w-full max-w-4xl lg:max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-4 sm:gap-6">
+        <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-5 min-w-0 flex flex-col gap-5">
           {/* Top Back Navigation */}
           <div className="flex items-center justify-between">
             <Link
@@ -266,17 +266,17 @@ export default function AdaptiveLearnPage() {
                       </div>
                     </div>
 
-                    {/* Sequential Visual Concept Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                    {/* Sequential Visual Concept Cards - Vertical Stack */}
+                    <div className="flex flex-col gap-3 pt-1">
                       {docParagraphs.slice(0, 4).map((para, idx) => (
                         <div
                           key={idx}
-                          className="bg-white/85 p-3.5 rounded-2xl border border-[rgba(29,94,77,0.15)] shadow-xs"
+                          className="bg-white/90 p-4 rounded-2xl border border-[rgba(29,94,77,0.15)] shadow-xs flex flex-col gap-1.5"
                         >
-                          <span className="text-[10px] font-extrabold text-[#1D5E4D] uppercase block">
+                          <span className="text-[10px] font-extrabold text-[#1D5E4D] uppercase tracking-wider block">
                             Poin Kunci {idx + 1}
                           </span>
-                          <p className="text-xs font-bold text-[#010105] mt-1 leading-relaxed">
+                          <p className="text-xs sm:text-sm font-semibold text-[#010105] leading-relaxed">
                             {para}
                           </p>
                         </div>
@@ -480,7 +480,7 @@ export default function AdaptiveLearnPage() {
                       <span className="text-[10px] font-bold text-[#785308] uppercase block">
                         1. Pilih Kartu Konsep:
                       </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="flex flex-col gap-2">
                         {simulationItems.map((item) => {
                           const isPlaced = Boolean(matchedItems[item.id]);
                           const isSelected = selectedItem === item.id;
@@ -492,17 +492,17 @@ export default function AdaptiveLearnPage() {
                                 audioSynth.playClickSound();
                                 setSelectedItem(isSelected ? null : item.id);
                               }}
-                              className={`p-3 rounded-2xl text-left text-xs font-bold transition-all cursor-pointer ${
+                              className={`p-3.5 rounded-2xl text-left text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                                 isPlaced
                                   ? "bg-white/40 text-[#A69B82] line-through cursor-not-allowed"
                                   : isSelected
-                                  ? "bg-[#785308] text-white shadow-xs scale-102"
+                                  ? "bg-[#785308] text-white shadow-xs scale-101"
                                   : "bg-white text-[#4A3205] hover:bg-[#FFF9EE] shadow-2xs"
                               }`}
                             >
                               <div className="flex items-center justify-between">
                                 <span>{item.name}</span>
-                                <span className="text-[9px] font-mono uppercase bg-black/5 px-1.5 py-0.5 rounded-sm">
+                                <span className="text-[9px] font-mono uppercase bg-black/5 px-2 py-0.5 rounded-md">
                                   {item.label}
                                 </span>
                               </div>
@@ -517,7 +517,7 @@ export default function AdaptiveLearnPage() {
                       <span className="text-[10px] font-bold text-[#785308] uppercase block">
                         2. Pasangkan ke Target Langkah:
                       </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="flex flex-col gap-2.5">
                         {simulationZones.map((zone) => {
                           const matchedEntry = Object.entries(matchedItems).find(
                             ([, zId]) => zId === zone.id
@@ -530,7 +530,7 @@ export default function AdaptiveLearnPage() {
                             <div
                               key={zone.id}
                               onClick={() => handleZoneClick(zone.id)}
-                              className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
+                              className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
                                 matchedObj
                                   ? "bg-white border-[#785308]/30 shadow-xs"
                                   : selectedItem
@@ -539,12 +539,12 @@ export default function AdaptiveLearnPage() {
                               }`}
                             >
                               <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-[#2C1D02]">{zone.name}</span>
+                                <span className="text-xs sm:text-sm font-bold text-[#2C1D02]">{zone.name}</span>
                                 <span className="text-[10px] text-[#785308]">{zone.desc}</span>
                               </div>
                               {matchedObj && (
-                                <div className="mt-2 p-1.5 rounded-xl bg-[#EBF6F2] text-[#1D5E4D] text-[11px] font-bold flex items-center gap-1.5">
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                <div className="mt-2.5 p-2 rounded-xl bg-[#EBF6F2] text-[#1D5E4D] text-xs font-bold flex items-center gap-2">
+                                  <CheckCircle2 className="w-4 h-4 shrink-0" />
                                   <span>{matchedObj.name}</span>
                                 </div>
                               )}

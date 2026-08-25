@@ -291,7 +291,7 @@ export default function StudentHomePage() {
         <Navbar />
       </div>
 
-      <div className="flex flex-1 relative z-10 max-w-7xl mx-auto w-full">
+      <div className="flex flex-1 relative z-10 w-full">
         {/* Clean Desktop Sidebar */}
         <StudentSidebar />
 

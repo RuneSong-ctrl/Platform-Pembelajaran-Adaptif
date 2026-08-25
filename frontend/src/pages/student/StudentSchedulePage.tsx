@@ -126,10 +126,10 @@ export default function StudentSchedulePage() {
     <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8">
       <Navbar />
 
-      <div className="flex flex-1">
+      <div className="flex flex-1 w-full">
         <StudentSidebar />
 
-        <main className="flex-1 w-full max-w-4xl lg:max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-4 sm:gap-6">
+        <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-5 min-w-0 flex flex-col gap-5">
         {/* Top Back Navigation & Add Button */}
         <div className="flex items-center justify-between">
           <Link

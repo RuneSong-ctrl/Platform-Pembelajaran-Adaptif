@@ -162,12 +162,12 @@ export default function TeacherRAGPage() {
     <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col">
       <Navbar />
 
-      <div className="flex flex-1 min-h-[calc(100vh-4rem)]">
+      <div className="flex flex-1 max-w-7xl mx-auto w-full">
         {/* Responsive Desktop Sidebar */}
         <TeacherSidebar />
 
         {/* Main Content Area */}
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-7xl space-y-6 sm:space-y-8">
+        <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-5 space-y-6 sm:space-y-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
