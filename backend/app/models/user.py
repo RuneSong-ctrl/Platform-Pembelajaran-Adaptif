@@ -14,7 +14,8 @@ class User(Base):
     
     # Student specific
     learning_style = Column(String(32), nullable=True, default="VISUAL") # "VISUAL", "AUDITORI", "KINESTETIK"
-    modality_scores = Column(JSON, nullable=True) # {"visual": 82, "audio": 45, "practice": 55}
+    modality_scores = Column(JSON, nullable=True) # {"visual": 82, "audio": 45, "practice": 55} (Initial AI Diagnostic Predisposition)
+    learning_progress = Column(JSON, nullable=True) # {"visual": 0, "audio": 0, "practice": 0, "visual_completed": 0, "audio_minutes": 0, "practice_completed": 0} (Real Learning Activity Progress)
     processing_speed = Column(String(32), nullable=True, default="MODERATE") # "FAST", "MODERATE", "DELIBERATE"
     xp_total = Column(Integer, default=0)
     streak_days = Column(Integer, default=1)

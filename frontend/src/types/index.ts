@@ -19,9 +19,20 @@ export interface User {
   // Student Specific
   learningStyle?: ModalityType;
   modalityScores?: {
-    visual: number; // 0 - 100%
+    visual: number; // 0 - 100% (Initial AI Diagnostic Predisposition)
     audio: number; // 0 - 100%
     practice: number; // 0 - 100%
+  };
+  learningProgress?: {
+    visual: number; // 0 - 100% (Real Ongoing Learning Activity Progress)
+    audio: number; // 0 - 100%
+    practice: number; // 0 - 100%
+    visualCompleted?: number;
+    visualTotal?: number;
+    audioMinutes?: number;
+    audioCompleted?: number;
+    practiceCompleted?: number;
+    practiceTotal?: number;
   };
   processingSpeed?: "FAST" | "MODERATE" | "DELIBERATE";
   xpTotal?: number;
@@ -32,6 +43,50 @@ export interface User {
   childrenIds?: string[];
   // Teacher Specific
   subjectSpecialization?: string;
+}
+
+export interface VisualAnalyticsParams {
+  spatialRetentionPct: number;
+  scanSpeedSecPerNode: number;
+  infographicAccuracyPct: number;
+  mindmapExploredCount: number;
+  mindmapTotalCount: number;
+  visualProgressPct: number;
+  statusLabel?: string;
+}
+
+export interface AuditoryAnalyticsParams {
+  totalListeningMinutes: number;
+  targetListeningMinutes: number;
+  verbalRetentionPct: number;
+  focusStabilityPct: number;
+  idealPlaybackSpeed: number;
+  sessionsCompleted: number;
+  audioProgressPct: number;
+  statusLabel?: string;
+}
+
+export interface KinestheticAnalyticsParams {
+  labAccuracyPct: number;
+  trialErrorIterations: number;
+  missionSpeedMinutes: number;
+  ddaProblemSolvingLevel: string;
+  missionsCompleted: number;
+  missionsTotal: number;
+  practiceProgressPct: number;
+  statusLabel?: string;
+}
+
+export interface LearningStyleAnalytics {
+  studentId: string;
+  learningStyle: ModalityType;
+  currentDDALevel: string;
+  xpTotal: number;
+  accuracyAvgPct: number;
+  visualParams: VisualAnalyticsParams;
+  auditoryParams: AuditoryAnalyticsParams;
+  kinestheticParams: KinestheticAnalyticsParams;
+  updatedAt?: string;
 }
 
 export interface Classroom {

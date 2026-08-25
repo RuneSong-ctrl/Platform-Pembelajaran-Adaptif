@@ -30,6 +30,17 @@ export function normalizeUser(u: any): User {
     grade: u.grade ?? 10,
     learningStyle: u.learning_style || u.learningStyle || "VISUAL",
     modalityScores: u.modality_scores || u.modalityScores || { visual: 0, audio: 0, practice: 0 },
+    learningProgress: u.learning_progress || u.learningProgress || {
+      visual: 0,
+      audio: 0,
+      practice: 0,
+      visualCompleted: 0,
+      visualTotal: 0,
+      audioMinutes: 0,
+      audioCompleted: 0,
+      practiceCompleted: 0,
+      practiceTotal: 0,
+    },
     processingSpeed: u.processing_speed || u.processingSpeed || "MODERATE",
     xpTotal: u.xp_total ?? u.xpTotal ?? 0,
     streakDays: u.streak_days ?? u.streakDays ?? 1,
@@ -522,6 +533,54 @@ export class ApiService {
     return this.request<{ type: string; code: string; title: string; cached: boolean }>("/ai/diagram", {
       method: "POST",
       body: JSON.stringify({ concept }),
+    });
+  }
+
+  // --- LEARNING PROGRESS & METHOD TRACKING ---
+  static async getLearningProgress(userId: string) {
+    return this.request<{
+      student_id: string;
+      visual_progress: number;
+      audio_progress: number;
+      practice_progress: number;
+      visual_completed: number;
+      visual_total: number;
+      audio_minutes: number;
+      audio_completed: number;
+      practice_completed: number;
+      practice_total: number;
+      overall_progress: number;
+      details: Record<string, any>;
+    }>(`/users/${userId}/progress`);
+  }
+
+  static async getStyleAnalytics(userId: string) {
+    return this.request<{
+      student_id: string;
+      learning_style: "VISUAL" | "AUDITORI" | "KINESTETIK";
+      current_dda_level: string;
+      xp_total: number;
+      accuracy_avg_pct: number;
+      visual_params: any;
+      auditory_params: any;
+      kinesthetic_params: any;
+      updated_at?: string;
+    }>(`/users/${userId}/style-analytics`);
+  }
+
+  static async trackLearningActivity(
+    userId: string,
+    modalityType: "visual" | "audio" | "practice",
+    incrementAmount: number = 1,
+    activityTitle?: string
+  ) {
+    return this.request<any>(`/users/${userId}/progress`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        modality_type: modalityType,
+        increment_amount: incrementAmount,
+        activity_title: activityTitle,
+      }),
     });
   }
 }
