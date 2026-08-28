@@ -15,6 +15,12 @@ export default defineConfig({
     host: true, // Listen on all network addresses (0.0.0.0 / local IP)
     port: 3000,
     open: false,
+    proxy: {
+      "/api": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+      },
+    },
   },
   preview: {
     host: true,

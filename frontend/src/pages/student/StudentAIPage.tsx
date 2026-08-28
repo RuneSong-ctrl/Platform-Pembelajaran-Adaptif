@@ -35,10 +35,18 @@ export default function StudentAIPage() {
   const myClassrooms = classrooms.filter((c) =>
     Boolean(currentUser?.id && c.studentIds?.includes(currentUser.id))
   );
+  const effectiveClassrooms = myClassrooms.length > 0 ? myClassrooms : classrooms;
   const activeDocs = documents.filter((d) =>
-    myClassrooms.some((c) => c.id === d.classroomId)
+    effectiveClassrooms.some((c) => c.id === d.classroomId)
   );
-  const primaryDoc = activeDocs[0] || documents[0];
+  const availableDocs = activeDocs.length > 0 ? activeDocs : documents;
+
+  const [selectedDocId, setSelectedDocId] = useState<string>(
+    availableDocs[0]?.id || ""
+  );
+
+  const primaryDoc =
+    availableDocs.find((d) => d.id === selectedDocId) || availableDocs[0] || documents[0];
 
   const initialGreeting = primaryDoc
     ? `Halo ${currentUser.name || "Siswa"}! Saya adalah Asisten Belajar AI Tutor yang ter-grounding langsung pada modul ajar gurumu: "${primaryDoc.title}". Silakan tanyakan konsep apa saja seputar materi ini.`
@@ -223,6 +231,31 @@ export default function StudentAIPage() {
             </div>
           </div>
 
+          {/* Document Switcher Bar if Multiple Documents Available */}
+          {availableDocs.length > 1 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none px-1">
+              <span className="text-[10px] font-bold text-[#5A5E70] uppercase shrink-0">
+                Fokus Modul:
+              </span>
+              {availableDocs.map((doc) => (
+                <button
+                  key={doc.id}
+                  onClick={() => {
+                    audioSynth.playClickSound();
+                    setSelectedDocId(doc.id);
+                  }}
+                  className={`px-2.5 py-1 rounded-xl text-[10px] font-extrabold whitespace-nowrap cursor-pointer transition-all ${
+                    doc.id === primaryDoc?.id
+                      ? "bg-[#1D5E4D] text-white shadow-2xs"
+                      : "bg-white text-[#5A5E70] hover:bg-black/5 border border-black/5"
+                  }`}
+                >
+                  {doc.title}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Chat Workspace Card (Fit & Bounded) */}
           <div className="clay-card clay-white p-3 sm:p-4 flex-1 flex flex-col justify-between gap-2.5 overflow-hidden min-h-0 shadow-sm w-full">
             {/* Scrollable Message History Stream */}
@@ -259,11 +292,16 @@ export default function StudentAIPage() {
                         {msg.text}
                       </p>
 
-                      {/* Citation Pill */}
+                      {/* Grounded RAG Citation Badge */}
                       {msg.citation && (
-                        <div className="mt-2.5 pt-2 border-t border-[rgba(28,30,38,0.08)] flex items-start gap-1.5 text-[10px] sm:text-[11px] text-[#1D5E4D] font-bold bg-[#EBF6F2] -mx-2 -mb-2 p-2.5 rounded-b-2xl break-words [overflow-wrap:anywhere]">
-                          <BookOpen className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                          <span className="min-w-0">{msg.citation}</span>
+                        <div className="mt-2.5 pt-2 border-t border-[rgba(28,30,38,0.08)] flex items-start gap-2 text-[10px] sm:text-[11px] text-[#1D5E4D] font-extrabold bg-[#EBF6F2] -mx-2 -mb-2 p-2.5 rounded-b-2xl border border-[#1D5E4D]/20 break-words [overflow-wrap:anywhere]">
+                          <BookOpen className="w-4 h-4 shrink-0 mt-0.5 text-[#1D5E4D]" />
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[9px] uppercase tracking-wider text-[#1D5E4D]/70 font-black">
+                              Ter-Grounding Resmi RAG Dokumen Kelas:
+                            </span>
+                            <span className="text-[11px] text-[#082921] font-bold">{msg.citation}</span>
+                          </div>
                         </div>
                       )}
 

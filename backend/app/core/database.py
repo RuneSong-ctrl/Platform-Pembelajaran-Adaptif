@@ -42,6 +42,14 @@ def check_and_migrate_db():
                     cursor.execute("ALTER TABLE users ADD COLUMN learning_progress JSON")
                     raw_conn.commit()
                     logger.info("Auto-migrated users table: added learning_progress column.")
+
+                cursor.execute("PRAGMA table_info(documents)")
+                doc_cols = [c[1] for c in cursor.fetchall()]
+                for col_name in ["karaoke_json", "game_config_json", "visual_nodes_json", "fill_blank_json"]:
+                    if doc_cols and col_name not in doc_cols:
+                        cursor.execute(f"ALTER TABLE documents ADD COLUMN {col_name} TEXT")
+                        raw_conn.commit()
+                        logger.info(f"Auto-migrated documents table: added {col_name} column.")
     except Exception as e:
         logger.warning(f"Database migration check notice: {e}")
 

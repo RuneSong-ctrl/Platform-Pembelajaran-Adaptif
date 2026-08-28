@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
@@ -30,6 +30,7 @@ import {
   Layers,
   School,
   Bot,
+  Radio,
 } from "@/components/ui/icons";
 
 export default function StudentHomePage() {
@@ -47,7 +48,7 @@ export default function StudentHomePage() {
   } = useApp();
 
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
-  const [isSpeakingSummary, setIsSpeakingSummary] = useState<boolean>(false);
+  const homeAudioRef = useRef<HTMLAudioElement | null>(null);
   const [styleData, setStyleData] = useState<LearningStyleAnalytics | null>(null);
 
   const style = currentUser?.learningStyle || "VISUAL";
@@ -299,27 +300,6 @@ export default function StudentHomePage() {
   const HeroIconComponent = styleConfig.HeroIcon;
   const cal = styleConfig.calendarCard;
 
-  // Web Speech Audio Synthesizer Handler
-  const handleToggleSpeak = () => {
-    audioSynth.playClickSound();
-    if ("speechSynthesis" in window) {
-      if (isSpeakingSummary) {
-        window.speechSynthesis.cancel();
-        setIsSpeakingSummary(false);
-      } else {
-        const text = hasActiveContent
-          ? `Ringkasan Pembelajaran: ${currentChapterTitle}. Materi ini telah dioptimasi khusus untuk gaya belajar ${styleConfig.modalityLabel}. Silakan pelajari konsep kunci dan selesaikan tantangan adaptif.`
-          : `Selamat datang di EduAdapt. Belum ada materi aktif yang diunggah oleh guru di kelasmu. Kamu bisa mulai dengan berdiskusi bersama Asisten AI Tutor atau meminta kode kelas dari gurumu.`;
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "id-ID";
-        utterance.onend = () => setIsSpeakingSummary(false);
-        utterance.onerror = () => setIsSpeakingSummary(false);
-        setIsSpeakingSummary(true);
-        window.speechSynthesis.speak(utterance);
-      }
-    }
-  };
-
   const selectedDayObj = daysOfWeek[selectedDayIdx];
   const activeDaySchedule = studentSchedules.find(
     (s) => s.day === selectedDayObj.fullDay
@@ -359,23 +339,23 @@ export default function StudentHomePage() {
   const scheduleProgressPercent = totalSchedulesCount > 0 ? Math.round((completedSchedulesCount / totalSchedulesCount) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8 relative overflow-hidden">
+    <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col relative overflow-hidden">
       {/* Dynamic Ambient Top Gradient */}
       <div
         className={`absolute top-0 left-0 right-0 h-[420px] bg-gradient-to-b ${styleConfig.topBgGradient} pointer-events-none transition-all duration-500`}
         aria-hidden="true"
       />
 
-      <div className="relative z-10">
+      <div className="relative z-10 shrink-0">
         <Navbar />
       </div>
 
-      <div className="flex flex-1 relative z-10 w-full">
+      <div className="flex flex-1 overflow-hidden relative z-10 w-full">
         {/* Clean Desktop Sidebar */}
         <StudentSidebar />
 
         {/* Responsive Bento Grid Dashboard */}
-        <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-5">
+        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5 pb-24 md:pb-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             {/* LEFT MAIN STREAM (7 cols on lg) */}
             <div className="lg:col-span-7 flex flex-col gap-4 sm:gap-5">
@@ -675,32 +655,35 @@ export default function StudentHomePage() {
                           audioSynth.playClickSound();
                           navigate("/student/learn");
                         }}
-                        className="clay-card clay-card-hover p-4 flex items-center justify-between gap-3 cursor-pointer group"
+                        className="clay-card clay-card-hover p-4 sm:p-5 flex flex-col gap-2.5 cursor-pointer group"
                       >
-                        <div className="flex items-center gap-3.5">
-                          <div className="clay-card clay-mint w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
-                            <Eye className="w-6 h-6 text-[#124B3D]" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="clay-pill clay-mint text-[10px] font-extrabold px-2 py-0.5 text-[#1D5E4D]">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="clay-card clay-mint w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+                              <Eye className="w-5 h-5 text-[#124B3D]" />
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="clay-pill clay-mint text-[10px] font-extrabold px-2.5 py-0.5 text-[#1D5E4D]">
                                 Modul Adaptif
                               </span>
                               <span className="text-[10px] text-[#9195A8] font-semibold flex items-center gap-0.5">
                                 <Clock className="w-3 h-3" /> 20 mnt
                               </span>
                             </div>
-                            <h3 className="text-xs sm:text-sm font-black text-[#010105] group-hover:text-[#1D5E4D] transition-colors mt-0.5">
-                              {currentChapterTitle}
-                            </h3>
-                            <p className="text-[11px] text-[#5A5E70] font-medium">
-                              Materi pelajaran aktif yang telah dikalibrasi untuk gaya belajar visualmu.
-                            </p>
+                          </div>
+
+                          <div className="clay-btn clay-btn-white w-8 h-8 rounded-full flex items-center justify-center text-[#010105] shrink-0 group-hover:translate-x-0.5 transition-transform">
+                            <ChevronRight className="w-4 h-4" />
                           </div>
                         </div>
 
-                        <div className="clay-btn clay-btn-white w-8 h-8 rounded-full flex items-center justify-center text-[#010105] shrink-0">
-                          <ChevronRight className="w-4 h-4" />
+                        <div className="space-y-1">
+                          <h3 className="text-xs sm:text-sm font-black text-[#010105] group-hover:text-[#1D5E4D] transition-colors">
+                            {currentChapterTitle}
+                          </h3>
+                          <p className="text-xs text-[#5A5E70] font-medium leading-relaxed">
+                            Materi pelajaran aktif yang telah dikalibrasi untuk gaya belajar visualmu.
+                          </p>
                         </div>
                       </div>
 
@@ -710,33 +693,36 @@ export default function StudentHomePage() {
                           audioSynth.playClickSound();
                           navigate("/quiz");
                         }}
-                        className="clay-card clay-card-hover clay-butter p-4 flex items-center justify-between gap-3 cursor-pointer group"
+                        className="clay-card clay-card-hover clay-butter p-4 sm:p-5 flex flex-col gap-3 cursor-pointer group"
                       >
-                        <div className="flex items-center gap-3.5">
-                          <div className="clay-card clay-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
-                            <Sparkles className="w-6 h-6 text-[#694503]" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="clay-pill clay-white text-[10px] font-extrabold px-2 py-0.5 text-[#785308]">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="clay-card clay-white w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+                              <Sparkles className="w-5 h-5 text-[#694503]" />
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="clay-pill clay-white text-[10px] font-extrabold px-2.5 py-0.5 text-[#785308]">
                                 Kuis DDA Visual
                               </span>
                               <span className="text-[10px] text-[#785308] font-bold">
                                 +50 XP Capaian
                               </span>
                             </div>
-                            <h3 className="text-xs sm:text-sm font-black text-[#4A3205] mt-0.5">
-                              Evaluasi Adaptif Pemahaman Visual
-                            </h3>
-                            <p className="text-[11px] text-[#785308] font-medium">
-                              Tantangan adaptif dengan penyesuaian tingkat kesulitan dinamis.
-                            </p>
                           </div>
+
+                          <button className="clay-btn clay-btn-dark px-4 py-1.5 rounded-xl text-xs font-black shrink-0">
+                            Mulai
+                          </button>
                         </div>
 
-                        <button className="clay-btn clay-btn-dark px-4 py-2 rounded-xl text-xs font-black shrink-0">
-                          Mulai
-                        </button>
+                        <div className="space-y-1">
+                          <h3 className="text-xs sm:text-sm font-black text-[#4A3205]">
+                            Evaluasi Adaptif Pemahaman Visual
+                          </h3>
+                          <p className="text-xs text-[#785308] font-medium leading-relaxed">
+                            Tantangan adaptif dengan penyesuaian tingkat kesulitan dinamis.
+                          </p>
+                        </div>
                       </div>
                     </section>
                   )}
@@ -755,54 +741,48 @@ export default function StudentHomePage() {
                         </span>
                       </div>
 
-                      <div className="clay-card clay-lavender p-4 sm:p-5 text-[#2D2152] space-y-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#4B3B7A]/80 block">
-                              Audio Pembelajaran Adaptif
-                            </span>
-                            <h3 className="text-sm sm:text-base font-black text-[#1E143D] mt-0.5">
+                      <div
+                        onClick={() => {
+                          audioSynth.playClickSound();
+                          navigate(`/student/learn?format=AUDITORI&doc=${activeDoc?.id || ""}`);
+                        }}
+                        className="clay-card clay-lavender p-5 text-[#2D2152] space-y-4 cursor-pointer group hover:shadow-md transition-all rounded-3xl"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="space-y-1.5 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#4B3B7A]/80 block">
+                                Audio Pembelajaran Adaptif
+                              </span>
+                              <span className="clay-pill clay-white text-[10px] font-extrabold text-[#4B3B7A] px-2.5 py-0.5 shadow-2xs">
+                                Podcast Edukasi Lengkap
+                              </span>
+                            </div>
+                            <h3 className="text-base sm:text-lg font-black text-[#1E143D] leading-snug">
                               {currentChapterTitle}
                             </h3>
-                            <p className="text-[11px] text-[#4B3B7A] font-medium">
-                              Penjelasan konsep materi via suara narasi terarah.
+                            <p className="text-xs text-[#4B3B7A] font-medium leading-relaxed">
+                              Masuk ke studio podcast lengkap untuk mendengarkan narasi suara AI, melihat naskah teks, dan menelaah seluruh bagian bab materi.
                             </p>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              audioSynth.playClickSound();
-                              setIsPlayingAudio(!isPlayingAudio);
-                            }}
-                            className="clay-btn clay-btn-white w-12 h-12 rounded-full flex items-center justify-center text-[#4B3B7A] shrink-0 cursor-pointer"
-                            title={isPlayingAudio ? "Jeda Audio" : "Putar Audio"}
-                          >
-                            {isPlayingAudio ? (
-                              <Pause className="w-6 h-6 fill-current" />
-                            ) : (
-                              <Play className="w-6 h-6 fill-current ml-0.5" />
-                            )}
-                          </button>
+                          <div className="clay-btn clay-btn-white px-4 py-2.5 rounded-2xl flex items-center justify-center gap-2 text-[#4B3B7A] shrink-0 font-black text-xs shadow-xs group-hover:scale-105 transition-all">
+                            <Headphones className="w-4 h-4" />
+                            <span>Buka Podcast Lengkap</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </div>
                         </div>
 
-                        <div className="pt-2 border-t border-[#4B3B7A]/15 flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={handleToggleSpeak}
-                            className="clay-btn clay-btn-white py-1.5 px-3 text-[11px] font-bold text-[#4B3B7A] flex items-center gap-1.5 cursor-pointer"
-                          >
-                            <Volume2 className="w-3.5 h-3.5" />
-                            <span>{isSpeakingSummary ? "Hentikan Suara" : "Bacakan Ringkasan Teks"}</span>
-                          </button>
+                        <div className="pt-3 border-t border-[#4B3B7A]/15 flex items-center justify-between gap-2 text-[11px] font-bold text-[#4B3B7A]">
+                          <span className="flex items-center gap-1.5">
+                            <Radio className="w-3.5 h-3.5 animate-pulse" />
+                            <span>🎙️ EduVoice AI Audio Studio</span>
+                          </span>
 
-                          <Link
-                            to="/student/learn"
-                            className="text-[11px] font-bold text-[#4B3B7A] hover:underline flex items-center gap-1"
-                          >
-                            <span>Buka Modul Lengkap</span>
+                          <span className="flex items-center gap-1 text-[#4B3B7A] group-hover:underline">
+                            <span>Buka &amp; Telaah Semua Bagian</span>
                             <ChevronRight className="w-3.5 h-3.5" />
-                          </Link>
+                          </span>
                         </div>
                       </div>
 
@@ -812,33 +792,36 @@ export default function StudentHomePage() {
                           audioSynth.playClickSound();
                           navigate("/quiz");
                         }}
-                        className="clay-card clay-card-hover clay-butter p-4 flex items-center justify-between gap-3 cursor-pointer group"
+                        className="clay-card clay-card-hover clay-butter p-4 sm:p-5 flex flex-col gap-3 cursor-pointer group"
                       >
-                        <div className="flex items-center gap-3.5">
-                          <div className="clay-card clay-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
-                            <Sparkles className="w-6 h-6 text-[#694503]" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="clay-pill clay-white text-[10px] font-extrabold px-2 py-0.5 text-[#785308]">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="clay-card clay-white w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+                              <Sparkles className="w-5 h-5 text-[#694503]" />
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="clay-pill clay-white text-[10px] font-extrabold px-2.5 py-0.5 text-[#785308]">
                                 Kuis DDA Audio
                               </span>
                               <span className="text-[10px] text-[#785308] font-bold">
                                 +50 XP Capaian
                               </span>
                             </div>
-                            <h3 className="text-xs sm:text-sm font-black text-[#4A3205] mt-0.5">
-                              Evaluasi Adaptif Berbasis Audio
-                            </h3>
-                            <p className="text-[11px] text-[#785308] font-medium">
-                              Uji pemahaman narasi audio yang telah didengarkan.
-                            </p>
                           </div>
+
+                          <button className="clay-btn clay-btn-dark px-4 py-1.5 rounded-xl text-xs font-black shrink-0">
+                            Mulai
+                          </button>
                         </div>
 
-                        <button className="clay-btn clay-btn-dark px-4 py-2 rounded-xl text-xs font-black shrink-0">
-                          Mulai
-                        </button>
+                        <div className="space-y-1">
+                          <h3 className="text-xs sm:text-sm font-black text-[#4A3205]">
+                            Evaluasi Adaptif Berbasis Audio
+                          </h3>
+                          <p className="text-xs text-[#785308] font-medium leading-relaxed">
+                            Uji pemahaman narasi audio yang telah didengarkan.
+                          </p>
+                        </div>
                       </div>
                     </section>
                   )}
@@ -896,33 +879,36 @@ export default function StudentHomePage() {
                           audioSynth.playClickSound();
                           navigate("/quiz");
                         }}
-                        className="clay-card clay-card-hover clay-butter p-4 flex items-center justify-between gap-3 cursor-pointer group"
+                        className="clay-card clay-card-hover clay-butter p-4 sm:p-5 flex flex-col gap-3 cursor-pointer group"
                       >
-                        <div className="flex items-center gap-3.5">
-                          <div className="clay-card clay-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
-                            <Sparkles className="w-6 h-6 text-[#694503]" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="clay-pill clay-white text-[10px] font-extrabold px-2 py-0.5 text-[#785308]">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="clay-card clay-white w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+                              <Sparkles className="w-5 h-5 text-[#694503]" />
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="clay-pill clay-white text-[10px] font-extrabold px-2.5 py-0.5 text-[#785308]">
                                 Kuis DDA Praktik
                               </span>
                               <span className="text-[10px] text-[#785308] font-bold">
                                 +50 XP Capaian
                               </span>
                             </div>
-                            <h3 className="text-xs sm:text-sm font-black text-[#4A3205] mt-0.5">
-                              Evaluasi Adaptif Studi Kasus Lab
-                            </h3>
-                            <p className="text-[11px] text-[#785308] font-medium">
-                              Pemecahan masalah berbasis skenario praktis dinamis.
-                            </p>
                           </div>
+
+                          <button className="clay-btn clay-btn-dark px-4 py-1.5 rounded-xl text-xs font-black shrink-0">
+                            Mulai
+                          </button>
                         </div>
 
-                        <button className="clay-btn clay-btn-dark px-4 py-2 rounded-xl text-xs font-black shrink-0">
-                          Mulai
-                        </button>
+                        <div className="space-y-1">
+                          <h3 className="text-xs sm:text-sm font-black text-[#4A3205]">
+                            Evaluasi Adaptif Studi Kasus Lab
+                          </h3>
+                          <p className="text-xs text-[#785308] font-medium leading-relaxed">
+                            Pemecahan masalah berbasis skenario praktis dinamis.
+                          </p>
+                        </div>
                       </div>
                     </section>
                   )}
@@ -1120,11 +1106,14 @@ export default function StudentHomePage() {
 
                 {style === "AUDITORI" && (
                   <button
-                    onClick={handleToggleSpeak}
+                    onClick={() => {
+                      audioSynth.playClickSound();
+                      navigate(`/student/learn?format=AUDITORI&doc=${activeDoc?.id || ""}`);
+                    }}
                     className="w-full py-2.5 px-3 rounded-xl bg-[#4B3B7A] text-white text-xs font-black hover:bg-[#3B2D62] transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs"
                   >
-                    <Volume2 className="w-3.5 h-3.5" />
-                    <span>{isSpeakingSummary ? "Hentikan Narasi Audio" : "Putar Ringkasan Audio Beranda"}</span>
+                    <Headphones className="w-3.5 h-3.5" />
+                    <span>Buka Podcast Lengkap Modul</span>
                   </button>
                 )}
 
@@ -1248,6 +1237,13 @@ export default function StudentHomePage() {
           </div>
         </main>
       </div>
+
+      <audio
+        ref={homeAudioRef}
+        onEnded={() => setIsPlayingAudio(false)}
+        onError={() => setIsPlayingAudio(false)}
+        className="hidden"
+      />
 
       <BottomNav />
     </div>

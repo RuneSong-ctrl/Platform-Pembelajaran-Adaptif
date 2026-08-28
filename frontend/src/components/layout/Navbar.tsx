@@ -52,8 +52,8 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-[rgba(28,30,38,0.08)] shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-[rgba(28,30,38,0.08)] shadow-[0_2px_10px_rgba(0,0,0,0.02)] shrink-0">
+      <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Brand Wordmark */}
         <div className="flex items-center gap-3">
           <Link

@@ -125,6 +125,117 @@ export interface GroundedDocument {
   status: "PROCESSING" | "READY" | "ERROR";
   uploadedAt: string;
   summary?: string;
+  podcastScript?: string;
+  podcastAudioUrl?: string;
+  mindmapCode?: string;
+  visualImageUrl?: string;
+  visualNodesJson?: string;
+  flashcardsJson?: string;
+  karaokeJson?: string;
+  gameConfigJson?: string;
+  fillBlankJson?: string;
+}
+
+export interface FillBlankItem {
+  id: string;
+  sentence: string; // Kalimat dengan placeholder '[BLANK]'
+  blankWord: string; // Kata jawaban yang tepat
+  options: string[]; // Pilihan kata (jawaban benar + pengecoh)
+  hint?: string;
+  explanation?: string;
+}
+
+export interface KaraokeSegment {
+  id: string;
+  startSec: number;
+  endSec: number;
+  speaker: string; // e.g. "Host (Kak Ardi)" | "Pakar (Bu Citra)"
+  role?: "host" | "expert" | string;
+  text: string;
+}
+
+export interface VisualNodeDetail {
+  id: string;
+  title: string;
+  category: string;
+  shortDefinition: string;
+  keyPrinciples: string[];
+  realWorldAnalogy: string;
+  comparisonWithOtherNodes?: {
+    targetNode: string;
+    differences: string;
+    similarities: string;
+  }[];
+  practicalApplications: string[];
+}
+
+export interface GameCollectible {
+  id: string;
+  label: string;
+  category: "nutrient" | "toxic" | "catalyst" | "concept-correct" | "concept-trap";
+  points: number;
+  speed: number;
+  feedback: string;
+  color: string;
+}
+
+export interface GameVariable {
+  id: string;
+  name: string;
+  min: number;
+  max: number;
+  step: number;
+  defaultValue: number;
+  unit: string;
+  optimalRange: [number, number];
+  explanation: string;
+}
+
+export interface GameConfig {
+  gameTitle: string;
+  gameType: "bio-quest" | "reactor-sim" | "universal-quest";
+  theme: {
+    heroName: string;
+    arenaBackground: string;
+    heroSprite: string;
+    missionObjective: string;
+  };
+  collectorGame?: {
+    playerSpeed: number;
+    targetScore: number;
+    timeLimitSec: number;
+    collectibles: GameCollectible[];
+  };
+  variableSimulator?: {
+    simTitle: string;
+    description: string;
+    variables: GameVariable[];
+    reactionOutputFormulaName: string;
+    optimalConditionsSummary: string;
+    dynamicObservations: {
+      condition: string;
+      status: "optimal" | "denatured" | "inactive" | "hyperactive";
+      ratePercent: number;
+      visualStateColor: string;
+      narrativeFeedback: string;
+    }[];
+  };
+  reactorDragDrop?: {
+    reactorTitle: string;
+    instruction: string;
+    slots: {
+      id: string;
+      name: string;
+      acceptedItemId: string;
+      description: string;
+    }[];
+    components: {
+      id: string;
+      label: string;
+      type: string;
+      hint: string;
+    }[];
+  };
 }
 
 export interface QuizQuestion {

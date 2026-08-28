@@ -14,4 +14,13 @@ class GroundedDocument(Base):
     vector_id = Column(String(128), nullable=False)
     status = Column(String(32), default="READY") # "PROCESSING", "READY", "ERROR"
     summary = Column(Text, nullable=True)
+    podcast_script = Column(Text, nullable=True)
+    podcast_audio_url = Column(String(512), nullable=True)
+    mindmap_code = Column(Text, nullable=True)
+    visual_image_url = Column(Text, nullable=True)
+    visual_nodes_json = Column(Text, nullable=True)
+    flashcards_json = Column(Text, nullable=True)
+    karaoke_json = Column(Text, nullable=True)
+    game_config_json = Column(Text, nullable=True)
+    fill_blank_json = Column(Text, nullable=True)
     uploaded_at = Column(DateTime, default=datetime.utcnow)

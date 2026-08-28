@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, status
+from fastapi import APIRouter, Depends, Request, HTTPException, status, Response
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.document import GroundedDocument
 from app.services.gemini_service import chat_with_gemini, generate_ai_quiz, generate_visual_mindmap
+from app.services.gateway_service import AIGatewayService
 from app.services.cache_service import get_cache_key, get_cached_response, set_cached_response, check_rate_limit
 from app.services.vector_store import index_document
 
@@ -31,13 +32,27 @@ class GenerateQuizRequest(BaseModel):
     document_id: str
     topic: str
     difficulty: Optional[str] = "MEDIUM"
-    num_questions: Optional[int] = 4
+    num_questions: Optional[int] = 10
 
 class DiagramRequest(BaseModel):
     concept: str = Field(..., max_length=300)
 
 class IndexDocRequest(BaseModel):
     document_id: str
+
+class TTSRequest(BaseModel):
+    text: str = Field(..., max_length=2000)
+    voice: Optional[str] = None
+    model: Optional[str] = None
+
+class ImageGenRequest(BaseModel):
+    prompt: str = Field(..., max_length=1000)
+    size: Optional[str] = "1024x1024"
+    model: Optional[str] = None
+
+class EmbeddingRequest(BaseModel):
+    texts: List[str]
+    model: Optional[str] = None
 
 @router.post("/chat", response_model=ChatResponse)
 def ai_chat_endpoint(payload: ChatRequest, request: Request):
@@ -108,7 +123,7 @@ def ai_generate_quiz_endpoint(payload: GenerateQuizRequest, request: Request, db
         raw_text=doc.raw_text,
         topic=payload.topic,
         difficulty=payload.difficulty or "MEDIUM",
-        num_questions=payload.num_questions or 4
+        num_questions=payload.num_questions or 10
     )
     
     set_cached_response(cache_key, questions, ttl_seconds=86400)
@@ -144,3 +159,45 @@ def index_document_endpoint(payload: IndexDocRequest, db: Session = Depends(get_
     doc.chunks_count = chunks_count
     db.commit()
     return {"status": "success", "indexed_chunks": chunks_count}
+
+@router.post("/tts", summary="Generate Audio Podcast / Narasi Materi via 9router TTS")
+def tts_endpoint(payload: TTSRequest):
+    audio_data = AIGatewayService.generate_speech(
+        text=payload.text,
+        voice=payload.voice,
+        model=payload.model
+    )
+    if not audio_data:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Gagal menghasilkan audio dari gateway TTS. Periksa konfigurasi TTS_ENDPOINT & API Key di .env"
+        )
+    media_type = "audio/wav" if audio_data.startswith(b"RIFF") else "audio/mpeg"
+    return Response(content=audio_data, media_type=media_type)
+
+@router.post("/generate-image", summary="Generate Visual Mindmap / Diagram via 9router Image Gen")
+def generate_image_endpoint(payload: ImageGenRequest):
+    result = AIGatewayService.generate_image(
+        prompt=payload.prompt,
+        size=payload.size or "1024x1024",
+        model=payload.model
+    )
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Gagal menghasilkan gambar dari gateway Image Generation. Periksa konfigurasi IMAGE_GEN_ENDPOINT & API Key di .env"
+        )
+    return result
+
+@router.post("/embeddings", summary="Generate Vector Embeddings via 9router Embeddings")
+def embeddings_endpoint(payload: EmbeddingRequest):
+    vectors = AIGatewayService.generate_embeddings(
+        texts=payload.texts,
+        model=payload.model
+    )
+    if vectors is None:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Gagal menghasilkan vektor embedding dari gateway. Periksa konfigurasi EMBEDDING_ENDPOINT & API Key di .env"
+        )
+    return {"data": [{"embedding": vec} for vec in vectors]}

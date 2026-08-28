@@ -711,7 +711,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       classroomId,
       title: cleanTitle,
       rawText: "Sedang memproses dan mengekstrak dokumen...",
-      chunksCount: 1,
+      chunksCount: Math.max(1, Math.ceil(file.size / 850)),
       vectorId: `VEC-${Math.floor(100 + Math.random() * 900)}`,
       status: "READY",
       uploadedAt: new Date().toISOString(),

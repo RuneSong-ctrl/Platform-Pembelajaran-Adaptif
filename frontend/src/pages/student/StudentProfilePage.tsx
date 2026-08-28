@@ -137,13 +137,13 @@ export default function StudentProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8">
+    <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
       <Navbar />
 
-      <div className="flex flex-1 w-full">
+      <div className="flex flex-1 overflow-hidden w-full">
         <StudentSidebar />
 
-        <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-5 min-w-0 flex flex-col gap-5">
+        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5 min-w-0 flex flex-col gap-5 pb-24 md:pb-8">
         {/* 1. PROFILE HEADER CARD WITH EDIT & AVATAR UPLOAD */}
         <section className="clay-card p-5 sm:p-6 flex items-center justify-between gap-4 relative overflow-hidden bg-white">
           <div className="flex items-center gap-4 min-w-0">

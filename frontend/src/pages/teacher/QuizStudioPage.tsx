@@ -27,6 +27,8 @@ export default function QuizStudioPage() {
     documents[0]?.id || ""
   );
   const [targetTopic, setTargetTopic] = useState("");
+  const [numQuestions, setNumQuestions] = useState<number>(10);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("ADAPTIVE");
   const [isGenerating, setIsGenerating] = useState(false);
   const [draftQuestions, setDraftQuestions] = useState<any[]>([]);
   const [isPublished, setIsPublished] = useState(false);
@@ -49,8 +51,8 @@ export default function QuizStudioPage() {
       const response = await ApiService.generateQuizAI({
         document_id: selectedDoc.id,
         topic: targetTopic || selectedDoc.title,
-        difficulty: "MEDIUM",
-        num_questions: 4,
+        difficulty: selectedDifficulty === "ADAPTIVE" ? "MEDIUM" : selectedDifficulty,
+        num_questions: numQuestions,
       });
 
       audioSynth.playSuccessSound();
@@ -62,49 +64,57 @@ export default function QuizStudioPage() {
       const paragraphs = selectedDoc.rawText
         .split(/\n\n|\.\s+/)
         .map((p) => p.trim())
-        .filter((p) => p.length > 20);
+        .filter((p) => p.length > 25);
 
-      const generatedList = [
-        {
-          id: `draft_${Date.now()}_1`,
-          questionText: `Berdasarkan modul "${selectedDoc.title}", apa konsep esensial yang dibahas pada bab ini?`,
-          options: [
-            paragraphs[0] ? paragraphs[0].slice(0, 70) + "..." : "Konsep dasar terstruktur",
-            "Materi pelengkap tanpa korelasi langsung",
-            "Data hipotesis tanpa bukti ilmiah",
-            "Penjelasan di luar konteks kurikulum",
-          ],
-          correctIndex: 0,
-          difficulty: "BASIC",
-          sourceReference: `${selectedDoc.title} (${selectedDoc.vectorId || "VEC-DOC"})`,
-        },
-        {
-          id: `draft_${Date.now()}_2`,
-          questionText: `Bagaimana analisis hubungan sebab-akibat terkait topik ${targetTopic || selectedDoc.title}?`,
-          options: [
-            paragraphs[1] ? paragraphs[1].slice(0, 70) + "..." : "Mekanisme keterikatan biokimiawi",
-            "Tidak terjadi interaksi molekuler sama sekali",
-            "Reaksi berlangsung tanpa regulasi sistem",
-            "Katalisis berjalan lambat tanpa pengaruh enzim",
-          ],
-          correctIndex: 0,
-          difficulty: "MEDIUM",
-          sourceReference: `${selectedDoc.title} (${selectedDoc.vectorId || "VEC-DOC"})`,
-        },
-        {
-          id: `draft_${Date.now()}_3`,
-          questionText: `Pada tingkat penguasaan tingkat lanjut, implikasi apa yang terjadi jika parameter sistem terganggu?`,
-          options: [
-            "Terjadi disfungsi homeostasis dan penurunan efisiensi metabolisme",
-            "Aktivitas fisiologis tetap stabil tanpa respons adaptif",
-            "Sistem mengalami peningkatan energi secara spontan",
-            "Tidak ada pengaruh klinis atau fungsional yang teramati",
-          ],
-          correctIndex: 0,
-          difficulty: "CHALLENGING",
-          sourceReference: `${selectedDoc.title} (${selectedDoc.vectorId || "VEC-DOC"})`,
-        },
+      const difficulties = ["BASIC", "BASIC", "MEDIUM", "MEDIUM", "MEDIUM", "CHALLENGING", "CHALLENGING", "CHALLENGING", "MASTERY", "MASTERY"];
+      const questionStems = [
+        `Berdasarkan modul "${selectedDoc.title}", apa konsep esensial yang dibahas pada bagian ke-{idx}?`,
+        `Bagaimana analisis hubungan sebab-akibat terkait aspek "${targetTopic || selectedDoc.title}"?`,
+        `Manakah pernyataan yang paling akurat mengenai mekanisme kerja pada sub-bahasan ini?`,
+        `Pada tingkat analisis lanjutan, implikasi apa yang timbul jika parameter sistem berubah?`,
+        `Berdasarkan rujukan materi ajar, prinsip apakah yang mendasari proses pada bagian ini?`,
+        `Bagaimana korelasi fungsi antara komponen pokok dengan ketercapaian tujuan belajar?`,
+        `Skenario manakah yang paling sesuai dengan kaidah ilmiah yang tertuang dalam materi?`,
+        `Apa simpulan utama yang dapat diambil dari pengujian konsep pada bagian ini?`,
+        `Mengapa regulasi kesetimbangan menjadi faktor krusial dalam mekanisme konsep ini?`,
+        `Pernyataan manakah yang paling tepat membedakan premis teoritis dan bukti empiris materi?`
       ];
+
+      const generatedList = Array.from({ length: numQuestions }, (_, idx) => {
+        const pIdx = idx % Math.max(1, paragraphs.length);
+        const para = paragraphs[pIdx] || "Konsep esensial kurikulum pembelajaran terpadu.";
+        const correct = para.slice(0, 95) + "...";
+        const otherP = paragraphs.filter((_, i) => i !== pIdx);
+        const distractors = [
+          otherP[0] ? otherP[0].slice(0, 85) + "..." : "Aspek pelengkap tanpa pengaruh langsung",
+          otherP[1] ? otherP[1].slice(0, 85) + "..." : "Reaksi spontan tanpa regulasi sistem",
+          otherP[2] ? otherP[2].slice(0, 85) + "..." : "Parameter di luar standar evaluasi modul",
+        ];
+        const correctIdx = Math.floor(Math.random() * 4);
+        const options = [...distractors];
+        options.splice(correctIdx, 0, correct);
+
+        const diff = selectedDifficulty === "ADAPTIVE"
+          ? difficulties[idx % difficulties.length]
+          : selectedDifficulty;
+
+        const stemTmpl = questionStems[idx % questionStems.length];
+        const qText = stemTmpl.replace("{idx}", String(idx + 1));
+
+        return {
+          id: `draft_${Date.now()}_${idx + 1}`,
+          questionText: qText,
+          options,
+          correctIndex: correctIdx,
+          difficulty: diff,
+          sourceReference: `${selectedDoc.title} (Bagian ${idx + 1})`,
+          explanation: {
+            analogi: `Ibarat memahami komponen ke-${idx + 1} dalam alur kerja topik ${targetTopic || selectedDoc.title}.`,
+            visual: `Diagram Konsep ➔ Langkah ${idx + 1} ➔ Simpulan Evaluasi.`,
+            langkah: `1. Analisis teks modul ➔ 2. Evaluasi premis materi ➔ 3. Pilih opsi ${String.fromCharCode(65 + correctIdx)}.`
+          }
+        };
+      });
 
       setDraftQuestions(generatedList);
     } finally {
@@ -139,15 +149,15 @@ export default function QuizStudioPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col">
+    <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
       <Navbar />
 
-      <div className="flex flex-1 max-w-7xl mx-auto w-full">
+      <div className="flex flex-1 overflow-hidden w-full">
         {/* Responsive Desktop Sidebar */}
         <TeacherSidebar />
 
         {/* Main Content Area */}
-        <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-5 space-y-6 sm:space-y-8">
+        <main className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 py-6 space-y-6 sm:space-y-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -195,7 +205,7 @@ export default function QuizStudioPage() {
             <>
               {/* GENERATOR CONFIGURATION CARD */}
               <div className="clay-card clay-white p-6 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-[#010105] mb-1">Target Kelas</label>
                     <select
@@ -238,6 +248,35 @@ export default function QuizStudioPage() {
                       placeholder="Topik evaluasi kuis..."
                       className="text-xs bg-[#F8F9FD] rounded-2xl"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#010105] mb-1">Jumlah Soal</label>
+                    <select
+                      value={numQuestions}
+                      onChange={(e) => setNumQuestions(Number(e.target.value))}
+                      className="w-full p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#F8F9FD] focus:outline-none cursor-pointer"
+                    >
+                      <option value={5}>5 Butir Soal</option>
+                      <option value={10}>10 Butir Soal (Rekomendasi)</option>
+                      <option value={15}>15 Butir Soal</option>
+                      <option value={20}>20 Butir Soal</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#010105] mb-1">Model Kesulitan</label>
+                    <select
+                      value={selectedDifficulty}
+                      onChange={(e) => setSelectedDifficulty(e.target.value)}
+                      className="w-full p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#F8F9FD] focus:outline-none cursor-pointer"
+                    >
+                      <option value="ADAPTIVE">Bertingkat (BASIC ➔ HOTS)</option>
+                      <option value="BASIC">Dasar (BASIC)</option>
+                      <option value="MEDIUM">Menengah (MEDIUM)</option>
+                      <option value="CHALLENGING">Lanjutan (CHALLENGING)</option>
+                      <option value="MASTERY">Tinggi (MASTERY)</option>
+                    </select>
                   </div>
                 </div>
 

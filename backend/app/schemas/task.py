@@ -36,4 +36,4 @@ class QuizGenerateRequest(BaseModel):
     classroom_id: str
     chapter_title: str
     difficulty_level: str = "MEDIUM"
-    num_questions: int = 4
+    num_questions: int = 10

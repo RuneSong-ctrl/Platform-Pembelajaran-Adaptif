@@ -59,8 +59,8 @@ export default function TeacherSidebar() {
 
   return (
     <>
-      {/* 1. DESKTOP SIDEBAR (sticky top-16, fixed h-[calc(100vh-4rem)], w-64) */}
-      <aside className="hidden md:flex w-64 shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto bg-white/80 backdrop-blur-md border-r border-[rgba(28,30,38,0.06)] p-4 flex-col justify-between shadow-2xs z-20">
+      {/* 1. DESKTOP SIDEBAR (fixed h-full in app shell, w-64 docked left) */}
+      <aside className="hidden md:flex w-64 shrink-0 h-full overflow-y-auto bg-white/80 backdrop-blur-md border-r border-[rgba(28,30,38,0.06)] p-4 flex-col justify-between shadow-2xs z-20">
         <div className="space-y-6">
           {/* Header Title */}
           <div className="px-3 pt-1">

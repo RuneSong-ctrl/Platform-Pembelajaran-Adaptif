@@ -14,7 +14,7 @@ import {
   LearningScheduleItem,
 } from "@/types";
 
-const API_BASE_URL =
+export const API_BASE_URL =
   (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE_URL) ||
   "http://localhost:8000/api/v1";
 
@@ -81,6 +81,15 @@ export function normalizeDocument(d: any): GroundedDocument {
     status: d.status || "READY",
     uploadedAt: d.uploaded_at || d.uploadedAt || new Date().toISOString(),
     summary: d.summary || "",
+    podcastScript: d.podcast_script || d.podcastScript || "",
+    podcastAudioUrl: d.podcast_audio_url || d.podcastAudioUrl || "",
+    mindmapCode: d.mindmap_code || d.mindmapCode || "",
+    visualImageUrl: d.visual_image_url || d.visualImageUrl || "",
+    visualNodesJson: d.visual_nodes_json || d.visualNodesJson || "",
+    flashcardsJson: d.flashcards_json || d.flashcardsJson || "",
+    karaokeJson: d.karaoke_json || d.karaokeJson || "",
+    gameConfigJson: d.game_config_json || d.gameConfigJson || "",
+    fillBlankJson: d.fill_blank_json || d.fillBlankJson || "",
   };
 }
 
@@ -336,6 +345,12 @@ export class ApiService {
     });
   }
 
+  static async generateDocumentAssets(documentId: string) {
+    return this.request<any>(`/documents/${documentId}/generate-assets`, {
+      method: "POST",
+    });
+  }
+
   // --- TASKS & AI QUIZ ---
   static async getTasks(classroomId?: string) {
     const query = classroomId ? `?classroom_id=${classroomId}` : "";
@@ -533,6 +548,41 @@ export class ApiService {
     return this.request<{ type: string; code: string; title: string; cached: boolean }>("/ai/diagram", {
       method: "POST",
       body: JSON.stringify({ concept }),
+    });
+  }
+
+  static async generateTTS(data: { text: string; voice?: string; model?: string }): Promise<Blob | null> {
+    try {
+      const url = `${API_BASE_URL}/ai/tts`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        console.warn(`[API] TTS Request failed (${response.status})`);
+        return null;
+      }
+      return await response.blob();
+    } catch (err) {
+      console.warn(`[API] TTS generation error:`, err);
+      return null;
+    }
+  }
+
+  static async generateImageAI(data: { prompt: string; size?: string; model?: string }) {
+    return this.request<{ created: number; data: { b64_json?: string; url?: string }[] }>("/ai/generate-image", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async generateEmbeddingsAI(texts: string[], model?: string) {
+    return this.request<{ data: { embedding: number[] }[] }>("/ai/embeddings", {
+      method: "POST",
+      body: JSON.stringify({ texts, model }),
     });
   }
 

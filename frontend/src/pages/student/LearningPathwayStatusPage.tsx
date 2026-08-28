@@ -160,37 +160,29 @@ export default function LearningPathwayStatusPage() {
     }, 800);
   };
 
-  const handlePlayAudioSample = () => {
+  const handlePlayAudioSample = async () => {
     audioSynth.playClickSound();
-    if ("speechSynthesis" in window) {
-      if (isPlayingAudioSample) {
-        window.speechSynthesis.cancel();
+    if (isPlayingAudioSample) {
+      setIsPlayingAudioSample(false);
+    } else {
+      setIsPlayingAudioSample(true);
+      audioSynth.playLevelUpSound();
+      setTimeout(async () => {
         setIsPlayingAudioSample(false);
-      } else {
-        const text = `Memutar materi audio adaptif untuk gaya belajar Auditori. Progres belajar Anda saat ini adalah ${audioProgress} persen dengan total durasi ${audioMinutes} menit. Terus pertahankan fokus mendengar Anda.`;
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "id-ID";
-        utterance.rate = audioSpeed;
-        utterance.onend = async () => {
-          setIsPlayingAudioSample(false);
-          await trackLearningActivity("audio", 5, "Mendengarkan Ringkasan Audio Materi");
-          await fetchStyleAnalytics();
-        };
-        utterance.onerror = () => setIsPlayingAudioSample(false);
-        setIsPlayingAudioSample(true);
-        window.speechSynthesis.speak(utterance);
-      }
+        await trackLearningActivity("audio", 5, "Mendengarkan Ringkasan Audio Materi");
+        await fetchStyleAnalytics();
+      }, 2500);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 md:pb-8">
+    <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
       <Navbar />
 
-      <div className="flex flex-1 w-full">
+      <div className="flex flex-1 overflow-hidden w-full">
         <StudentSidebar />
 
-        <main className="flex-1 w-full max-w-4xl lg:max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-4 sm:gap-6">
+        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5 min-w-0 flex flex-col gap-5 pb-24 md:pb-8">
         {/* Top Header & Back Navigation */}
         <div className="flex items-center justify-between">
           <Link

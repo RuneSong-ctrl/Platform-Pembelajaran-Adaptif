@@ -70,7 +70,7 @@ export default function StudentSidebar() {
   ];
 
   return (
-    <aside className="w-64 shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto bg-white/80 backdrop-blur-md border-r border-[rgba(28,30,38,0.06)] p-3.5 hidden md:flex flex-col justify-between z-20 relative overflow-hidden">
+    <aside className="w-64 shrink-0 h-full overflow-y-auto bg-white/80 backdrop-blur-md border-r border-[rgba(28,30,38,0.06)] p-3.5 hidden md:flex flex-col justify-between z-20 relative overflow-hidden">
       {/* Subtle Sidebar Top Ambient Gradient */}
       <div
         className={`absolute top-0 left-0 right-0 h-44 bg-gradient-to-b ${getSidebarGradient()} pointer-events-none transition-all duration-500`}
