@@ -99,15 +99,15 @@ class AIGatewayService:
     @staticmethod
     def generate_image(prompt: str, size: str = "1024x1024", model: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
-        Menghasilkan URL atau data gambar konsep materi menggunakan 9router Image Gen Endpoint.
+        Menghasilkan URL atau data gambar konsep materi menggunakan 9router Image Gen Endpoint atau Google Imagen 3 SDK.
         """
         endpoint = AIGatewayService._normalize_endpoint(settings.IMAGE_GEN_ENDPOINT, "images/generations")
         api_key = settings.IMAGE_GEN_API_KEY or settings.GEMINI_API_KEY or settings.AI_API_KEY or ""
         selected_model = model or settings.IMAGE_GEN_MODEL
 
         if not endpoint or not api_key or not selected_model:
-            logger.warning("[AIGateway] Image Gen Endpoint, API Key, atau IMAGE_GEN_MODEL belum disetel di .env.")
-            return None
+            # Fallback ke Google Imagen 3 SDK jika endpoint 9router kosong
+            return AIGatewayService._generate_image_gemini_sdk(prompt)
 
         headers = {
             "Authorization": f"Bearer {api_key}",
@@ -129,11 +129,39 @@ class AIGatewayService:
                     # Standar OpenAI: data: [{"url": "..."}] atau [{"b64_json": "..."}]
                     return data
                 else:
-                    logger.error(f"[AIGateway] Image Gen gagal status={response.status_code}: {response.text[:200]}")
-                    return None
+                    logger.warning(f"[AIGateway] Image Gen gateway respons status={response.status_code}. Mencoba Google Imagen 3...")
         except Exception as e:
-            logger.error(f"[AIGateway] Error koneksi Image Gen: {e}")
+            logger.warning(f"[AIGateway] Error koneksi Gateway Image Gen: {e}. Mencoba Google Imagen 3...")
+
+        return AIGatewayService._generate_image_gemini_sdk(prompt)
+
+    @staticmethod
+    def _generate_image_gemini_sdk(prompt: str) -> Optional[Dict[str, Any]]:
+        """Menghasilkan gambar ilustrasi sains via Google Imagen 3 SDK resmi."""
+        if not settings.GEMINI_API_KEY or settings.GEMINI_API_KEY.startswith("sk-"):
             return None
+        try:
+            import base64
+            from google import genai
+            from google.genai import types
+
+            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            result = client.models.generate_images(
+                model='imagen-3.0-generate-002',
+                prompt=prompt,
+                config=types.GenerateImagesConfig(
+                    number_of_images=1,
+                    output_mime_type="image/png",
+                    aspect_ratio="1:1"
+                )
+            )
+            if result and result.generated_images:
+                img_bytes = result.generated_images[0].image.image_bytes
+                b64_str = base64.b64encode(img_bytes).decode('utf-8')
+                return {"b64_json": b64_str}
+        except Exception as e:
+            logger.warning(f"[AIGateway] Google Imagen 3 SDK notice: {e}")
+        return None
 
     @staticmethod
     def generate_embeddings(texts: List[str], model: Optional[str] = None) -> Optional[List[List[float]]]:
@@ -145,8 +173,8 @@ class AIGatewayService:
         selected_model = model or settings.EMBEDDING_MODEL or settings.GEMINI_EMBEDDING_MODEL
 
         if not endpoint or not api_key or not selected_model:
-            logger.warning("[AIGateway] Embedding Endpoint, API Key, atau EMBEDDING_MODEL belum disetel di .env.")
-            return None
+            # Fallback ke Google Gemini SDK resmi jika endpoint gateway kosong
+            return AIGatewayService._generate_embeddings_gemini_sdk(texts, selected_model)
 
         headers = {
             "Authorization": f"Bearer {api_key}",
@@ -166,24 +194,51 @@ class AIGatewayService:
                     if "data" in data and isinstance(data["data"], list):
                         return [item["embedding"] for item in data["data"]]
                 else:
-                    logger.error(f"[AIGateway] Embedding gagal status={response.status_code}: {response.text[:200]}")
-                    return None
+                    logger.warning(f"[AIGateway] Embedding gateway respons status={response.status_code}. Mencoba Google Gemini SDK...")
         except Exception as e:
-            logger.error(f"[AIGateway] Error koneksi Embedding: {e}")
+            logger.warning(f"[AIGateway] Error koneksi Gateway Embedding: {e}. Mencoba Google Gemini SDK...")
+
+        return AIGatewayService._generate_embeddings_gemini_sdk(texts, selected_model)
+
+    @staticmethod
+    def _generate_embeddings_gemini_sdk(texts: List[str], model: Optional[str] = None) -> Optional[List[List[float]]]:
+        """Menghasilkan embeddings via Google GenAI SDK resmi."""
+        if not settings.GEMINI_API_KEY or settings.GEMINI_API_KEY.startswith("sk-"):
+            return None
+        try:
+            from google import genai
+            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            target_model = model or settings.GEMINI_EMBEDDING_MODEL or "text-embedding-004"
+            if "/" in target_model:
+                target_model = target_model.split("/")[-1]
+
+            results = []
+            for t in texts:
+                res = client.models.embed_content(
+                    model=target_model,
+                    contents=t
+                )
+                if hasattr(res, "embedding") and res.embedding:
+                    results.append(res.embedding.values)
+                elif hasattr(res, "embeddings") and res.embeddings:
+                    results.append(res.embeddings[0].values)
+            return results if len(results) == len(texts) else None
+        except Exception as e:
+            logger.error(f"[AIGateway] Google Gemini SDK Embedding error: {e}")
             return None
 
     @staticmethod
     def generate_chat(messages: List[Dict[str, str]], model: Optional[str] = None, temperature: float = 0.7) -> Optional[str]:
         """
-        Menghasilkan teks chat/kuis menggunakan 9router Chat Completions Endpoint.
+        Menghasilkan teks chat/kuis menggunakan 9router Chat Completions Endpoint atau Google Gemini SDK resmi.
         """
         endpoint = AIGatewayService._normalize_endpoint(settings.CHAT_ENDPOINT, "chat/completions")
         api_key = settings.CHAT_API_KEY or settings.GEMINI_API_KEY or settings.AI_API_KEY or ""
-        selected_model = model or settings.CHAT_MODEL or settings.GEMINI_CHAT_MODEL
+        selected_model = model or settings.CHAT_MODEL or settings.GEMINI_CHAT_MODEL or "gemini-2.5-flash"
 
-        if not endpoint or not api_key or not selected_model:
-            logger.warning("[AIGateway] Chat Endpoint, API Key, atau CHAT_MODEL belum disetel di .env.")
-            return None
+        if not endpoint or not api_key or (settings.GEMINI_API_KEY and not settings.GEMINI_API_KEY.startswith("sk-") and not settings.CHAT_ENDPOINT):
+            # Fallback ke Google Gemini SDK resmi jika endpoint 9router tidak disetel
+            return AIGatewayService._generate_chat_gemini_sdk(messages, selected_model, temperature)
 
         headers = {
             "Authorization": f"Bearer {api_key}",
@@ -237,4 +292,52 @@ class AIGatewayService:
             except Exception as e:
                 logger.error(f"[AIGateway] Error koneksi Chat ({current_model}): {e}")
 
+        # Fallback akhir ke Gemini SDK jika 9router gagal
+        return AIGatewayService._generate_chat_gemini_sdk(messages, selected_model, temperature)
+
+    @staticmethod
+    def _generate_chat_gemini_sdk(messages: List[Dict[str, str]], model: Optional[str] = None, temperature: float = 0.7) -> Optional[str]:
+        """Menghasilkan respons chat via Google GenAI SDK resmi."""
+        if not settings.GEMINI_API_KEY or settings.GEMINI_API_KEY.startswith("sk-"):
+            return None
+        try:
+            from google import genai
+            from google.genai import types
+
+            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            target_model = model or settings.GEMINI_CHAT_MODEL or "gemini-2.5-flash"
+            if "/" in target_model:
+                target_model = target_model.split("/")[-1]
+
+            system_instruction = None
+            contents = []
+            for m in messages:
+                role = m.get("role", "user")
+                content_text = m.get("content", "")
+                if role == "system":
+                    system_instruction = content_text
+                else:
+                    sdk_role = "user" if role == "user" else "model"
+                    contents.append(types.Content(
+                        role=sdk_role,
+                        parts=[types.Part.from_text(text=content_text)]
+                    ))
+
+            if not contents:
+                return None
+
+            config = types.GenerateContentConfig(
+                temperature=temperature,
+                system_instruction=system_instruction
+            )
+
+            res = client.models.generate_content(
+                model=target_model,
+                contents=contents,
+                config=config
+            )
+            if res and res.text:
+                return res.text
+        except Exception as e:
+            logger.error(f"[AIGateway] Google Gemini SDK Chat error: {e}")
         return None

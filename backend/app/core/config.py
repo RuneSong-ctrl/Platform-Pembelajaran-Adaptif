@@ -24,8 +24,8 @@ class Settings(BaseSettings):
     AI_GATEWAY_BASE_URL: str = ""
     GEMINI_API_KEY: str = ""
     AI_API_KEY: Optional[str] = None
-    GEMINI_CHAT_MODEL: str = ""
-    GEMINI_EMBEDDING_MODEL: str = ""
+    GEMINI_CHAT_MODEL: str = "gemini-2.5-flash"
+    GEMINI_EMBEDDING_MODEL: str = "text-embedding-004"
     AI_RATE_LIMIT_PER_MINUTE: int = 20
     AI_CACHE_TTL_SECONDS: int = 86400
 
@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     TTS_ENDPOINT: str = ""
     TTS_API_KEY: str = ""
     TTS_MODEL: str = ""
-    TTS_VOICE: str = ""
+    TTS_VOICE: str = "id-ID-ArdiNeural"
 
     # 2. Image Generation Gateway Config
     IMAGE_GEN_ENDPOINT: str = ""
@@ -43,12 +43,12 @@ class Settings(BaseSettings):
     # 3. Embedding Gateway Config
     EMBEDDING_ENDPOINT: str = ""
     EMBEDDING_API_KEY: str = ""
-    EMBEDDING_MODEL: str = ""
+    EMBEDDING_MODEL: str = "text-embedding-004"
 
     # 4. Chat & LLM Gateway Config
     CHAT_ENDPOINT: str = ""
     CHAT_API_KEY: str = ""
-    CHAT_MODEL: str = ""
+    CHAT_MODEL: str = "gemini-2.5-flash"
 
     def model_post_init(self, __context):
         # Sinkronisasi GEMINI_API_KEY dan AI_API_KEY dari .env
