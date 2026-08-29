@@ -194,32 +194,69 @@ def generate_assets_endpoint(document_id: str, db: Session = Depends(get_db)):
 
 @router.get("/{document_id}/podcast-audio")
 @router.head("/{document_id}/podcast-audio")
-def get_podcast_audio(document_id: str, db: Session = Depends(get_db)):
-    """Mengalirkan file audio podcast materi edukasi adaptif (MP3/WAV)."""
+def get_podcast_audio(document_id: str, episode: int = 1, db: Session = Depends(get_db)):
+    """Mengalirkan file audio podcast materi edukasi adaptif per episode (MP3/WAV)."""
     import os
     from fastapi.responses import FileResponse
     doc = db.query(GroundedDocument).filter(GroundedDocument.id == document_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")
     
-    # 1. Periksa apakah file audio podcast (.mp3 atau .wav) sudah tersedia di disk
-    for ext in ["mp3", "wav"]:
-        filepath = os.path.join("uploads", "podcasts", f"{document_id}_podcast.{ext}")
+    # 1. Periksa apakah file audio episode spesifik sudah tersedia di disk
+    candidate_filenames = [
+        f"{document_id}_ep{episode}.mp3",
+        f"{document_id}_ep{episode}.wav",
+        f"{document_id}_podcast.mp3",
+        f"{document_id}_podcast.wav"
+    ]
+    for fn in candidate_filenames:
+        filepath = os.path.join("uploads", "podcasts", fn)
         if os.path.exists(filepath) and os.path.getsize(filepath) > 200:
-            media_type = "audio/mpeg" if ext == "mp3" else "audio/wav"
+            media_type = "audio/mpeg" if fn.endswith(".mp3") else "audio/wav"
             return FileResponse(filepath, media_type=media_type)
     
     # 2. Jika belum ada, buat langsung on-demand
     from app.services.gemini_service import generate_document_adaptive_assets
     generate_document_adaptive_assets(document_id, db)
     
-    for ext in ["mp3", "wav"]:
-        filepath = os.path.join("uploads", "podcasts", f"{document_id}_podcast.{ext}")
+    for fn in candidate_filenames:
+        filepath = os.path.join("uploads", "podcasts", fn)
         if os.path.exists(filepath) and os.path.getsize(filepath) > 200:
-            media_type = "audio/mpeg" if ext == "mp3" else "audio/wav"
+            media_type = "audio/mpeg" if fn.endswith(".mp3") else "audio/wav"
             return FileResponse(filepath, media_type=media_type)
     
-    raise HTTPException(status_code=404, detail="Audio podcast belum selesai dibuat.")
+    raise HTTPException(status_code=404, detail="Audio podcast episode belum selesai dibuat.")
+
+@router.get("/{document_id}/podcast-episodes")
+def get_podcast_episodes(document_id: str, db: Session = Depends(get_db)):
+    """Mengambil metadata playlist episode podcast (judul, durasi, audioUrl) untuk materi ini."""
+    import json
+    doc = db.query(GroundedDocument).filter(GroundedDocument.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")
+    
+    if not doc.podcast_episodes_json:
+        from app.services.gemini_service import generate_document_adaptive_assets
+        generate_document_adaptive_assets(document_id, db)
+        db.refresh(doc)
+    
+    if doc.podcast_episodes_json:
+        try:
+            return json.loads(doc.podcast_episodes_json)
+        except Exception:
+            pass
+    
+    return [
+        {
+            "id": "ep_1",
+            "order": 1,
+            "title": f"Episode 1: Fondasi {doc.title}",
+            "description": f"Ringkasan materi dasar {doc.title}.",
+            "durationSec": 45,
+            "audioUrl": f"/api/v1/documents/{doc.id}/podcast-audio?episode=1",
+            "script": doc.podcast_script or doc.summary or "Ringkasan materi."
+        }
+    ]
 
 @router.get("/{document_id}/visual-image")
 def get_visual_image(document_id: str, db: Session = Depends(get_db)):

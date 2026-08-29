@@ -53,6 +53,77 @@ ATURAN GROUNDING & SITASI WAJIB (MUTLAK):
 5. Akhiri penjelasan dengan 1 pertanyaan reflektif singkat untuk memancing pemikiran kritis siswa.
 """
 
+def _call_gemini_text(
+    prompt: str,
+    system_instruction: Optional[str] = None,
+    temperature: float = 0.5,
+    json_mode: bool = False
+) -> Optional[str]:
+    """
+    Eksekutor inferensi teks terpadu untuk Gemini AI Tutor & Alat Pembelajaran Adaptif:
+    1. Coba 9router / OpenAI-compatible Gateway jika endpoint terkonfigurasi di .env.
+    2. Eksekusi langsung via SDK resmi Google Gemini (google.genai).
+    """
+    # 1. Coba via 9router Gateway jika endpoint diisi
+    if settings.CHAT_ENDPOINT and (settings.CHAT_API_KEY or (settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.startswith("sk-"))):
+        try:
+            from app.services.gateway_service import AIGatewayService
+            messages = []
+            if system_instruction:
+                messages.append({"role": "system", "content": system_instruction})
+            messages.append({"role": "user", "content": prompt})
+            reply = AIGatewayService.generate_chat(messages, model=settings.CHAT_MODEL, temperature=temperature)
+            if reply:
+                return reply
+        except Exception as e:
+            logger.debug(f"[GeminiService] Gateway chat error: {e}")
+
+    # 2. Coba via SDK resmi Google Gemini
+    if settings.GEMINI_API_KEY and not settings.GEMINI_API_KEY.startswith("sk-"):
+        try:
+            from google import genai
+            from google.genai import types
+
+            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            config_params: Dict[str, Any] = {
+                "temperature": temperature,
+                "max_output_tokens": 4000
+            }
+            if system_instruction:
+                config_params["system_instruction"] = system_instruction
+            if json_mode:
+                config_params["response_mime_type"] = "application/json"
+
+            config = types.GenerateContentConfig(**config_params)
+
+            model_candidates = [
+                settings.clean_chat_model,
+                "gemini-3.7-flash",
+                "gemini-3.5-flash",
+                "gemini-3.5-flash-lite",
+                "gemini-2.5-flash",
+                "gemini-2.5-flash-lite"
+            ]
+            seen = set()
+            unique_candidates = [m for m in model_candidates if m and not (m in seen or seen.add(m))]
+
+            for model_name in unique_candidates:
+                try:
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=prompt,
+                        config=config
+                    )
+                    if response and response.text:
+                        return response.text.strip()
+                except Exception as e:
+                    logger.debug(f"[GeminiService] Gemini SDK model '{model_name}' failed: {e}")
+                    continue
+        except Exception as e:
+            logger.error(f"[GeminiService] Gemini SDK execution error: {e}")
+
+    return None
+
 def chat_with_gemini(
     user_query: str,
     chat_history: List[Dict[str, str]],
@@ -106,7 +177,7 @@ Pertanyaan Siswa ({student_name}): {clean_query}"""
                     "model": settings.CHAT_MODEL
                 }
         except Exception as e:
-            logger.warning(f"[GeminiService] 9router chat generation failed: {e}")
+            logger.debug(f"[GeminiService] 9router chat generation failed: {e}")
 
     # 2.B Call official Google Gemini SDK if standard Gemini API Key
     if settings.GEMINI_API_KEY and not settings.GEMINI_API_KEY.startswith("sk-"):
@@ -122,7 +193,6 @@ Pertanyaan Siswa ({student_name}): {clean_query}"""
 
 Pertanyaan Siswa ({student_name}): {clean_query}"""
 
-            # Build sliding history (maximum last 6 messages)
             trimmed_history = chat_history[-6:] if len(chat_history) > 6 else chat_history
             
             contents = []
@@ -140,24 +210,44 @@ Pertanyaan Siswa ({student_name}): {clean_query}"""
 
             config = types.GenerateContentConfig(
                 system_instruction=_build_system_instruction(learning_style),
-                temperature=0.4, # Rendah untuk mencegah halusinasi
-                max_output_tokens=1000,
+                temperature=0.4,
+                max_output_tokens=1500,
             )
 
-            response = client.models.generate_content(
-                model=settings.GEMINI_CHAT_MODEL,
-                contents=contents,
-                config=config
-            )
+            model_candidates = [
+                settings.clean_chat_model,
+                "gemini-3.7-flash",
+                "gemini-3.5-flash",
+                "gemini-3.5-flash-lite",
+                "gemini-2.5-flash",
+            ]
+            seen = set()
+            unique_candidates = [m for m in model_candidates if m and not (m in seen or seen.add(m))]
 
-            reply_text = response.text if response.text else "Maaf, saya tidak dapat memproses jawaban saat ini."
-            
-            return {
-                "text": reply_text,
-                "citation": " • ".join(citations) if citations else "Asisten Belajar EduAdapt",
-                "is_grounded": bool(relevant_chunks),
-                "model": settings.GEMINI_CHAT_MODEL
-            }
+            reply_text = None
+            used_model = settings.clean_chat_model
+            for target_model in unique_candidates:
+                try:
+                    response = client.models.generate_content(
+                        model=target_model,
+                        contents=contents,
+                        config=config
+                    )
+                    if response and response.text:
+                        reply_text = response.text
+                        used_model = target_model
+                        break
+                except Exception as e:
+                    logger.debug(f"[GeminiService] Chat model '{target_model}' error: {e}")
+                    continue
+
+            if reply_text:
+                return {
+                    "text": reply_text,
+                    "citation": " • ".join(citations) if citations else "Asisten Belajar EduAdapt",
+                    "is_grounded": bool(relevant_chunks),
+                    "model": used_model
+                }
         except Exception as e:
             logger.error(f"[GeminiService] API generation failed: {e}")
 
@@ -192,7 +282,6 @@ def generate_ai_quiz(
     """
     import random
 
-    # Ambil sampel konteks representatif (hingga 10.000 karakter) agar soal mencakup berbagai sub-bab materi
     if len(raw_text) > 10000:
         part_len = 3000
         p1 = raw_text[:part_len]
@@ -246,59 +335,21 @@ Susunlah sekarang {num_questions} soal berkualitas tinggi dalam format JSON arra
   }}
 ]"""
 
-    # 1. Coba via 9router AI Gateway
-    if settings.CHAT_ENDPOINT and (settings.CHAT_API_KEY or (settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.startswith("sk-"))):
+    reply = _call_gemini_text(user_prompt, system_instruction=system_prompt, temperature=0.6, json_mode=True)
+    if reply:
         try:
-            from app.services.gateway_service import AIGatewayService
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ]
-            reply = AIGatewayService.generate_chat(messages, model=settings.CHAT_MODEL, temperature=0.6)
-            if reply:
-                clean_json = re.sub(r"^```(?:json)?\s*|\s*```$", "", reply.strip(), flags=re.MULTILINE).strip()
-                match = re.search(r"\[\s*\{.*\}\s*\]", clean_json, re.DOTALL)
-                if match:
-                    clean_json = match.group(0)
-                parsed = json.loads(clean_json)
-                if isinstance(parsed, list) and len(parsed) >= min(4, num_questions):
-                    logger.info(f"[GeminiService] Successfully generated {len(parsed)} AI quiz questions via gateway.")
-                    return parsed
-                elif isinstance(parsed, dict) and "questions" in parsed and isinstance(parsed["questions"], list):
-                    return parsed["questions"]
-        except Exception as e:
-            logger.warning(f"[GeminiService] 9router quiz generation error: {e}")
-
-    # 2. Coba via Google Gemini SDK resmi jika key Google
-    if settings.GEMINI_API_KEY and not settings.GEMINI_API_KEY.startswith("sk-"):
-        try:
-            from google import genai
-            from google.genai import types
-
-            client = genai.Client(api_key=settings.GEMINI_API_KEY)
-            config = types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                response_mime_type="application/json",
-                temperature=0.6,
-            )
-
-            response = client.models.generate_content(
-                model=settings.GEMINI_CHAT_MODEL,
-                contents=user_prompt,
-                config=config
-            )
-
-            clean_text = response.text.strip()
-            match = re.search(r"\[\s*\{.*\}\s*\]", clean_text, re.DOTALL)
+            clean_json = re.sub(r"^```(?:json)?\s*|\s*```$", "", reply.strip(), flags=re.MULTILINE).strip()
+            match = re.search(r"\[\s*\{.*\}\s*\]", clean_json, re.DOTALL)
             if match:
-                clean_text = match.group(0)
-            parsed = json.loads(clean_text)
-            if isinstance(parsed, list) and len(parsed) >= min(4, num_questions):
+                clean_json = match.group(0)
+            parsed = json.loads(clean_json)
+            if isinstance(parsed, list) and len(parsed) >= min(3, num_questions):
+                logger.info(f"[GeminiService] Successfully generated {len(parsed)} AI quiz questions.")
                 return parsed
-            elif isinstance(parsed, dict) and "questions" in parsed:
+            elif isinstance(parsed, dict) and "questions" in parsed and isinstance(parsed["questions"], list):
                 return parsed["questions"]
         except Exception as e:
-            logger.error(f"[GeminiService] Gemini SDK Quiz generation error: {e}")
+            logger.warning(f"[GeminiService] Quiz JSON parsing error: {e}")
 
     # 3. Dynamic RAG Fallback Generator yang BERVARIATIF & BERKUALITAS (bukan dummy seragam)
     paragraphs = [p.strip() for p in raw_text.split("\n\n") if len(p.strip()) > 40]
@@ -377,48 +428,23 @@ def generate_visual_mindmap(concept: str, context: Optional[str] = None) -> Dict
     """
     clean_concept = sanitize_user_input(concept, max_chars=300)
     context_str = f" Berdasarkan materi: {context[:500]}." if context else ""
-    
-    # 1. Coba via 9router AI Gateway jika endpoint atau key sk- tersedia
-    if settings.CHAT_ENDPOINT and (settings.CHAT_API_KEY or (settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.startswith("sk-"))):
-        try:
-            from app.services.gateway_service import AIGatewayService
-            prompt = f"Buatlah diagram alur Mermaid.js (graph TD) sederhana dan edukatif untuk topik: '{clean_concept}'.{context_str} Kembalikan HANYA kode diagram mermaid valid di dalam blok ```mermaid."
-            messages = [{"role": "user", "content": prompt}]
-            reply = AIGatewayService.generate_chat(messages, model=settings.CHAT_MODEL, temperature=0.3)
-            if reply:
-                mermaid_match = re.search(r"```mermaid\s*(.*?)\s*```", reply, re.DOTALL)
-                if mermaid_match:
-                    return {
-                        "type": "mermaid",
-                        "code": mermaid_match.group(1).strip(),
-                        "title": clean_concept
-                    }
-        except Exception as e:
-            logger.warning(f"[GeminiService] 9router mindmap error: {e}")
+    prompt = f"Buatlah diagram alur Mermaid.js (graph TD) sederhana dan edukatif untuk konsep atau materi: '{clean_concept}'.{context_str} Kembalikan HANYA kode diagram mermaid valid di dalam blok ```mermaid."
 
-    # 2. Coba via Google Gemini SDK resmi jika key Google
-    if settings.GEMINI_API_KEY and not settings.GEMINI_API_KEY.startswith("sk-"):
-        try:
-            from google import genai
-            from google.genai import types
-
-            client = genai.Client(api_key=settings.GEMINI_API_KEY)
-            prompt = f"Buatlah diagram alur Mermaid.js (graph TD) sederhana dan edukatif untuk konsep: '{clean_concept}'. Kembalikan HANYA kode diagram mermaid valid di dalam blok ```mermaid."
-            
-            response = client.models.generate_content(
-                model=settings.GEMINI_CHAT_MODEL,
-                contents=prompt
-            )
-            
-            mermaid_match = re.search(r"```mermaid\s*(.*?)\s*```", response.text, re.DOTALL)
-            if mermaid_match:
-                return {
-                    "type": "mermaid",
-                    "code": mermaid_match.group(1).strip(),
-                    "title": clean_concept
-                }
-        except Exception as e:
-            logger.error(f"[GeminiService] Mindmap generation error: {e}")
+    reply = _call_gemini_text(prompt, temperature=0.3)
+    if reply:
+        mermaid_match = re.search(r"```mermaid\s*(.*?)\s*```", reply, re.DOTALL)
+        if mermaid_match:
+            return {
+                "type": "mermaid",
+                "code": mermaid_match.group(1).strip(),
+                "title": clean_concept
+            }
+        elif "graph " in reply:
+            return {
+                "type": "mermaid",
+                "code": reply.strip(),
+                "title": clean_concept
+            }
 
     # Fallback clean diagram
     return {
@@ -431,101 +457,105 @@ def generate_visual_mindmap(concept: str, context: Optional[str] = None) -> Dict
         "title": clean_concept
     }
 
-def _build_dialog_karaoke_timestamps(raw_dialog_lines: List[Dict[str, str]]) -> List[Dict[str, Any]]:
+def _generate_podcast_episodes(doc_title: str, context: str) -> List[Dict[str, Any]]:
     """
-    Menghitung penanda detik pemutaran (Dual-Coding Theory) untuk penyorotan real-time transkrip karaoke.
-    Kecepatan bicara rata-rata bahasa Indonesia: ~2.8 kata per detik dengan jeda 0.4 detik antar giliran bicara.
+    Menghasilkan playlist 3-5 episode podcast pendek (30-60 detik per episode)
+    dalam format narasi tunggal (solo narrator) edukatif yang komunikatif.
     """
-    karaoke_segments = []
-    current_time = 0.0
-    for idx, item in enumerate(raw_dialog_lines):
-        speaker = item.get("speaker", "Narator")
-        text = item.get("text", "").strip()
-        if not text:
-            continue
-        words = text.split()
-        word_count = len(words)
-        # Hitung durasi wicara wajar (minimal 2.5 detik)
-        duration = max(2.5, round(word_count / 2.7, 1))
-        start_sec = round(current_time, 1)
-        end_sec = round(current_time + duration, 1)
-        role = "host" if any(w in speaker.lower() for w in ["host", "ardi", "moderator"]) else "expert"
-        
-        karaoke_segments.append({
-            "id": f"seg_{idx + 1}",
-            "speaker": speaker,
-            "role": role,
-            "startSec": start_sec,
-            "endSec": end_sec,
-            "text": text
-        })
-        current_time = end_sec + 0.35
-    return karaoke_segments
+    prompt = f"""Kamu adalah narator podcast sains edukasi profesional (Solo Narrator).
+Berdasarkan modul ajar: '{doc_title}', rancanglah playlist 3 sampai 5 episode podcast pendek (setiap episode berdurasi ~30-60 detik, sekitar 80-160 kata) dengan gaya narasi tunggal yang mengalir, komunikatif, dan mudah dipahami siswa.
 
-def _generate_conversational_podcast(doc_title: str, context: str) -> tuple[str, str]:
-    """
-    Menghasilkan naskah podcast bertutur (Conversational Dialog antara Host & Pakar)
-    sekaligus menghasilkan array karaoke_json berpenanda waktu.
-    """
-    from app.services.gateway_service import AIGatewayService
-    
-    prompt = f"""Kamu adalah produser podcast sains edukatif terbaik. Buatlah naskah podcast pembelajaran interaktif dalam bentuk dialog bertutur (Conversational Dialog) antara dua orang:
-1. Kak Ardi (EduHost): komunikatif, antusias, memancing analogi sehari-hari dan rasa ingin tahu siswa.
-2. Bu Citra (EduExpert): lugas, mendalam, membongkar mekanisme ilmiah dan menghubungkan konsep secara komprehensif.
-
-Judul Topik: {doc_title}
 Konteks Modul Ajar:
-{context[:4000]}
+{context[:4500]}
 
-ATURAN FORMAT WAJIB:
-- Buat 8 sampai 14 giliran dialog yang mengalir alami dan membahas tuntas materi.
-- Format setiap baris persis:
-[Kak Ardi]: Kalimat tuturan host...
-[Bu Citra]: Kalimat penjelasan pakar...
-- JANGAN gunakan format markdown seperti bintang '**', pagar '#', atau bullet. Tuliskan teks wicara murni."""
+ATURAN WAJIB:
+- Buat 3 sampai 5 episode berurutan yang membedah konsep dari fondasi hingga aplikasi nyata.
+- Format narasi tunggal: teks tuturan murni tanpa dialog ganda, tanpa tag speaker, tanpa tanda markdown bintang '**' atau pagar '#'.
+- Kembalikan HANYA JSON array murni tanpa format markdown pembungkus.
 
-    dialog_lines = []
+Format JSON:
+[
+  {{
+    "id": "ep_1",
+    "order": 1,
+    "title": "Episode 1: Judul Sub-Topik Fondasi",
+    "description": "Ringkasan 1 kalimat tentang apa yang dipelajari di episode ini.",
+    "script": "Halo rekan belajar! Di episode pertama ini kita akan membedah prinsip dasar...",
+    "durationSec": 45
+  }}
+]"""
+
     try:
-        reply = AIGatewayService.generate_chat([{"role": "user", "content": prompt}], model=settings.CHAT_MODEL, temperature=0.6)
+        reply = _call_gemini_text(prompt, temperature=0.5, json_mode=True)
         if reply:
-            for line in reply.split("\n"):
-                line = line.strip()
-                match = re.match(r"^\[?(Kak Ardi|Bu Citra|Host|Pakar|Edukator)\]?:\s*(.+)$", line, re.IGNORECASE)
-                if match:
-                    speaker = "Kak Ardi (Host)" if "ardi" in match.group(1).lower() or "host" in match.group(1).lower() else "Bu Citra (Pakar)"
-                    dialog_lines.append({"speaker": speaker, "text": match.group(2).strip()})
+            clean_json = re.sub(r"^```json\s*", "", reply.strip(), flags=re.IGNORECASE)
+            clean_json = re.sub(r"\s*```$", "", clean_json)
+            match = re.search(r"\[\s*\{.*\}\s*\]", clean_json, re.DOTALL)
+            if match:
+                clean_json = match.group(0)
+            parsed = json.loads(clean_json)
+            if isinstance(parsed, list) and len(parsed) >= 2:
+                valid_eps = []
+                for idx, ep in enumerate(parsed):
+                    if ep.get("title") and ep.get("script"):
+                        words = len(ep["script"].split())
+                        est_sec = max(25, min(90, int(words / 2.5)))
+                        valid_eps.append({
+                            "id": ep.get("id") or f"ep_{idx + 1}",
+                            "order": idx + 1,
+                            "title": ep.get("title") or f"Episode {idx + 1}: {doc_title}",
+                            "description": ep.get("description") or f"Pembahasan sub-topik ke-{idx + 1} dari modul {doc_title}.",
+                            "script": re.sub(r"[*#_`~>\[\]]+", " ", ep["script"]).strip(),
+                            "durationSec": ep.get("durationSec") or est_sec
+                        })
+                if valid_eps:
+                    return valid_eps
     except Exception as e:
-        logger.warning(f"[AdaptiveAssets] Conversational podcast AI prompt error: {e}")
+        logger.debug(f"[AdaptiveAssets] Podcast episodes AI generation error: {e}")
 
-    # Fallback dialog terstruktur jika AI belum merespons
-    if len(dialog_lines) < 4:
-        paras = [p.strip() for p in context.split("\n\n") if len(p.strip()) > 30]
-        p1 = paras[0] if len(paras) > 0 else f"Pembahasan materi penting mengenai {doc_title}."
-        p2 = paras[1] if len(paras) > 1 else f"Konsep inti dan mekanisme ilmiah dari {doc_title}."
-        p3 = paras[2] if len(paras) > 2 else f"Aplikasi nyata dan kesimpulan penting bagi pemahaman siswa."
-        
-        dialog_lines = [
-            {"speaker": "Kak Ardi (Host)", "text": f"Halo rekan belajar adaptif! Selamat datang di EduVoice Studio. Hari ini kita membedah topik menarik: {doc_title}. Bu Citra, kenapa konsep ini sangat fundamental?"},
-            {"speaker": "Bu Citra (Pakar)", "text": f"Halo Kak Ardi dan teman-teman! {doc_title} ini sangat menarik karena menjadi landasan utama. {p1[:280]}."},
-            {"speaker": "Kak Ardi (Host)", "text": "Wah, jadi ada mekanisme sebab-akibat yang saling berkaitan ya? Bagaimana proses kerjanya berjalan di dunia nyata?"},
-            {"speaker": "Bu Citra (Pakar)", "text": f"Tepat sekali Kak Ardi. Jika kita telaah lebih mendalam: {p2[:320]}. Setiap komponen punya peran spesifik yang tidak bisa dipisahkan."},
-            {"speaker": "Kak Ardi (Host)", "text": "Luar biasa penjelasannya! Lalu apa kesimpulan penting yang wajib diingat teman-teman sebelum mulai eksplorasi kinestetik?"},
-            {"speaker": "Bu Citra (Pakar)", "text": f"Kuncinya adalah mengamati dinamika variabelnya. {p3[:300]}. Pahami prinsip dasarnya dan selamat bereksperimen!"}
-        ]
+    # Fallback substantif jika AI offline
+    paras = [p.strip() for p in context.split("\n\n") if len(p.strip()) > 40]
+    if not paras:
+        paras = [f"Pembahasan komprehensif mengenai materi {doc_title}."]
 
-    karaoke_segments = _build_dialog_karaoke_timestamps(dialog_lines)
-    script_text = "\n\n".join([f"{item['speaker']}: {item['text']}" for item in dialog_lines])
-    return script_text, json.dumps(karaoke_segments, ensure_ascii=False)
+    fallback_eps = []
+    titles = [
+        f"Episode 1: Fondasi & Hakikat {doc_title}",
+        f"Episode 2: Mekanisme & Hubungan Sistemik",
+        f"Episode 3: Analisis Kasus & Dinamika Reaksi",
+        f"Episode 4: Aplikasi Nyata & Sintesis Konsep"
+    ]
+    descs = [
+        f"Memahami definisi dasar dan komponen kunci dari {doc_title}.",
+        f"Menelusuri bagaimana setiap bagian saling berinteraksi secara konsisten.",
+        f"Menganalisis skenario perubahan variabel dan dampaknya pada sistem.",
+        f"Menghubungkan teori dengan implementasi teknologi dan kehidupan sehari-hari."
+    ]
+
+    count = min(4, max(2, len(paras)))
+    for idx in range(count):
+        p_text = paras[idx] if idx < len(paras) else paras[0]
+        script_body = f"Halo rekan belajar adaptif! Di episode ke-{idx + 1} ini, kita fokus membahas {titles[idx].split(': ')[1]}. {p_text[:280]}. Pahami prinsip kuncinya agar konsep ini semakin melekat dalam pemikiranmu. Selamat melanjutkan ke episode berikutnya!"
+        words = len(script_body.split())
+        est_sec = max(25, min(75, int(words / 2.5)))
+        fallback_eps.append({
+            "id": f"ep_{idx + 1}",
+            "order": idx + 1,
+            "title": titles[idx],
+            "description": descs[idx],
+            "script": script_body,
+            "durationSec": est_sec
+        })
+
+    return fallback_eps
 
 def _generate_visual_nodes_metadata(doc_title: str, context: str, mindmap_code: str) -> str:
     """
-    Menghasilkan metadata simpul (node) interaktif untuk membuka kartu komparasi visual
-    dan visual storyboard player ketika siswa mengeklik simpul pada diagram Mermaid/SVG.
+    Menghasilkan metadata simpul (node) kaya konten untuk kanvas interaktif React Flow
+    lengkap dengan posisi koordinat auto-layout, koneksi relasional, dan side-panel detail.
     """
-    from app.services.gateway_service import AIGatewayService
-
-    prompt = f"""Kamu adalah perancang pembelajaran visual (Visual Learning Designer).
-Berdasarkan topik: '{doc_title}' dan isi materi di bawah, susunlah metadata 4 sampai 6 simpul konsep penting untuk kartu komparasi visual interaktif.
+    prompt = f"""Kamu adalah desainer pembelajaran visual interaktif (Interactive Visual Learning Specialist).
+Berdasarkan materi '{doc_title}', rancanglah 4 sampai 6 simpul konsep terstruktur (React Flow interactive nodes) yang mencakup seluruh peta pemahaman modul.
 
 Konteks Materi:
 {context[:3500]}
@@ -535,328 +565,301 @@ Kembalikan HANYA JSON array murni tanpa markdown blok atau teks pengantar. Forma
   {{
     "id": "node_1",
     "title": "Nama Konsep Pokok",
-    "category": "Fondasi / Proses / Regulasi / Aplikasi",
-    "shortDefinition": "Definisi singkat padat 1-2 kalimat.",
-    "keyPrinciples": ["Prinsip penting 1", "Prinsip penting 2"],
-    "realWorldAnalogy": "Analogi visual yang sangat mudah dibayangkan siswa.",
+    "category": "Fondasi Teori / Mekanisme & Proses / Regulasi Sistem / Aplikasi Terapan",
+    "shortDefinition": "Definisi singkat 1-2 kalimat untuk badge kartu.",
+    "detailedExplanation": "Penjelasan mendalam 3-5 kalimat komprehensif yang membongkar cara kerja konsep ini secara tuntas untuk side-panel.",
+    "keyPrinciples": ["Prinsip penting 1", "Prinsip penting 2", "Prinsip penting 3"],
+    "realWorldAnalogy": "Analogi nyata yang sangat konkret dan mudah dibayangkan siswa.",
+    "visualMetaphor": "Deskripsi gambaran visual grafis untuk imajinasi spasial siswa.",
+    "connections": ["node_2", "node_3"],
+    "position": {{ "x": 100, "y": 150 }},
     "comparisonWithOtherNodes": [
-      {{ "targetNode": "Konsep Pembanding", "differences": "Perbedaan spesifik", "similarities": "Titik kesamaan" }}
+      {{ "targetNode": "Konsep Lain", "differences": "Perbedaan karakteristik", "similarities": "Titik kesamaan fungsional" }}
     ],
-    "practicalApplications": ["Contoh aplikasi 1", "Contoh aplikasi 2"]
+    "practicalApplications": ["Contoh aplikasi nyata 1", "Contoh aplikasi nyata 2"]
   }}
 ]"""
 
     try:
-        reply = AIGatewayService.generate_chat([{"role": "user", "content": prompt}], model=settings.CHAT_MODEL, temperature=0.5)
+        reply = _call_gemini_text(prompt, temperature=0.5, json_mode=True)
         if reply:
             clean_json = re.sub(r"^```json\s*", "", reply.strip(), flags=re.IGNORECASE)
             clean_json = re.sub(r"\s*```$", "", clean_json)
+            match = re.search(r"\[\s*\{.*\}\s*\]", clean_json, re.DOTALL)
+            if match:
+                clean_json = match.group(0)
             parsed = json.loads(clean_json)
             if isinstance(parsed, list) and len(parsed) >= 2:
+                # Pastikan posisi default teratur jika belum ada
+                for idx, n in enumerate(parsed):
+                    if "position" not in n or not isinstance(n["position"], dict):
+                        col = idx % 3
+                        row = idx // 3
+                        n["position"] = {"x": 80 + col * 260, "y": 60 + row * 180}
+                    if "connections" not in n or not isinstance(n["connections"], list):
+                        next_id = f"node_{idx + 2}" if idx + 2 <= len(parsed) else "node_1"
+                        n["connections"] = [next_id]
                 return json.dumps(parsed, ensure_ascii=False)
     except Exception as e:
-        logger.warning(f"[AdaptiveAssets] Visual nodes AI metadata error: {e}")
+        logger.debug(f"[AdaptiveAssets] Visual nodes AI metadata error: {e}")
 
-    # Fallback substantif terstruktur
+    # Fallback substantif terstruktur dengan posisi teratur
     paras = [p.strip() for p in context.split("\n\n") if len(p.strip()) > 30]
     fallback_nodes = [
         {
             "id": "node_1",
             "title": f"Fondasi Konsep {doc_title}",
             "category": "Fondasi Teori",
-            "shortDefinition": paras[0][:150] if paras else f"Prinsip dasar pembangun konsep {doc_title}.",
-            "keyPrinciples": ["Definisi terminologi ilmiah", "Karakteristik variabel pokok"],
-            "realWorldAnalogy": "Bagaikan fondasi bangunan yang menopang seluruh struktur di atasnya.",
+            "shortDefinition": paras[0][:140] if paras else f"Prinsip dasar pembangun konsep {doc_title}.",
+            "detailedExplanation": (paras[0] if paras else f"Konsep {doc_title} adalah pilar penting.") + " Pembahasan ini mencakup terminologi, parameter kunci, dan kerangka ilmiah dasar yang menopang seluruh materi.",
+            "keyPrinciples": ["Definisi terminologi ilmiah", "Karakteristik variabel pokok", "Postulat dasar sistem"],
+            "realWorldAnalogy": "Bagaikan fondasi bangunan bertingkat yang menopang seluruh struktur lantai di atasnya.",
+            "visualMetaphor": "Balok pijakan kokoh yang menjadi titik tumpu bagi cabang-cabang mekanisme lainnya.",
+            "connections": ["node_2", "node_3"],
+            "position": {"x": 60, "y": 80},
             "comparisonWithOtherNodes": [
                 {"targetNode": "Mekanisme Dinamis", "differences": "Fondasi bersifat konstan sedangkan mekanisme bersifat interaktif", "similarities": "Keduanya saling melengkapi sistem"}
             ],
-            "practicalApplications": ["Identifikasi parameter dasar", "Analisis studi kasus awal"]
+            "practicalApplications": ["Identifikasi parameter dasar eksperimen", "Penyusunan hipotesis awal"]
         },
         {
             "id": "node_2",
-            "title": "Mekanisme & Hubungan Variabel",
-            "category": "Proses & Interaksi",
-            "shortDefinition": paras[1][:150] if len(paras) > 1 else "Hubungan timbal balik dan dinamika kerja antar-elemen konsep.",
-            "keyPrinciples": ["Hukum aksi-reaksi dalam sistem", "Faktor katalisator dan penghambat"],
-            "realWorldAnalogy": "Bagaikan gir-gir mesin jam yang berputar bersamaan menciptakan detik yang tepat.",
+            "title": "Mekanisme & Hubungan Sistemik",
+            "category": "Mekanisme & Proses",
+            "shortDefinition": paras[1][:140] if len(paras) > 1 else "Hubungan timbal balik dan dinamika kerja antar-elemen konsep.",
+            "detailedExplanation": (paras[1] if len(paras) > 1 else "Mekanisme proses berjalan melalui interaksi dinamis antar komponen.") + " Setiap perubahan pada satu variabel langsung mempengaruhi kesetimbangan variabel lainnya.",
+            "keyPrinciples": ["Hukum aksi-reaksi sistemik", "Faktor katalisator dan akselerator", "Dinamika kesetimbangan"],
+            "realWorldAnalogy": "Bagaikan gir-gir mesin jam mekanik yang berputar harmonis menciptakan detak waktu yang akurat.",
+            "visualMetaphor": "Rangkaian roda gigi saling mengunci dengan panah energi yang mengalir terus menerus.",
+            "connections": ["node_3", "node_4"],
+            "position": {"x": 340, "y": 80},
             "comparisonWithOtherNodes": [
-                {"targetNode": "Fondasi Konsep", "differences": "Menjelaskan cara kerja aktif di lapangan", "similarities": "Berpijak pada aturan hukum ilmiah yang sama"}
+                {"targetNode": "Fondasi Konsep", "differences": "Menjelaskan cara kerja dinamis di lapangan", "similarities": "Berpijak pada aturan hukum ilmiah yang sama"}
             ],
-            "practicalApplications": ["Prediksi luaran eksperimen", "Pengendalian laju reaksi"]
+            "practicalApplications": ["Prediksi luaran eksperimen laboratorium", "Pengendalian laju proses"]
         },
         {
             "id": "node_3",
-            "title": "Evaluasi & Aplikasi Nyata",
-            "category": "Penerapan & Sintesis",
-            "shortDefinition": paras[2][:150] if len(paras) > 2 else "Implementasi praktis konsep dalam teknologi, lingkungan, dan kehidupan.",
-            "keyPrinciples": ["Optimalisasi pemanfaatan sistem", "Mitigasi resiko dan batasan konsep"],
-            "realWorldAnalogy": "Bagaikan kendaraan modern yang memanfaatkan seluruh prinsip aerodinamika untuk melaju efisien.",
+            "title": "Regulasi & Faktor Pengendali",
+            "category": "Regulasi Sistem",
+            "shortDefinition": paras[2][:140] if len(paras) > 2 else "Parameter pengendali yang menjaga stabilitas kondisi ideal.",
+            "detailedExplanation": "Sistem ini memerlukan regulasi ketat terhadap kondisi lingkungan eksternal dan internal agar proses tetap berjalan pada efisiensi puncak tanpa mengalami disrupsi.",
+            "keyPrinciples": ["Toleransi ambang batas variabel", "Umpan balik negatif dan positif", "Respon adaptif sistem"],
+            "realWorldAnalogy": "Bagaikan termostat otomatis yang mengatur suhu ruangan agar tetap sejuk dan stabil.",
+            "visualMetaphor": "Katup pengaman dengan indikator jarum ukur yang berayun di zona hijau optimal.",
+            "connections": ["node_4"],
+            "position": {"x": 60, "y": 280},
             "comparisonWithOtherNodes": [
-                {"targetNode": "Mekanisme & Hubungan Variabel", "differences": "Fokus pada produk akhir bukan proses intern", "similarities": "Hasil langsung dari efisiensi mekanisme"}
+                {"targetNode": "Mekanisme Dinamis", "differences": "Regulasi bertindak sebagai rem dan gas pengendali", "similarities": "Bekerja di dalam domain sistem yang sama"}
             ],
-            "practicalApplications": ["Inovasi teknologi terapan", "Pemecahan problem saintifik modern"]
+            "practicalApplications": ["Optimasi kondisi reaksi", "Mitigasi anomali dan error"]
+        },
+        {
+            "id": "node_4",
+            "title": "Aplikasi Terapan & Sintesis",
+            "category": "Aplikasi Terapan",
+            "shortDefinition": paras[3][:140] if len(paras) > 3 else "Implementasi praktis konsep dalam teknologi, lingkungan, dan kehidupan.",
+            "detailedExplanation": "Penguasaan konsep memungkinkan rekayasa teknologi terapan, pemecahan masalah saintifik nyata, serta inovasi dalam industri modern.",
+            "keyPrinciples": ["Optimalisasi pemanfaatan sistem", "Efisiensi konversi energi", "Keberlanjutan fungsi"],
+            "realWorldAnalogy": "Bagaikan mobil listrik mutakhir yang memadukan aerodinamika, motor listrik, dan baterai pintar.",
+            "visualMetaphor": "Pohon yang berbuah lebat sebagai hasil dari akar yang kokoh dan batang yang sehat.",
+            "connections": ["node_1"],
+            "position": {"x": 340, "y": 280},
+            "comparisonWithOtherNodes": [
+                {"targetNode": "Fondasi Konsep", "differences": "Fokus pada produk dan manfaat akhir", "similarities": "Merupakan perwujudan konkret dari teori dasar"}
+            ],
+            "practicalApplications": ["Inovasi bioteknologi/teknik terapan", "Pemecahan studi kasus nyata"]
         }
     ]
     return json.dumps(fallback_nodes, ensure_ascii=False)
 
 def _generate_universal_game_config(doc_title: str, context: str) -> str:
     """
-    Menghasilkan konfigurasi gamifikasi kinestetik universal yang mencakup:
-    1. Mini-Game Kanvas 2D 'Bio-Organ Quest' / 'Concept Collector Quest' (tombol arah, serap molekul nutrisi/konsep).
-    2. Simulator Reaksi / Laboratorium berfitur Slider Variabel Suhu & pH (atau variabel spesifik subjek).
-    3. Reaktor Drag-and-Drop / Interactive Slot Assembly.
+    Menghasilkan konfigurasi Reaktor Drag & Drop Kinestetik yang diperluas (5-8 slot dan komponen).
+    Setiap slot memiliki deskripsi tugas dan komponen yang harus dipasangkan secara tepat.
     """
-    from app.services.gateway_service import AIGatewayService
-
-    is_bio = any(w in (doc_title + context[:500]).lower() for w in ["organ", "enzim", "sel", "nutrisi", "biologi", "tubuh", "darah", "jantung", "pencernaan"])
-    is_chem = any(w in (doc_title + context[:500]).lower() for w in ["reaksi", "larutan", "asam", "basa", "kimia", "senyawa", "katalis", "molekul", "atom"])
-    
-    prompt = f"""Kamu adalah Lead Game Designer edukasi adaptif kinestetik (Universal Kinesthetic Gamification Engine).
-Rancanglah GameConfig interaktif lengkap untuk materi: '{doc_title}'.
+    prompt = f"""Kamu adalah Lead Game Designer edukasi adaptif kinestetik.
+Rancanglah konfigurasi Reaktor Perakitan Konseptual (Reactor Drag & Drop Assembly) yang SANGAT KAYA berisi TEPAT 5 sampai 8 soket (slots) dan 5 sampai 8 komponen (components) untuk materi: '{doc_title}'.
 
 Materi:
 {context[:3500]}
 
-Format JSON WAJIB yang harus kamu hasilkan (HANYA JSON murni tanpa markdown pembuka/penutup):
+Format JSON WAJIB (HANYA JSON murni tanpa markdown pembuka/penutup):
 {{
-  "gameTitle": "Nama Game Menarik (contoh: Bio-Organ Quest: Sintesis Enzim)",
-  "gameType": "bio-quest",
+  "gameTitle": "Reaktor Perakitan Sistem: {doc_title}",
+  "gameType": "reactor-sim",
   "theme": {{
-    "heroName": "Nama Karakter (contoh: Sel Bio-Bot / Nano-Probe)",
-    "arenaBackground": "cellular",
-    "heroSprite": "🧬",
-    "missionObjective": "Gerakkan karakter dengan tombol arah untuk menyerap molekul nutrisi dan hindari inhibitor racun!"
-  }},
-  "collectorGame": {{
-    "playerSpeed": 6,
-    "targetScore": 100,
-    "timeLimitSec": 60,
-    "collectibles": [
-      {{
-        "id": "c1",
-        "label": "Nama Molekul / Konsep 1 (contoh: Glukosa / Substrat Inti)",
-        "category": "nutrient",
-        "points": 15,
-        "speed": 2.5,
-        "feedback": "Bagus! Nutrisi diserap untuk metabolisme!",
-        "color": "#1D5E4D"
-      }},
-      {{
-        "id": "c2",
-        "label": "Nama Inhibitor / Racun / Miskonsepsi (contoh: Racun Sianida / Radikal)",
-        "category": "toxic",
-        "points": -20,
-        "speed": 3.0,
-        "feedback": "Awas! Inhibitor merusak stabilitas sel!",
-        "color": "#BA1A1A"
-      }},
-      {{
-        "id": "c3",
-        "label": "Katalisator / Koenzim Penguat",
-        "category": "catalyst",
-        "points": 25,
-        "speed": 2.0,
-        "feedback": "Bonus laju reaksi berlipat ganda!",
-        "color": "#785308"
-      }}
-    ]
-  }},
-  "variableSimulator": {{
-    "simTitle": "Simulator Reaksi Enzim & Pengaruh Variabel",
-    "description": "Geser slider suhu dan pH untuk menguji kinetika laju reaksi dan denaturasi.",
-    "reactionOutputFormulaName": "Laju Reaksi Efektif (%)",
-    "optimalConditionsSummary": "Suhu optimal 37°C - 40°C pada pH netral 7.0 - 7.6",
-    "variables": [
-      {{
-        "id": "var_suhu",
-        "name": "Suhu Lingkungan",
-        "min": 0,
-        "max": 100,
-        "step": 1,
-        "defaultValue": 37,
-        "unit": "°C",
-        "optimalRange": [36, 42],
-        "explanation": "Suhu di bawah optimal memperlambat gerak molekul, suhu di atas 55°C mendenaturasi struktur protein enzim."
-      }},
-      {{
-        "id": "var_ph",
-        "name": "Derajat Keasaman (pH)",
-        "min": 1,
-        "max": 14,
-        "step": 0.5,
-        "defaultValue": 7.4,
-        "unit": "pH",
-        "optimalRange": [7.0, 8.0],
-        "explanation": "Perubahan pH mengubah muatan ionik pada sisi aktif enzim."
-      }}
-    ],
-    "dynamicObservations": [
-      {{
-        "condition": "suhu < 20",
-        "status": "inactive",
-        "ratePercent": 18,
-        "visualStateColor": "#5B8FB9",
-        "narrativeFeedback": "Suhu terlalu dingin! Gerak brownian substrat lambat, tumbukan efektif jarang terjadi."
-      }},
-      {{
-        "condition": "suhu >= 36 && suhu <= 42 && ph >= 7 && ph <= 8",
-        "status": "optimal",
-        "ratePercent": 98,
-        "visualStateColor": "#1D5E4D",
-        "narrativeFeedback": "Kondisi optimal tercapai! Laju reaksi maksimal, kompleks enzim-substrat terbentuk sempurna!"
-      }},
-      {{
-        "condition": "suhu > 55 || ph < 3 || ph > 11",
-        "status": "denatured",
-        "ratePercent": 0,
-        "visualStateColor": "#BA1A1A",
-        "narrativeFeedback": "Struktur konformasi sisi aktif rusak permanen (Denaturasi)! Substrat tidak dapat berikatan lagi."
-      }}
-    ]
+    "heroName": "Nano-Explorer Kognitif",
+    "arenaBackground": "chemical-lab",
+    "heroSprite": "⚗️",
+    "missionObjective": "Pasangkan 5 sampai 8 komponen konsep ke dalam soket reaktor yang tepat untuk mengaktifkan sistem!"
   }},
   "reactorDragDrop": {{
-    "reactorTitle": "Reaktor Perakitan Sistem Pembelajaran",
-    "instruction": "Pasangkan komponen ke dalam soket reaktor yang tepat untuk memicu reaksi sintesis!",
+    "reactorTitle": "Reaktor Sintesis & Perakitan {doc_title}",
+    "instruction": "Tarik (drag) setiap komponen materi dari panel kiri dan letakkan (drop) ke dalam soket reaktor yang sesuai!",
     "slots": [
-      {{ "id": "slot_1", "name": "Soket Substrat Utama", "acceptedItemId": "item_1", "description": "Menampung bahan baku reaksi" }},
-      {{ "id": "slot_2", "name": "Sisi Aktif Katalis", "acceptedItemId": "item_2", "description": "Menurunkan energi aktivasi" }},
-      {{ "id": "slot_3", "name": "Aseptor Energi", "acceptedItemId": "item_3", "description": "Menyerap luaran stabil" }}
+      {{ "id": "slot_1", "name": "Nama Soket 1", "acceptedItemId": "item_1", "description": "Fungsi/peran soket ini dalam sistem" }},
+      {{ "id": "slot_2", "name": "Nama Soket 2", "acceptedItemId": "item_2", "description": "Fungsi/peran soket 2" }},
+      {{ "id": "slot_3", "name": "Nama Soket 3", "acceptedItemId": "item_3", "description": "Fungsi/peran soket 3" }},
+      {{ "id": "slot_4", "name": "Nama Soket 4", "acceptedItemId": "item_4", "description": "Fungsi/peran soket 4" }},
+      {{ "id": "slot_5", "name": "Nama Soket 5", "acceptedItemId": "item_5", "description": "Fungsi/peran soket 5" }},
+      {{ "id": "slot_6", "name": "Nama Soket 6", "acceptedItemId": "item_6", "description": "Fungsi/peran soket 6" }}
     ],
     "components": [
-      {{ "id": "item_1", "label": "Komponen Substrat", "type": "reagent", "hint": "Pasangkan ke soket bahan baku" }},
-      {{ "id": "item_2", "label": "Enzim Katalisator", "type": "catalyst", "hint": "Pasangkan ke sisi aktif" }},
-      {{ "id": "item_3", "label": "Stabilisator Energi", "type": "stabilizer", "hint": "Pasangkan ke soket luaran" }}
+      {{ "id": "item_1", "label": "Nama Komponen 1", "type": "substrate", "hint": "Petunjuk penempatan komponen 1" }},
+      {{ "id": "item_2", "label": "Nama Komponen 2", "type": "catalyst", "hint": "Petunjuk penempatan komponen 2" }},
+      {{ "id": "item_3", "label": "Nama Komponen 3", "type": "regulator", "hint": "Petunjuk penempatan komponen 3" }},
+      {{ "id": "item_4", "label": "Nama Komponen 4", "type": "energy", "hint": "Petunjuk penempatan komponen 4" }},
+      {{ "id": "item_5", "label": "Nama Komponen 5", "type": "stabilizer", "hint": "Petunjuk penempatan komponen 5" }},
+      {{ "id": "item_6", "label": "Nama Komponen 6", "type": "product", "hint": "Petunjuk penempatan komponen 6" }}
     ]
   }}
 }}"""
 
     try:
-        reply = AIGatewayService.generate_chat([{"role": "user", "content": prompt}], model=settings.CHAT_MODEL, temperature=0.5)
+        reply = _call_gemini_text(prompt, temperature=0.5, json_mode=True)
         if reply:
             clean_json = re.sub(r"^```json\s*", "", reply.strip(), flags=re.IGNORECASE)
             clean_json = re.sub(r"\s*```$", "", clean_json)
+            match = re.search(r"\{\s*\"gameTitle\".*\}\s*", clean_json, re.DOTALL)
+            if match:
+                clean_json = match.group(0)
             parsed = json.loads(clean_json)
-            if "collectorGame" in parsed and "variableSimulator" in parsed:
+            if "reactorDragDrop" in parsed and isinstance(parsed["reactorDragDrop"].get("slots"), list) and len(parsed["reactorDragDrop"]["slots"]) >= 4:
                 return json.dumps(parsed, ensure_ascii=False)
     except Exception as e:
-        logger.warning(f"[AdaptiveAssets] Universal game config AI error: {e}")
+        logger.debug(f"[AdaptiveAssets] Universal game config AI error: {e}")
 
-    # Fallback config terstruktur universal adaptif
-    hero_title = "Bio-Organ Quest" if is_bio else "Kinetic Reactor Quest"
-    hero_sprite = "🧬" if is_bio else "⚗️" if is_chem else "🚀"
-    
+    # Fallback config terstruktur 6-slot reaktor
     fallback_config = {
-        "gameTitle": f"{hero_title}: {doc_title}",
-        "gameType": "bio-quest" if is_bio else "reactor-sim",
+        "gameTitle": f"Reaktor Perakitan Sistem: {doc_title}",
+        "gameType": "reactor-sim",
         "theme": {
             "heroName": "Nano-Explorer Kognitif",
-            "arenaBackground": "cellular" if is_bio else "chemical-lab",
-            "heroSprite": hero_sprite,
-            "missionObjective": "Gerakkan karakter dengan tombol arah / sentuhan untuk menyerap fragmen konsep nutrisi dan hindari racun!"
-        },
-        "collectorGame": {
-            "playerSpeed": 6,
-            "targetScore": 100,
-            "timeLimitSec": 60,
-            "collectibles": [
-                {
-                    "id": "col_1",
-                    "label": f"Nutrisi Inti: {doc_title[:20]}",
-                    "category": "nutrient",
-                    "points": 15,
-                    "speed": 2.2,
-                    "feedback": "Hebat! Nutrisi konsep diserap sempurna!",
-                    "color": "#1D5E4D"
-                },
-                {
-                    "id": "col_2",
-                    "label": "Koenzim Katalisator",
-                    "category": "catalyst",
-                    "points": 25,
-                    "speed": 2.8,
-                    "feedback": "Bonus energi aktivasi diperoleh!",
-                    "color": "#785308"
-                },
-                {
-                    "id": "col_3",
-                    "label": "Inhibitor / Miskonsepsi",
-                    "category": "toxic",
-                    "points": -20,
-                    "speed": 3.2,
-                    "feedback": "Awas! Inhibitor merusak kestabilan sistem!",
-                    "color": "#BA1A1A"
-                }
-            ]
-        },
-        "variableSimulator": {
-            "simTitle": "Simulator Reaksi Enzimatis & Kinetika Variabel",
-            "description": "Uji perubahan laju reaksi dengan menggeser slider variabel suhu dan derajat keasaman (pH).",
-            "reactionOutputFormulaName": "Laju Efisiensi Reaksi (%)",
-            "optimalConditionsSummary": "Suhu optimal 36°C - 42°C dengan pH netral 7.0 - 7.8",
-            "variables": [
-                {
-                    "id": "var_suhu",
-                    "name": "Suhu Reaksi",
-                    "min": 0,
-                    "max": 100,
-                    "step": 1,
-                    "defaultValue": 37,
-                    "unit": "°C",
-                    "optimalRange": [36, 42],
-                    "explanation": "Suhu mengontrol kinetika partikel; jika terlalu panas (>55°C) ikatan hidrogen enzim rusak (denaturasi)."
-                },
-                {
-                    "id": "var_ph",
-                    "name": "Derajat Keasaman (pH)",
-                    "min": 1,
-                    "max": 14,
-                    "step": 0.5,
-                    "defaultValue": 7.4,
-                    "unit": "pH",
-                    "optimalRange": [7.0, 8.0],
-                    "explanation": "pH mempengaruhi ionisasi gugus fungsional pada sisi aktif enzim."
-                }
-            ],
-            "dynamicObservations": [
-                {
-                    "condition": "suhu < 20",
-                    "status": "inactive",
-                    "ratePercent": 20,
-                    "visualStateColor": "#5B8FB9",
-                    "narrativeFeedback": "Suhu rendah menyebabkan molekul substrat bergerak lambat, tumbukan efektif berkurang."
-                },
-                {
-                    "condition": "suhu >= 36 && suhu <= 42 && ph >= 7 && ph <= 8",
-                    "status": "optimal",
-                    "ratePercent": 96,
-                    "visualStateColor": "#1D5E4D",
-                    "narrativeFeedback": "Kondisi optimal tercapai! Kompleks enzim-substrat terbentuk pada efisiensi puncak!"
-                },
-                {
-                    "condition": "suhu > 55 || ph < 3 || ph > 11",
-                    "status": "denatured",
-                    "ratePercent": 0,
-                    "visualStateColor": "#BA1A1A",
-                    "narrativeFeedback": "Terjadi Denaturasi! Struktur 3D sisi aktif enzim rusak dan kehilangan kemampuan katalitiknya."
-                }
-            ]
+            "arenaBackground": "chemical-lab",
+            "heroSprite": "⚗️",
+            "missionObjective": "Pasangkan 6 komponen konsep ke dalam soket reaktor yang tepat untuk mengaktifkan sistem!"
         },
         "reactorDragDrop": {
-            "reactorTitle": "Reaktor Kimia / Biologis Modular",
-            "instruction": "Pasangkan komponen ke soket yang sesuai untuk memicu sintesis reaksi.",
+            "reactorTitle": f"Reaktor Sintesis & Perakitan: {doc_title}",
+            "instruction": "Tarik (drag) setiap komponen materi dari panel kiri dan letakkan (drop) ke dalam soket reaktor yang sesuai!",
             "slots": [
-                { "id": "slot_1", "name": "Soket Substrat Primer", "acceptedItemId": "item_1", "description": "Menampung bahan baku materi" },
-                { "id": "slot_2", "name": "Sisi Aktif Katalisator", "acceptedItemId": "item_2", "description": "Mempercepat penurunan energi aktivasi" },
-                { "id": "slot_3", "name": "Kondensor Produk", "acceptedItemId": "item_3", "description": "Menampung luaran sintesis stabil" }
+                { "id": "slot_1", "name": "Soket Substrat Primer", "acceptedItemId": "item_1", "description": "Menampung bahan baku dasar reaksi" },
+                { "id": "slot_2", "name": "Sisi Aktif Katalisator", "acceptedItemId": "item_2", "description": "Menurunkan energi aktivasi sistem" },
+                { "id": "slot_3", "name": "Regulator Keseimbangan", "acceptedItemId": "item_3", "description": "Mengontrol laju dan arah proses" },
+                { "id": "slot_4", "name": "Kofaktor Penggerak Energi", "acceptedItemId": "item_4", "description": "Menyuplai energi kinetik molekuler" },
+                { "id": "slot_5", "name": "Stabilisator Buffer Lingkungan", "acceptedItemId": "item_5", "description": "Menjaga pH dan kondisi optimal" },
+                { "id": "slot_6", "name": "Kondensor Produk Akhir", "acceptedItemId": "item_6", "description": "Menampung hasil sintesis stabil" }
             ],
             "components": [
-                { "id": "item_1", "label": "Substrat Molekuler", "type": "substrate", "hint": "Masukkan ke soket primer" },
-                { "id": "item_2", "label": "Enzim Biokatalis", "type": "catalyst", "hint": "Pasangkan ke sisi aktif" },
-                { "id": "item_3", "label": "Stabilisator Buffer", "type": "buffer", "hint": "Pasangkan ke kondensor produk" }
+                { "id": "item_1", "label": f"Bahan Baku {doc_title[:18]}", "type": "substrate", "hint": "Pasangkan ke soket bahan baku dasar primer" },
+                { "id": "item_2", "label": "Biokatalis Enzimatis", "type": "catalyst", "hint": "Pasangkan ke sisi aktif katalisator" },
+                { "id": "item_3", "label": "Regulator Alosterik", "type": "regulator", "hint": "Pasangkan ke modul regulator keseimbangan" },
+                { "id": "item_4", "label": "Donor Energi ATP/GTP", "type": "energy", "hint": "Pasangkan ke soket kofaktor penggerak energi" },
+                { "id": "item_5", "label": "Larutan Penyangga Buffer", "type": "stabilizer", "hint": "Pasangkan ke stabilisator buffer lingkungan" },
+                { "id": "item_6", "label": "Produk Konversi Stabil", "type": "product", "hint": "Pasangkan ke kondensor produk akhir" }
             ]
         }
     }
     return json.dumps(fallback_config, ensure_ascii=False)
+
+def _generate_sorting_challenges(doc_title: str, context: str) -> str:
+    """
+    Menghasilkan tantangan kinestetik Process Sorting / Ordering interaktif
+    di mana siswa menyusun langkah-langkah proses atau kronologi materi secara runtut.
+    """
+    prompt = f"""Kamu adalah desainer pembelajaran aktif kinestetik (Kinesthetic Ordering Specialist).
+Berdasarkan materi: '{doc_title}', susunlah 3 sampai 5 tantangan menyusun urutan proses / kronologi / tahapan mekanisme (Sorting/Ordering Challenges).
+
+Konteks Materi:
+{context[:3800]}
+
+Kembalikan HANYA JSON array murni tanpa format markdown pembungkus:
+[
+  {{
+    "id": "sort_1",
+    "instruction": "Susunlah tahapan proses mekanisme ... dari awal hingga akhir dengan benar!",
+    "items": [
+      "Langkah Pertama: ...",
+      "Langkah Kedua: ...",
+      "Langkah Ketiga: ...",
+      "Langkah Keempat: ..."
+    ],
+    "correctOrder": [0, 1, 2, 3],
+    "hint": "Perhatikan inisiasi reaksi pada tahap awal.",
+    "explanation": "Penjelasan mengapa urutan ini yang tepat secara kaidah ilmiah..."
+  }}
+]"""
+
+    try:
+        reply = _call_gemini_text(prompt, temperature=0.4, json_mode=True)
+        if reply:
+            clean_json = re.sub(r"^```json\s*", "", reply.strip(), flags=re.IGNORECASE)
+            clean_json = re.sub(r"\s*```$", "", clean_json)
+            match = re.search(r"\[\s*\{.*\}\s*\]", clean_json, re.DOTALL)
+            if match:
+                clean_json = match.group(0)
+            parsed = json.loads(clean_json)
+            if isinstance(parsed, list) and len(parsed) >= 2:
+                valid_sorts = []
+                for idx, s in enumerate(parsed):
+                    if s.get("instruction") and isinstance(s.get("items"), list) and len(s["items"]) >= 3:
+                        valid_sorts.append({
+                            "id": s.get("id") or f"sort_{idx + 1}",
+                            "instruction": s["instruction"],
+                            "items": s["items"],
+                            "correctOrder": s.get("correctOrder") or list(range(len(s["items"]))),
+                            "hint": s.get("hint") or f"Analisis alur sebab-akibat pada topik {doc_title}.",
+                            "explanation": s.get("explanation") or f"Urutan ini mencerminkan tahapan logis konsep {doc_title}."
+                        })
+                if valid_sorts:
+                    return json.dumps(valid_sorts, ensure_ascii=False)
+    except Exception as e:
+        logger.debug(f"[AdaptiveAssets] Sorting challenges AI error: {e}")
+
+    # Fallback substantif 3 tantangan sorting
+    fallback_sorts = [
+        {
+            "id": "sort_1",
+            "instruction": f"Susunlah tahapan inisiasi dan aktivasi konsep '{doc_title}' secara kronologis!",
+            "items": [
+                "1. Pengenalan rangsangan/substrat pada sistem penerima",
+                "2. Pengikatan spesifik dan penurunan energi aktivasi",
+                "3. Terjadinya reaksi transformasi perantara",
+                "4. Pembentukan produk akhir yang stabil dan pelepasan sistem"
+            ],
+            "correctOrder": [0, 1, 2, 3],
+            "hint": "Mulailah dari interaksi awal antara bahan baku dan reseptor.",
+            "explanation": "Proses selalu diawali dengan pengenalan substrat, diikuti pembentukan kompleks transisi, reaksi katalitik, dan diakhiri dengan pelepasan produk."
+        },
+        {
+            "id": "sort_2",
+            "instruction": "Urutkan tahapan analisis pemecahan masalah (Problem-Solving) berdasarkan materi ini!",
+            "items": [
+                "Identifikasi parameter variabel dasar",
+                "Perumusan hipotesis sebab-akibat",
+                "Pengujian dengan manipulasi variabel terkontrol",
+                "Verifikasi hasil dan penarikan kesimpulan ilmiah"
+            ],
+            "correctOrder": [0, 1, 2, 3],
+            "hint": "Gunakan metode ilmiah dari observasi awal hingga simpulan.",
+            "explanation": "Metode ilmiah berurutan dari identifikasi masalah, hipotesis, eksperimen, hingga penarikan kesimpulan terverifikasi."
+        },
+        {
+            "id": "sort_3",
+            "instruction": "Susunlah tingkatan hierarki konseptual dari level mikroskopis ke aplikasi makro!",
+            "items": [
+                "Struktur molekuler dan ikatan kimiawi inti",
+                "Organisasi jaringan dan kompleksitas seluler",
+                "Dinamika sistem fisiologis terpadu",
+                "Implementasi teknologi dan ekosistem terapan"
+            ],
+            "correctOrder": [0, 1, 2, 3],
+            "hint": "Urutkan dari unit terkecil mikroskopik menuju skala ekosistem luas.",
+            "explanation": "Hierarki sains berjenjang dari skala molekul, sel, sistem organ, hingga aplikasi makro di lingkungan."
+        }
+    ]
+    return json.dumps(fallback_sorts, ensure_ascii=False)
 
 def _generate_fill_in_the_blank(doc_title: str, context: str) -> str:
     """
@@ -864,8 +867,6 @@ def _generate_fill_in_the_blank(doc_title: str, context: str) -> str:
     yang 100% universal untuk semua mata pelajaran sekolah K-12.
     Format output: JSON string berisi list FillBlankItem.
     """
-    from app.services.gateway_service import AIGatewayService
-
     prompt = f"""Kamu adalah desainer pembelajaran aktif kinestetik (Kinesthetic Learning Specialist).
 Berdasarkan judul materi '{doc_title}' dan isi teks kurikulum di bawah ini, rancanglah 4 sampai 6 butir tantangan kalimat berlubang (Fill-in-the-Blank Drag & Drop) yang menguji pemahaman konsep-konsep kunci esensial.
 
@@ -891,10 +892,13 @@ Kembalikan HANYA JSON array murni tanpa format markdown (tanpa ```json ... ```):
 ]"""
 
     try:
-        reply = AIGatewayService.generate_chat([{"role": "user", "content": prompt}], model=settings.CHAT_MODEL, temperature=0.4)
+        reply = _call_gemini_text(prompt, temperature=0.4, json_mode=True)
         if reply:
             clean_json = re.sub(r"^```json\s*", "", reply.strip(), flags=re.IGNORECASE)
             clean_json = re.sub(r"\s*```$", "", clean_json)
+            match = re.search(r"\[\s*\{.*\}\s*\]", clean_json, re.DOTALL)
+            if match:
+                clean_json = match.group(0)
             parsed = json.loads(clean_json)
             if isinstance(parsed, list) and len(parsed) >= 2:
                 valid_items = []
@@ -914,7 +918,7 @@ Kembalikan HANYA JSON array murni tanpa format markdown (tanpa ```json ... ```):
                 if valid_items:
                     return json.dumps(valid_items, ensure_ascii=False)
     except Exception as e:
-        logger.warning(f"[AdaptiveAssets] Fill-in-the-blank AI generation error: {e}")
+        logger.debug(f"[AdaptiveAssets] Fill-in-the-blank AI generation error: {e}")
 
     # Fallback berbasis ekstraksi kalimat materi
     paras = [p.strip() for p in context.split("\n\n") if len(p.strip()) > 30]
@@ -958,19 +962,16 @@ Kembalikan HANYA JSON array murni tanpa format markdown (tanpa ```json ... ```):
 def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
     """
     Menghasilkan seluruh aset adaptif pembelajaran terpadu untuk satu dokumen (Kelas) sekali saja:
-    1. Naskah Podcast Naratif Bertutur (Conversational Dialog Host & Pakar)
-    2. Real-Time Karaoke Transcript Timestamps JSON (Dual-Coding Theory)
-    3. Audio Podcast TTS (MP3/WAV) di disk uploads/podcasts/
-    4. Diagram Peta Konsep Mermaid Visual
-    5. Metadata Simpul Interaktif Visual (Kartu Komparasi & Visual Storyboard)
-    6. Gambar Infografis AI (atau Fallback SVG High-Res Edukasi)
-    7. AI Smart Flashcards JSON
-    8. Universal Multi-Subject Kinesthetic Game Config JSON (Bio-Organ Quest, Slider Suhu/pH, Reaktor)
-    
-    Seluruh siswa di kelas yang bersangkutan langsung mengakses aset ini tanpa membuang token lagi.
+    1. Playlist 3-5 Episode Podcast Narasi Tunggal (30-60 detik per episode)
+    2. File Audio MP3 per Episode di disk uploads/podcasts/{doc_id}_ep{N}.mp3
+    3. Metadata Simpul Interaktif Visual (React Flow: posisi, relasi, side-panel kaya)
+    4. Diagram Peta Konsep Mermaid Visual (Fallback)
+    5. Reaktor Drag-and-Drop Diperluas (5-8 Slot dan Komponen)
+    6. Tantangan Kinestetik Sorting / Ordering Kronologis
+    7. Tantangan Drag & Drop Fill-in-the-Blank
+    8. Smart Flashcards JSON
     """
     import os
-    import base64
     from app.models.document import GroundedDocument
     from app.services.gateway_service import AIGatewayService
     
@@ -984,36 +985,59 @@ def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
 
     summary_context = doc.raw_text[:8000] if len(doc.raw_text) > 8000 else doc.raw_text
 
-    # 1. GENERATE CONVERSATIONAL PODCAST SCRIPT & KARAOKE SYNC TIMESTAMPS
-    if not doc.podcast_script or not doc.karaoke_json or len(doc.podcast_script) < 200:
-        logger.info(f"[AdaptiveAssets] Menyusun naskah podcast dialog dan sinkronisasi karaoke untuk '{doc.title}'...")
-        script_text, karaoke_json_str = _generate_conversational_podcast(doc.title, summary_context)
-        doc.podcast_script = script_text
-        doc.karaoke_json = karaoke_json_str
-
-    # 2. GENERATE AUDIO FILE VIA TTS
-    audio_exists = any(
-        os.path.exists(os.path.join("uploads", "podcasts", f"{doc.id}_podcast.{ext}"))
-        for ext in ["mp3", "wav"]
-    )
-    if not doc.podcast_audio_url or not audio_exists:
+    # 1. GENERATE PODCAST EPISODES PLAYLIST & AUDIO PER EPISODE
+    episodes_data = []
+    if doc.podcast_episodes_json:
         try:
-            audio_filename = f"{doc.id}_podcast.mp3"
-            audio_filepath = os.path.join("uploads", "podcasts", audio_filename)
-            
-            # Bersihkan format dialog speaker tag untuk narasi audio yang halus
-            clean_tts_input = re.sub(r"\[?(Kak Ardi|Bu Citra|Host|Pakar)\]?:\s*", "", doc.podcast_script)
-            clean_tts_input = clean_tts_input[:3500]
-            
-            logger.info(f"[AdaptiveAssets] Mensintesis audio podcast via EduVoice TTS ({len(clean_tts_input)} karakter)...")
-            audio_bytes = AIGatewayService.generate_speech(text=clean_tts_input, voice=settings.TTS_VOICE, model=settings.TTS_MODEL)
-            if audio_bytes and len(audio_bytes) > 200:
-                with open(audio_filepath, "wb") as f:
-                    f.write(audio_bytes)
-                doc.podcast_audio_url = f"/api/v1/documents/{doc.id}/podcast-audio"
-                logger.info(f"[AdaptiveAssets] Audio podcast berhasil disimpan ke {audio_filepath} ({len(audio_bytes)} bytes)")
-        except Exception as e:
-            logger.warning(f"[AdaptiveAssets] TTS generation error: {e}")
+            episodes_data = json.loads(doc.podcast_episodes_json)
+        except Exception:
+            episodes_data = []
+
+    if not episodes_data:
+        logger.info(f"[AdaptiveAssets] Menyusun playlist podcast multi-episode untuk '{doc.title}'...")
+        episodes_data = _generate_podcast_episodes(doc.title, summary_context)
+
+    # Synthesize audio file for each episode
+    combined_scripts = []
+    for ep in episodes_data:
+        ep_order = ep.get("order", 1)
+        ep_script = ep.get("script", "")
+        combined_scripts.append(f"[{ep.get('title', f'Episode {ep_order}')}]\n{ep_script}")
+        
+        ep_audio_filename = f"{doc.id}_ep{ep_order}.mp3"
+        ep_audio_filepath = os.path.join("uploads", "podcasts", ep_audio_filename)
+        
+        if not os.path.exists(ep_audio_filepath) or os.path.getsize(ep_audio_filepath) < 200:
+            try:
+                logger.info(f"[AdaptiveAssets] Mensintesis audio Episode {ep_order} ({len(ep_script)} karakter)...")
+                audio_bytes = AIGatewayService.generate_speech(text=ep_script[:2500], voice=settings.TTS_VOICE, model=settings.TTS_MODEL)
+                if audio_bytes and len(audio_bytes) > 200:
+                    with open(ep_audio_filepath, "wb") as f:
+                        f.write(audio_bytes)
+                    logger.info(f"[AdaptiveAssets] Audio Episode {ep_order} disimpan ke {ep_audio_filepath}")
+            except Exception as e:
+                logger.warning(f"[AdaptiveAssets] Episode {ep_order} TTS error: {e}")
+
+        ep["audioUrl"] = f"/api/v1/documents/{doc.id}/podcast-audio?episode={ep_order}"
+
+    doc.podcast_episodes_json = json.dumps(episodes_data, ensure_ascii=False)
+    doc.podcast_script = "\n\n".join(combined_scripts)
+    doc.podcast_audio_url = f"/api/v1/documents/{doc.id}/podcast-audio?episode=1"
+
+    # Also keep legacy main audio fallback if needed
+    main_audio_path = os.path.join("uploads", "podcasts", f"{doc.id}_podcast.mp3")
+    first_ep_path = os.path.join("uploads", "podcasts", f"{doc.id}_ep1.mp3")
+    if os.path.exists(first_ep_path) and not os.path.exists(main_audio_path):
+        try:
+            with open(first_ep_path, "rb") as rf, open(main_audio_path, "wb") as wf:
+                wf.write(rf.read())
+        except Exception:
+            pass
+
+    # 2. GENERATE INTERACTIVE VISUAL NODES (React Flow)
+    if not doc.visual_nodes_json:
+        logger.info(f"[AdaptiveAssets] Menyusun metadata simpul visual interaktif React Flow untuk '{doc.title}'...")
+        doc.visual_nodes_json = _generate_visual_nodes_metadata(doc.title, summary_context, doc.mindmap_code or "")
 
     # 3. GENERATE VISUAL MINDMAP (Mermaid SVG Code)
     if not doc.mindmap_code:
@@ -1025,36 +1049,20 @@ def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
         except Exception as e:
             logger.warning(f"[AdaptiveAssets] Mindmap generation error: {e}")
 
-    # 4. GENERATE INTERACTIVE VISUAL NODES METADATA (Kartu Komparasi & Storyboard)
-    if not doc.visual_nodes_json:
-        logger.info(f"[AdaptiveAssets] Menyusun metadata simpul visual dan kartu komparasi untuk '{doc.title}'...")
-        doc.visual_nodes_json = _generate_visual_nodes_metadata(doc.title, summary_context, doc.mindmap_code or "")
-
-    # 5. GENERATE VISUAL INFOGRAPHIC IMAGE
-    image_exists = os.path.exists(os.path.join("uploads", "images", f"{doc.id}_visual.png"))
-    if not doc.visual_image_url or not image_exists:
-        try:
-            image_filename = f"{doc.id}_visual.png"
-            image_filepath = os.path.join("uploads", "images", image_filename)
-            
-            img_prompt = f"Detailed educational scientific infographic diagram of {doc.title}, clean biology physics chemistry visual charts, labelled biological or scientific mechanism, professional medical textbook illustration, no blurry text, high resolution"
-            img_res = AIGatewayService.generate_image(prompt=img_prompt, size="1024x1024", model=settings.IMAGE_GEN_MODEL)
-            
-            if img_res and "b64_json" in img_res and img_res["b64_json"]:
-                img_data = base64.b64decode(img_res["b64_json"])
-                with open(image_filepath, "wb") as f:
-                    f.write(img_data)
-                doc.visual_image_url = f"/api/v1/documents/{doc.id}/visual-image"
-                logger.info(f"[AdaptiveAssets] Visual infographic saved to {image_filepath}")
-            elif img_res and "url" in img_res:
-                doc.visual_image_url = img_res["url"]
-        except Exception as e:
-            logger.warning(f"[AdaptiveAssets] Image gen error: {e}")
-
-    # 6. GENERATE UNIVERSAL KINESTHETIC GAME CONFIG (Bio-Organ Quest, Slider Suhu/pH, Reaktor)
+    # 4. GENERATE EXPANDED 5-8 SLOT REACTOR DRAG-AND-DROP
     if not doc.game_config_json:
-        logger.info(f"[AdaptiveAssets] Merancang konfigurasi gamifikasi kinestetik universal untuk '{doc.title}'...")
+        logger.info(f"[AdaptiveAssets] Merancang Reaktor Perakitan Kinestetik (5-8 slot) untuk '{doc.title}'...")
         doc.game_config_json = _generate_universal_game_config(doc.title, summary_context)
+
+    # 5. GENERATE PROCESS SORTING / ORDERING CHALLENGES
+    if not doc.sorting_challenges_json:
+        logger.info(f"[AdaptiveAssets] Merancang tantangan kinestetik Process Sorting untuk '{doc.title}'...")
+        doc.sorting_challenges_json = _generate_sorting_challenges(doc.title, summary_context)
+
+    # 6. GENERATE UNIVERSAL FILL-IN-THE-BLANK
+    if not doc.fill_blank_json:
+        logger.info(f"[AdaptiveAssets] Merancang tantangan Fill-in-the-Blank untuk '{doc.title}'...")
+        doc.fill_blank_json = _generate_fill_in_the_blank(doc.title, summary_context)
 
     # 7. GENERATE AI FLASHCARDS
     if not doc.flashcards_json:
@@ -1077,23 +1085,37 @@ def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
         except Exception as e:
             logger.warning(f"[AdaptiveAssets] Flashcards error: {e}")
 
-    # 8. GENERATE UNIVERSAL FILL-IN-THE-BLANK KINESTHETIC CHALLENGES
-    if not doc.fill_blank_json:
-        logger.info(f"[AdaptiveAssets] Merancang tantangan kinestetik Drag & Drop Fill-in-the-Blank untuk '{doc.title}'...")
-        doc.fill_blank_json = _generate_fill_in_the_blank(doc.title, summary_context)
+    # 8. SET VISUAL INFOGRAPHIC IMAGE URL & GENERATE IF POSSIBLE
+    if not doc.visual_image_url:
+        doc.visual_image_url = f"/api/v1/documents/{doc.id}/visual-image"
+    
+    image_filepath = os.path.join("uploads", "images", f"{doc.id}_visual.png")
+    if not os.path.exists(image_filepath):
+        try:
+            import base64
+            img_prompt = f"Professional clean educational scientific infographic poster diagram of {doc.title}, high definition visual learning charts, medical and science textbook style, sharp labels"
+            img_res = AIGatewayService.generate_image(prompt=img_prompt, size="1024x1024", model=settings.IMAGE_GEN_MODEL)
+            if img_res and "b64_json" in img_res and img_res["b64_json"]:
+                img_data = base64.b64decode(img_res["b64_json"])
+                with open(image_filepath, "wb") as f:
+                    f.write(img_data)
+                logger.info(f"[AdaptiveAssets] Visual image saved to {image_filepath}")
+        except Exception as e:
+            logger.debug(f"[AdaptiveAssets] Image generation notice: {e}")
 
     db.commit()
     db.refresh(doc)
-    logger.info(f"[AdaptiveAssets] Selesai memproduksi seluruh aset adaptif pembelajaran terpadu untuk '{doc.title}' ({doc.id})")
+    logger.info(f"[AdaptiveAssets] Selesai memproduksi seluruh aset adaptif untuk '{doc.title}' ({doc.id})")
     return {
         "podcast_audio_url": doc.podcast_audio_url,
+        "podcast_episodes_json": doc.podcast_episodes_json,
         "podcast_script": doc.podcast_script,
-        "karaoke_json": doc.karaoke_json,
         "mindmap_code": doc.mindmap_code,
         "visual_nodes_json": doc.visual_nodes_json,
         "visual_image_url": doc.visual_image_url,
         "game_config_json": doc.game_config_json,
-        "flashcards_json": doc.flashcards_json,
+        "sorting_challenges_json": doc.sorting_challenges_json,
         "fill_blank_json": doc.fill_blank_json,
+        "flashcards_json": doc.flashcards_json,
     }
 

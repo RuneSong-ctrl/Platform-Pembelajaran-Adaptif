@@ -83,6 +83,7 @@ export function normalizeDocument(d: any): GroundedDocument {
     summary: d.summary || "",
     podcastScript: d.podcast_script || d.podcastScript || "",
     podcastAudioUrl: d.podcast_audio_url || d.podcastAudioUrl || "",
+    podcastEpisodesJson: d.podcast_episodes_json || d.podcastEpisodesJson || "",
     mindmapCode: d.mindmap_code || d.mindmapCode || "",
     visualImageUrl: d.visual_image_url || d.visualImageUrl || "",
     visualNodesJson: d.visual_nodes_json || d.visualNodesJson || "",
@@ -90,6 +91,7 @@ export function normalizeDocument(d: any): GroundedDocument {
     karaokeJson: d.karaoke_json || d.karaokeJson || "",
     gameConfigJson: d.game_config_json || d.gameConfigJson || "",
     fillBlankJson: d.fill_blank_json || d.fillBlankJson || "",
+    sortingChallengesJson: d.sorting_challenges_json || d.sortingChallengesJson || "",
   };
 }
 
@@ -349,6 +351,10 @@ export class ApiService {
     return this.request<any>(`/documents/${documentId}/generate-assets`, {
       method: "POST",
     });
+  }
+
+  static async fetchPodcastEpisodes(documentId: string) {
+    return this.request<any[]>(`/documents/${documentId}/podcast-episodes`);
   }
 
   // --- TASKS & AI QUIZ ---

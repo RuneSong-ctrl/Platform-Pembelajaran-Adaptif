@@ -21,6 +21,8 @@ class GroundedDocument(Base):
     visual_nodes_json = Column(Text, nullable=True)
     flashcards_json = Column(Text, nullable=True)
     karaoke_json = Column(Text, nullable=True)
+    podcast_episodes_json = Column(Text, nullable=True)
     game_config_json = Column(Text, nullable=True)
     fill_blank_json = Column(Text, nullable=True)
+    sorting_challenges_json = Column(Text, nullable=True)
     uploaded_at = Column(DateTime, default=datetime.utcnow)

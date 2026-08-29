@@ -101,12 +101,15 @@ class AIGatewayService:
         """
         Menghasilkan URL atau data gambar konsep materi menggunakan 9router Image Gen Endpoint.
         """
+        if not settings.IMAGE_GEN_ENDPOINT:
+            return None
+
         endpoint = AIGatewayService._normalize_endpoint(settings.IMAGE_GEN_ENDPOINT, "images/generations")
         api_key = settings.IMAGE_GEN_API_KEY or settings.GEMINI_API_KEY or settings.AI_API_KEY or ""
         selected_model = model or settings.IMAGE_GEN_MODEL
 
         if not endpoint or not api_key or not selected_model:
-            logger.warning("[AIGateway] Image Gen Endpoint, API Key, atau IMAGE_GEN_MODEL belum disetel di .env.")
+            logger.debug("[AIGateway] Image Gen Endpoint, API Key, atau IMAGE_GEN_MODEL belum disetel.")
             return None
 
         headers = {
@@ -122,17 +125,16 @@ class AIGatewayService:
         }
 
         try:
-            with httpx.Client(timeout=45.0) as client:
+            with httpx.Client(timeout=15.0) as client:
                 response = client.post(endpoint, json=payload, headers=headers)
                 if response.status_code == 200:
                     data = response.json()
-                    # Standar OpenAI: data: [{"url": "..."}] atau [{"b64_json": "..."}]
                     return data
                 else:
-                    logger.error(f"[AIGateway] Image Gen gagal status={response.status_code}: {response.text[:200]}")
+                    logger.debug(f"[AIGateway] Image Gen gagal status={response.status_code}: {response.text[:200]}")
                     return None
         except Exception as e:
-            logger.error(f"[AIGateway] Error koneksi Image Gen: {e}")
+            logger.debug(f"[AIGateway] Error koneksi Image Gen: {e}")
             return None
 
     @staticmethod
@@ -140,12 +142,15 @@ class AIGatewayService:
         """
         Menghasilkan vektor embedding menggunakan 9router Embeddings Endpoint.
         """
+        if not settings.EMBEDDING_ENDPOINT:
+            return None
+
         endpoint = AIGatewayService._normalize_endpoint(settings.EMBEDDING_ENDPOINT, "embeddings")
         api_key = settings.EMBEDDING_API_KEY or settings.GEMINI_API_KEY or settings.AI_API_KEY or ""
         selected_model = model or settings.EMBEDDING_MODEL or settings.GEMINI_EMBEDDING_MODEL
 
         if not endpoint or not api_key or not selected_model:
-            logger.warning("[AIGateway] Embedding Endpoint, API Key, atau EMBEDDING_MODEL belum disetel di .env.")
+            logger.debug("[AIGateway] Embedding Endpoint, API Key, atau EMBEDDING_MODEL belum disetel.")
             return None
 
         headers = {
@@ -158,18 +163,17 @@ class AIGatewayService:
         }
 
         try:
-            with httpx.Client(timeout=20.0) as client:
+            with httpx.Client(timeout=15.0) as client:
                 response = client.post(endpoint, json=payload, headers=headers)
                 if response.status_code == 200:
                     data = response.json()
-                    # Standar OpenAI: {"data": [{"embedding": [...]}, ...]}
                     if "data" in data and isinstance(data["data"], list):
                         return [item["embedding"] for item in data["data"]]
                 else:
-                    logger.error(f"[AIGateway] Embedding gagal status={response.status_code}: {response.text[:200]}")
+                    logger.debug(f"[AIGateway] Embedding gagal status={response.status_code}: {response.text[:200]}")
                     return None
         except Exception as e:
-            logger.error(f"[AIGateway] Error koneksi Embedding: {e}")
+            logger.debug(f"[AIGateway] Error koneksi Embedding: {e}")
             return None
 
     @staticmethod
@@ -177,12 +181,15 @@ class AIGatewayService:
         """
         Menghasilkan teks chat/kuis menggunakan 9router Chat Completions Endpoint.
         """
+        if not settings.CHAT_ENDPOINT:
+            return None
+
         endpoint = AIGatewayService._normalize_endpoint(settings.CHAT_ENDPOINT, "chat/completions")
         api_key = settings.CHAT_API_KEY or settings.GEMINI_API_KEY or settings.AI_API_KEY or ""
         selected_model = model or settings.CHAT_MODEL or settings.GEMINI_CHAT_MODEL
 
         if not endpoint or not api_key or not selected_model:
-            logger.warning("[AIGateway] Chat Endpoint, API Key, atau CHAT_MODEL belum disetel di .env.")
+            logger.debug("[AIGateway] Chat Endpoint, API Key, atau CHAT_MODEL belum disetel.")
             return None
 
         headers = {
@@ -196,7 +203,6 @@ class AIGatewayService:
             "stream": False
         }
 
-        # Daftar kandidat model: utamakan model dari .env/argumen, lalu fallback ke model flash aktif lain
         models_to_try = [selected_model]
         for alt in ["gemini/gemini-3.7-flash", "gemini/gemini-3.5-flash-lite"]:
             if alt not in models_to_try:
@@ -205,7 +211,7 @@ class AIGatewayService:
         for current_model in models_to_try:
             payload["model"] = current_model
             try:
-                with httpx.Client(timeout=45.0) as client:
+                with httpx.Client(timeout=20.0) as client:
                     response = client.post(endpoint, json=payload, headers=headers)
                     if response.status_code == 200:
                         try:
@@ -214,7 +220,6 @@ class AIGatewayService:
                             if choices:
                                 return choices[0].get("message", {}).get("content", "")
                         except Exception:
-                            # Fallback parsing SSE chunks if returned as text/event-stream
                             import json as _json
                             chunks = []
                             for line in response.text.split("\n"):
@@ -230,11 +235,10 @@ class AIGatewayService:
                             if chunks:
                                 return "".join(chunks)
                     elif response.status_code == 404:
-                        logger.warning(f"[AIGateway] Model '{current_model}' ditolak gateway 9router (404/tidak aktif). Beralih ke model alternatif...")
                         continue
                     else:
-                        logger.error(f"[AIGateway] Chat completions gagal status={response.status_code}: {response.text[:200]}")
+                        logger.debug(f"[AIGateway] Chat completions gagal status={response.status_code}")
             except Exception as e:
-                logger.error(f"[AIGateway] Error koneksi Chat ({current_model}): {e}")
+                logger.debug(f"[AIGateway] Error koneksi Chat ({current_model}): {e}")
 
         return None

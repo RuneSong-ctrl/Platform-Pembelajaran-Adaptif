@@ -127,6 +127,7 @@ export interface GroundedDocument {
   summary?: string;
   podcastScript?: string;
   podcastAudioUrl?: string;
+  podcastEpisodesJson?: string;
   mindmapCode?: string;
   visualImageUrl?: string;
   visualNodesJson?: string;
@@ -134,6 +135,45 @@ export interface GroundedDocument {
   karaokeJson?: string;
   gameConfigJson?: string;
   fillBlankJson?: string;
+  sortingChallengesJson?: string;
+}
+
+export interface PodcastEpisode {
+  id: string;
+  order: number;
+  title: string;
+  description: string;
+  script: string;
+  audioUrl?: string;
+  durationSec?: number;
+}
+
+export interface SortingChallenge {
+  id: string;
+  instruction: string;
+  items: string[];
+  correctOrder: number[];
+  hint?: string;
+  explanation?: string;
+}
+
+export interface ReactFlowNodeData {
+  id: string;
+  title: string;
+  category: string;
+  shortDefinition: string;
+  detailedExplanation?: string;
+  keyPrinciples: string[];
+  realWorldAnalogy: string;
+  visualMetaphor?: string;
+  practicalApplications: string[];
+  connections?: string[];
+  position?: { x: number; y: number };
+  comparisonWithOtherNodes?: {
+    targetNode: string;
+    differences: string;
+    similarities: string;
+  }[];
 }
 
 export interface FillBlankItem {
@@ -149,7 +189,7 @@ export interface KaraokeSegment {
   id: string;
   startSec: number;
   endSec: number;
-  speaker: string; // e.g. "Host (Kak Ardi)" | "Pakar (Bu Citra)"
+  speaker: string;
   role?: "host" | "expert" | string;
   text: string;
 }
@@ -159,8 +199,12 @@ export interface VisualNodeDetail {
   title: string;
   category: string;
   shortDefinition: string;
+  detailedExplanation?: string;
   keyPrinciples: string[];
   realWorldAnalogy: string;
+  visualMetaphor?: string;
+  connections?: string[];
+  position?: { x: number; y: number };
   comparisonWithOtherNodes?: {
     targetNode: string;
     differences: string;

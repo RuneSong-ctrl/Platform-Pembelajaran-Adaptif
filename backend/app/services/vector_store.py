@@ -69,7 +69,7 @@ def get_text_embedding(text: str) -> List[float]:
     if not text.strip():
         return [0.0] * 128
     
-    # 1. Coba via 9router / Custom Embedding Gateway
+    # 1. Coba via 9router / Custom Embedding Gateway jika endpoint diatur
     if settings.EMBEDDING_ENDPOINT and (settings.EMBEDDING_API_KEY or settings.GEMINI_API_KEY):
         try:
             from app.services.gateway_service import AIGatewayService
@@ -84,14 +84,19 @@ def get_text_embedding(text: str) -> List[float]:
         try:
             from google import genai
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
-            result = client.models.embed_content(
-                model=settings.GEMINI_EMBEDDING_MODEL,
-                contents=text
-            )
-            if hasattr(result, "embedding") and result.embedding:
-                return result.embedding.values
-            elif hasattr(result, "embeddings") and result.embeddings:
-                return result.embeddings[0].values
+            model_name = settings.clean_embedding_model
+            for candidate in [model_name, "gemini-embedding-001", "gemini-embedding-2"]:
+                try:
+                    result = client.models.embed_content(
+                        model=candidate,
+                        contents=text
+                    )
+                    if hasattr(result, "embedding") and result.embedding:
+                        return result.embedding.values
+                    elif hasattr(result, "embeddings") and result.embeddings:
+                        return result.embeddings[0].values
+                except Exception:
+                    continue
         except Exception as e:
             logger.warning(f"[VectorStore] Gemini Embedding API error, falling back to local vectorizer: {e}")
     
@@ -107,7 +112,7 @@ def get_batch_text_embeddings(texts: List[str], batch_size: int = 30) -> List[Li
 
     all_embeddings: List[List[float]] = []
 
-    # 1. Coba batch via 9router / Custom Embedding Gateway
+    # 1. Coba batch via 9router / Custom Embedding Gateway jika endpoint diatur
     if settings.EMBEDDING_ENDPOINT and (settings.EMBEDDING_API_KEY or settings.GEMINI_API_KEY):
         try:
             from app.services.gateway_service import AIGatewayService
@@ -117,7 +122,6 @@ def get_batch_text_embeddings(texts: List[str], batch_size: int = 30) -> List[Li
                 if vecs and len(vecs) == len(batch):
                     all_embeddings.extend(vecs)
                 else:
-                    # Fallback jika batch parsial gagal
                     for t in batch:
                         all_embeddings.append(get_text_embedding(t))
             if len(all_embeddings) == len(texts):
@@ -126,7 +130,33 @@ def get_batch_text_embeddings(texts: List[str], batch_size: int = 30) -> List[Li
             logger.warning(f"[VectorStore] Batch embedding gateway error: {e}")
             all_embeddings = []
 
-    # 2. Fallback per item jika batch gagal
+    # 2. Coba batch via Google Gemini SDK langsung
+    if settings.GEMINI_API_KEY and not settings.GEMINI_API_KEY.startswith("sk-"):
+        try:
+            from google import genai
+            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            model_name = settings.clean_embedding_model
+            for i in range(0, len(texts), batch_size):
+                batch = texts[i:i + batch_size]
+                for candidate in [model_name, "gemini-embedding-001", "gemini-embedding-2"]:
+                    try:
+                        result = client.models.embed_content(
+                            model=candidate,
+                            contents=batch
+                        )
+                        if hasattr(result, "embeddings") and result.embeddings:
+                            batch_vecs = [e.values for e in result.embeddings]
+                            all_embeddings.extend(batch_vecs)
+                            break
+                    except Exception:
+                        continue
+            if len(all_embeddings) == len(texts):
+                return all_embeddings
+        except Exception as e:
+            logger.warning(f"[VectorStore] Gemini SDK batch embedding error: {e}")
+            all_embeddings = []
+
+    # 3. Fallback per item jika batch gagal
     for t in texts:
         all_embeddings.append(get_text_embedding(t))
     return all_embeddings

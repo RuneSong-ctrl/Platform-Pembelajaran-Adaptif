@@ -15,8 +15,10 @@ class DocumentBase(BaseModel):
     visual_nodes_json: Optional[str] = None
     flashcards_json: Optional[str] = None
     karaoke_json: Optional[str] = None
+    podcast_episodes_json: Optional[str] = None
     game_config_json: Optional[str] = None
     fill_blank_json: Optional[str] = None
+    sorting_challenges_json: Optional[str] = None
 
 class DocumentCreate(DocumentBase):
     pass
