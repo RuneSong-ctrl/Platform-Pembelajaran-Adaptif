@@ -459,18 +459,16 @@ def generate_visual_mindmap(concept: str, context: Optional[str] = None) -> Dict
 
 def _generate_podcast_episodes(doc_title: str, context: str) -> List[Dict[str, Any]]:
     """
-    Menghasilkan playlist 3-5 episode podcast pendek (30-60 detik per episode)
-    dalam format narasi tunggal (solo narrator) edukatif yang komunikatif.
+    Menghasilkan playlist 3-5 episode podcast mendalam dan komprehensif (minimal 1.5 - 2.5 menit per episode)
+    dalam format narasi tunggal (solo narrator) edukatif yang komunikatif, terstruktur, dan kaya analogi.
     """
-    prompt = f"""Kamu adalah narator podcast sains edukasi profesional (Solo Narrator).
-Berdasarkan modul ajar: '{doc_title}', rancanglah playlist 3 sampai 5 episode podcast pendek (setiap episode berdurasi ~30-60 detik, sekitar 80-160 kata) dengan gaya narasi tunggal yang mengalir, komunikatif, dan mudah dipahami siswa.
+    prompt = f"""Kamu adalah narator podcast edukasi adaptif profesional kelas dunia (Solo Narrator).
+Berdasarkan modul ajar: '{doc_title}', rancanglah playlist 3 sampai 5 episode podcast MENDALAM, DETAIL, dan KOMPREHENSIF.
 
-Konteks Modul Ajar:
-{context[:4500]}
-
-ATURAN WAJIB:
-- Buat 3 sampai 5 episode berurutan yang membedah konsep dari fondasi hingga aplikasi nyata.
-- Format narasi tunggal: teks tuturan murni tanpa dialog ganda, tanpa tag speaker, tanpa tanda markdown bintang '**' atau pagar '#'.
+PERSYARATAN WAJIB KONTEN & DURASI:
+- Setiap episode WAJIB berdurasi minimal 1.5 menit (90 sampai 150 detik), dengan panjang naskah sekitar 220 sampai 350 kata (1.400 - 2.200 karakter).
+- DILARANG KERAS membuat naskah pendek/rangkuman dangkal. Setiap episode harus membedah topik secara tuntas, menjelaskan mekanisme sebab-akibat, memberikan analogi konkret dunia nyata, dan mengupas studi kasus nyata yang relevan.
+- Format narasi tunggal: teks tuturan murni yang dibacakan mengalir oleh seorang pembimbing ahli yang ramah dan inspiratif, tanpa tag pembicara, tanpa dialog, tanpa tanda markdown bintang '**' atau pagar '#'.
 - Kembalikan HANYA JSON array murni tanpa format markdown pembungkus.
 
 Format JSON:
@@ -478,15 +476,18 @@ Format JSON:
   {{
     "id": "ep_1",
     "order": 1,
-    "title": "Episode 1: Judul Sub-Topik Fondasi",
-    "description": "Ringkasan 1 kalimat tentang apa yang dipelajari di episode ini.",
-    "script": "Halo rekan belajar! Di episode pertama ini kita akan membedah prinsip dasar...",
-    "durationSec": 45
+    "title": "Episode 1: [Judul Sub-Topik Fondasi & Cara Kerja Inti]",
+    "description": "Ringkasan 1-2 kalimat tentang konsep mendalam yang dibedah di episode ini.",
+    "script": "Halo rekan pembelajar adaptif! Selamat datang di episode pertama... (naskah tuturan lengkap, mengalir, dan mendalam minimal 220-350 kata)...",
+    "durationSec": 100
   }}
-]"""
+]
+
+Konteks Modul Ajar:
+{context[:5500]}"""
 
     try:
-        reply = _call_gemini_text(prompt, temperature=0.5, json_mode=True)
+        reply = _call_gemini_text(prompt, temperature=0.6, json_mode=True)
         if reply:
             clean_json = re.sub(r"^```json\s*", "", reply.strip(), flags=re.IGNORECASE)
             clean_json = re.sub(r"\s*```$", "", clean_json)
@@ -499,12 +500,12 @@ Format JSON:
                 for idx, ep in enumerate(parsed):
                     if ep.get("title") and ep.get("script"):
                         words = len(ep["script"].split())
-                        est_sec = max(25, min(90, int(words / 2.5)))
+                        est_sec = max(90, min(180, int(words / 2.2)))
                         valid_eps.append({
                             "id": ep.get("id") or f"ep_{idx + 1}",
                             "order": idx + 1,
                             "title": ep.get("title") or f"Episode {idx + 1}: {doc_title}",
-                            "description": ep.get("description") or f"Pembahasan sub-topik ke-{idx + 1} dari modul {doc_title}.",
+                            "description": ep.get("description") or f"Pembahasan mendalam sub-topik ke-{idx + 1} dari modul {doc_title}.",
                             "script": re.sub(r"[*#_`~>\[\]]+", " ", ep["script"]).strip(),
                             "durationSec": ep.get("durationSec") or est_sec
                         })
@@ -513,31 +514,39 @@ Format JSON:
     except Exception as e:
         logger.debug(f"[AdaptiveAssets] Podcast episodes AI generation error: {e}")
 
-    # Fallback substantif jika AI offline
-    paras = [p.strip() for p in context.split("\n\n") if len(p.strip()) > 40]
+    # Fallback substantif mendalam jika AI offline
+    paras = [p.strip() for p in context.split("\n\n") if len(p.strip()) > 60]
     if not paras:
         paras = [f"Pembahasan komprehensif mengenai materi {doc_title}."]
 
     fallback_eps = []
     titles = [
-        f"Episode 1: Fondasi & Hakikat {doc_title}",
-        f"Episode 2: Mekanisme & Hubungan Sistemik",
-        f"Episode 3: Analisis Kasus & Dinamika Reaksi",
-        f"Episode 4: Aplikasi Nyata & Sintesis Konsep"
+        f"Episode 1: Fondasi Filosofis & Hakikat {doc_title}",
+        f"Episode 2: Mekanisme Inti & Interaksi Sistemik",
+        f"Episode 3: Analisis Kasus Nyata & Dinamika Masalah",
+        f"Episode 4: Implementasi Strategis & Sintesis Masa Depan"
     ]
     descs = [
-        f"Memahami definisi dasar dan komponen kunci dari {doc_title}.",
-        f"Menelusuri bagaimana setiap bagian saling berinteraksi secara konsisten.",
-        f"Menganalisis skenario perubahan variabel dan dampaknya pada sistem.",
-        f"Menghubungkan teori dengan implementasi teknologi dan kehidupan sehari-hari."
+        f"Membedah latar belakang mendasar, ruang lingkup konsep, dan urgensi mempelajari {doc_title}.",
+        f"Menguraikan proses demi proses bagaimana komponen saling terhubung dan bekerja secara nyata.",
+        f"Mempelajari skenario nyata di lapangan, tantangan kritis, dan solusi adaptif yang dapat diterapkan.",
+        f"Menarik benang merah ke penerapan teknologi praktis dan keterampilan abad ke-21."
     ]
 
     count = min(4, max(2, len(paras)))
     for idx in range(count):
         p_text = paras[idx] if idx < len(paras) else paras[0]
-        script_body = f"Halo rekan belajar adaptif! Di episode ke-{idx + 1} ini, kita fokus membahas {titles[idx].split(': ')[1]}. {p_text[:280]}. Pahami prinsip kuncinya agar konsep ini semakin melekat dalam pemikiranmu. Selamat melanjutkan ke episode berikutnya!"
+        script_body = (
+            f"Halo rekan pembelajar adaptif! Selamat datang di episode ke-{idx + 1} dari seri podcast modul {doc_title}. "
+            f"Pada sesi kali ini, fokus utama kita adalah membedah {titles[idx].split(': ')[1]}. "
+            f"Mari kita mulai dari pemahaman mendasar: {p_text}. "
+            f"Ketika kita menelaah konsep ini lebih dalam, kita melihat bahwa setiap unsur memiliki peranan yang sangat krusial dalam menjaga keseimbangan sistem. "
+            f"Bayangkan seperti sebuah mesin presisi tinggi, di mana setiap roda gigi harus selaras agar hasil akhir dapat tercapai secara optimal. "
+            f"Dalam implementasi praktisnya, pemahaman ini memberikan fondasi yang kokoh bagi kita untuk menganalisis berbagai skenario kompleks dan mengambil keputusan berbasis bukti yang tepat. "
+            f"Tetap fokus, renungkan prinsip kuncinya, dan mari kita lanjutkan eksplorasi konsep berikutnya di episode mendatang!"
+        )
         words = len(script_body.split())
-        est_sec = max(25, min(75, int(words / 2.5)))
+        est_sec = max(90, min(150, int(words / 2.2)))
         fallback_eps.append({
             "id": f"ep_{idx + 1}",
             "order": idx + 1,
@@ -980,8 +989,10 @@ def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
         logger.error(f"[AdaptiveAssets] Document {doc_id} not found.")
         return {}
 
-    os.makedirs("uploads/podcasts", exist_ok=True)
-    os.makedirs("uploads/images", exist_ok=True)
+    podcasts_dir = os.path.join(settings.UPLOADS_DIR, "podcasts")
+    images_dir = os.path.join(settings.UPLOADS_DIR, "images")
+    os.makedirs(podcasts_dir, exist_ok=True)
+    os.makedirs(images_dir, exist_ok=True)
 
     summary_context = doc.raw_text[:8000] if len(doc.raw_text) > 8000 else doc.raw_text
 
@@ -996,6 +1007,8 @@ def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
     if not episodes_data:
         logger.info(f"[AdaptiveAssets] Menyusun playlist podcast multi-episode untuk '{doc.title}'...")
         episodes_data = _generate_podcast_episodes(doc.title, summary_context)
+        doc.podcast_episodes_json = json.dumps(episodes_data, ensure_ascii=False)
+        db.commit()
 
     # Synthesize audio file for each episode
     combined_scripts = []
@@ -1004,17 +1017,28 @@ def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
         ep_script = ep.get("script", "")
         combined_scripts.append(f"[{ep.get('title', f'Episode {ep_order}')}]\n{ep_script}")
         
-        ep_audio_filename = f"{doc.id}_ep{ep_order}.mp3"
-        ep_audio_filepath = os.path.join("uploads", "podcasts", ep_audio_filename)
+        wav_filepath = os.path.join(podcasts_dir, f"{doc.id}_ep{ep_order}.wav")
+        mp3_filepath = os.path.join(podcasts_dir, f"{doc.id}_ep{ep_order}.mp3")
         
-        if not os.path.exists(ep_audio_filepath) or os.path.getsize(ep_audio_filepath) < 200:
+        needs_synth = (
+            not os.path.exists(wav_filepath) or os.path.getsize(wav_filepath) < 200
+        ) and (
+            not os.path.exists(mp3_filepath) or os.path.getsize(mp3_filepath) < 200
+        )
+        
+        if needs_synth:
             try:
-                logger.info(f"[AdaptiveAssets] Mensintesis audio Episode {ep_order} ({len(ep_script)} karakter)...")
-                audio_bytes = AIGatewayService.generate_speech(text=ep_script[:2500], voice=settings.TTS_VOICE, model=settings.TTS_MODEL)
+                logger.info(f"[AdaptiveAssets] Mensintesis audio Gemini Orus Episode {ep_order} ({len(ep_script)} karakter)...")
+                audio_bytes = AIGatewayService.generate_speech(text=ep_script, voice="Orus", model="gemini-3.1-flash-tts-preview")
                 if audio_bytes and len(audio_bytes) > 200:
-                    with open(ep_audio_filepath, "wb") as f:
+                    ext = ".wav" if audio_bytes.startswith(b"RIFF") else ".mp3"
+                    target_fp = os.path.join(podcasts_dir, f"{doc.id}_ep{ep_order}{ext}")
+                    with open(target_fp, "wb") as f:
                         f.write(audio_bytes)
-                    logger.info(f"[AdaptiveAssets] Audio Episode {ep_order} disimpan ke {ep_audio_filepath}")
+                    if ext == ".wav":
+                        with open(mp3_filepath, "wb") as f:
+                            f.write(audio_bytes)
+                    logger.info(f"[AdaptiveAssets] Audio Episode {ep_order} disimpan ({len(audio_bytes)} bytes)")
             except Exception as e:
                 logger.warning(f"[AdaptiveAssets] Episode {ep_order} TTS error: {e}")
 
@@ -1023,10 +1047,11 @@ def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
     doc.podcast_episodes_json = json.dumps(episodes_data, ensure_ascii=False)
     doc.podcast_script = "\n\n".join(combined_scripts)
     doc.podcast_audio_url = f"/api/v1/documents/{doc.id}/podcast-audio?episode=1"
+    db.commit()
 
     # Also keep legacy main audio fallback if needed
-    main_audio_path = os.path.join("uploads", "podcasts", f"{doc.id}_podcast.mp3")
-    first_ep_path = os.path.join("uploads", "podcasts", f"{doc.id}_ep1.mp3")
+    main_audio_path = os.path.join(podcasts_dir, f"{doc.id}_podcast.mp3")
+    first_ep_path = os.path.join(podcasts_dir, f"{doc.id}_ep1.mp3")
     if os.path.exists(first_ep_path) and not os.path.exists(main_audio_path):
         try:
             with open(first_ep_path, "rb") as rf, open(main_audio_path, "wb") as wf:

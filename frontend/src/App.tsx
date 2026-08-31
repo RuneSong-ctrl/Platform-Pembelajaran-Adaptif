@@ -9,6 +9,8 @@ import {
   StudentHomePage,
   AdaptiveLearnPage,
   StudentClassPage,
+  ClassDetailPage,
+  ClassMaterialReaderPage,
   StudentAIPage,
   StudentProfilePage,
   LearningPathwayStatusPage,
@@ -72,6 +74,22 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={["SISWA"]}>
               <StudentClassPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/class/:classId"
+          element={
+            <ProtectedRoute allowedRoles={["SISWA"]}>
+              <ClassDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/class/:classId/materi/:docId"
+          element={
+            <ProtectedRoute allowedRoles={["SISWA"]}>
+              <ClassMaterialReaderPage />
             </ProtectedRoute>
           }
         />

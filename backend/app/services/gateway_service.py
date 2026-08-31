@@ -19,8 +19,65 @@ class AIGatewayService:
         return clean
 
     @staticmethod
+    def _synthesize_gemini_tts(text: str, voice: Optional[str] = None) -> Optional[bytes]:
+        """Sintesis suara vokal resmi Google Gemini AI (model: gemini-3.1-flash-tts-preview, suara: Orus)."""
+        api_key = settings.GEMINI_API_KEY or settings.TTS_API_KEY or settings.AI_API_KEY or ""
+        if not api_key:
+            return None
+        try:
+            import io
+            import wave
+            import re
+            from google import genai
+            from google.genai import types
+
+            selected_voice = voice or settings.TTS_VOICE or "Orus"
+            clean_text = re.sub(r"[*#_`~>\[\]\n\r]+", " ", text).strip()
+            if not clean_text:
+                clean_text = "Selamat datang di podcast pembelajaran adaptif."
+
+            client = genai.Client(api_key=api_key)
+            config = types.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name=selected_voice
+                        )
+                    )
+                )
+            )
+
+            resp = client.models.generate_content(
+                model="gemini-3.1-flash-tts-preview",
+                contents=clean_text[:2500],
+                config=config
+            )
+
+            pcm_data = None
+            if resp.candidates and resp.candidates[0].content:
+                for part in resp.candidates[0].content.parts:
+                    if part.inline_data:
+                        pcm_data = part.inline_data.data
+                        break
+
+            if pcm_data:
+                wav_buf = io.BytesIO()
+                with wave.open(wav_buf, "wb") as wav_file:
+                    wav_file.setnchannels(1)
+                    wav_file.setsampwidth(2)
+                    wav_file.setframerate(24000)
+                    wav_file.writeframes(pcm_data)
+                wav_bytes = wav_buf.getvalue()
+                logger.info(f"[AIGateway] Berhasil memproduksi audio Gemini TTS ({selected_voice}): {len(wav_bytes)} bytes")
+                return wav_bytes
+        except Exception as e:
+            logger.warning(f"[AIGateway] Gemini TTS ({voice or 'Orus'}) error: {e}. Beralih ke fallback...")
+        return None
+
+    @staticmethod
     def _synthesize_edge_tts(text: str, voice: Optional[str] = None) -> Optional[bytes]:
-        """Mesin sintesis suara bahasa Indonesia alami (HD) bebas kuota dan bebas error."""
+        """Mesin sintesis suara cadangan bahasa Indonesia alami (HD) bebas kuota dan bebas error."""
         try:
             import asyncio
             import edge_tts
@@ -29,7 +86,7 @@ class AIGatewayService:
             import re
 
             selected_v = "id-ID-ArdiNeural"
-            if voice and any(w in voice.lower() for w in ["female", "gadis", "wanita"]):
+            if voice and any(w in voice.lower() for w in ["female", "gadis", "wanita", "kore", "aoede"]):
                 selected_v = "id-ID-GadisNeural"
 
             clean_text = re.sub(r"[*#_`~>\[\]\n\r]+", " ", text).strip()
@@ -56,16 +113,21 @@ class AIGatewayService:
     @staticmethod
     def generate_speech(text: str, voice: Optional[str] = None, model: Optional[str] = None) -> Optional[bytes]:
         """
-        Menghasilkan audio biner (MP3) dari teks materi/podcast.
+        Menghasilkan audio biner (WAV / MP3) dari teks materi/podcast menggunakan model Gemini TTS (Orus).
         """
+        selected_voice = voice or settings.TTS_VOICE or "Orus"
+
+        # 1. Prioritas Utama: Model Resmi Gemini TTS dengan Suara Orus
+        gemini_audio = AIGatewayService._synthesize_gemini_tts(text, selected_voice)
+        if gemini_audio and len(gemini_audio) > 300:
+            return gemini_audio
+
+        # 2. External Gateway (jika dikonfigurasi)
         endpoint = AIGatewayService._normalize_endpoint(settings.TTS_ENDPOINT, "audio/speech")
         api_key = settings.TTS_API_KEY or settings.GEMINI_API_KEY or settings.AI_API_KEY or ""
         selected_model = model or settings.TTS_MODEL
-        selected_voice = voice or settings.TTS_VOICE
 
-        # Jika endpoint gateway eksternal dikonfigurasi dan bukan router yang tidak punya kredensial audio
         if endpoint and "router" not in endpoint.lower() and api_key and selected_model:
-            # Format model with voice for Gemini TTS if applicable
             target_model = selected_model
             if target_model and "gemini" in target_model.lower() and "tts" in target_model.lower():
                 if selected_voice and not target_model.endswith(f"/{selected_voice}"):
@@ -88,12 +150,10 @@ class AIGatewayService:
                     response = client.post(endpoint, json=payload, headers=headers)
                     if response.status_code == 200 and len(response.content) > 300:
                         return response.content
-                    else:
-                        logger.warning(f"[AIGateway] Gateway TTS respons status={response.status_code}. Beralih ke mesin vokal alami...")
             except Exception as e:
-                logger.warning(f"[AIGateway] Error koneksi Gateway TTS: {e}. Beralih ke mesin vokal alami...")
+                logger.warning(f"[AIGateway] Error koneksi Gateway TTS: {e}")
 
-        # Gunakan sintesis vokal bahasa Indonesia berkualitas tinggi (cepat & jernih)
+        # 3. Cadangan Cepat & Jernih
         return AIGatewayService._synthesize_edge_tts(text, selected_voice)
 
     @staticmethod

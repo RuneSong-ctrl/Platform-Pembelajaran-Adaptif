@@ -1,10 +1,13 @@
+import os
 import uuid
 import io
 import re
 import pypdf
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form, BackgroundTasks
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.document import GroundedDocument
 from app.models.classroom import Classroom
@@ -36,6 +39,75 @@ def _clean_filename_to_title(filename: str) -> str:
     base = re.sub(r"\.[a-zA-Z0-9]+$", "", filename)
     clean = re.sub(r"[_\-]+", " ", base).strip()
     return clean.title() if clean else "Modul Pembelajaran"
+
+def _build_pdf_from_text(title: str, text: str, doc_id: str) -> str:
+    """Builds a formatted PDF document on disk using reportlab and returns the relative /uploads/ path."""
+    uploads_dir = settings.UPLOADS_DIR
+    os.makedirs(uploads_dir, exist_ok=True)
+    
+    clean_title = re.sub(r"[^a-zA-Z0-9_-]", "_", title)[:30]
+    safe_filename = f"{doc_id}_{clean_title}.pdf"
+    target_path = os.path.join(uploads_dir, safe_filename)
+    
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+
+        doc_pdf = SimpleDocTemplate(
+            target_path,
+            pagesize=letter,
+            rightMargin=36,
+            leftMargin=36,
+            topMargin=36,
+            bottomMargin=36
+        )
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'DocTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            leading=20,
+            textColor=colors.HexColor('#25134A'),
+            spaceAfter=10,
+        )
+        meta_style = ParagraphStyle(
+            'DocMeta',
+            parent=styles['Normal'],
+            fontSize=9,
+            leading=12,
+            textColor=colors.HexColor('#5A5E70'),
+            spaceAfter=12,
+        )
+        body_style = ParagraphStyle(
+            'DocBody',
+            parent=styles['Normal'],
+            fontSize=10,
+            leading=14,
+            textColor=colors.HexColor('#1C1E26'),
+            spaceAfter=8,
+        )
+
+        story = [
+            Paragraph(f"<b>{title}</b>", title_style),
+            Paragraph("<i>Modul Pembelajaran Kurikulum Terintegrasi &bull; Platform EduAdapt</i>", meta_style),
+            HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E3DBF8'), spaceAfter=14),
+        ]
+        
+        for line in (text or "Materi Belajar").split("\n"):
+            line_str = line.strip()
+            if not line_str:
+                story.append(Spacer(1, 6))
+                continue
+            sanitized = line_str.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            story.append(Paragraph(sanitized, body_style))
+
+        doc_pdf.build(story)
+        return f"/uploads/{safe_filename}"
+    except Exception as e:
+        print(f"[Documents] PDF build error: {e}")
+        return f"/uploads/{safe_filename}"
 
 @router.get("", response_model=List[DocumentResponse])
 def get_documents(classroom_id: str = None, db: Session = Depends(get_db)):
@@ -97,11 +169,20 @@ async def upload_document_file(
     
     doc_summary = summary.strip() if (summary and summary.strip()) else f"Modul ajar: {doc_title} (Sumber: {file.filename})"
     
+    # Save uploaded physical file to disk
+    uploads_dir = settings.UPLOADS_DIR
+    os.makedirs(uploads_dir, exist_ok=True)
+    clean_fn = re.sub(r"[^a-zA-Z0-9._-]", "_", file.filename)
+    safe_filename = f"{doc_id}_{clean_fn}"
+    file_path = os.path.join(uploads_dir, safe_filename)
+    with open(file_path, "wb") as f_out:
+        f_out.write(content)
+
     new_doc = GroundedDocument(
         id=doc_id,
         classroom_id=classroom_id,
         title=doc_title,
-        file_url=f"/uploads/{file.filename}",
+        file_url=f"/uploads/{safe_filename}",
         raw_text=raw_text,
         chunks_count=chunks_count or 1,
         vector_id=vector_id,
@@ -145,11 +226,16 @@ def upload_document(data: DocumentCreate, background_tasks: BackgroundTasks, db:
         raw_text=data.raw_text
     )
     
+    # Ensure physical PDF exists on disk
+    file_url = data.file_url
+    if not file_url or file_url == "#" or not file_url.endswith(".pdf"):
+        file_url = _build_pdf_from_text(data.title, data.raw_text, doc_id)
+
     new_doc = GroundedDocument(
         id=doc_id,
         classroom_id=data.classroom_id,
         title=data.title,
-        file_url=data.file_url or "#",
+        file_url=file_url or f"/uploads/{doc_id}.pdf",
         raw_text=data.raw_text,
         chunks_count=chunks_count or 1,
         vector_id=vector_id,
@@ -180,6 +266,32 @@ def upload_document(data: DocumentCreate, background_tasks: BackgroundTasks, db:
 
     return new_doc
 
+@router.get("/{document_id}/pdf")
+@router.get("/{document_id}/pdf")
+@router.head("/{document_id}/pdf")
+def get_document_pdf(document_id: str, db: Session = Depends(get_db)):
+    """Menyajikan file dokumen PDF modul pembelajaran. Menjamin selalu tersedia (auto-build jika belum ada)."""
+    doc = db.query(GroundedDocument).filter(GroundedDocument.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")
+    
+    # Check if doc.file_url exists on disk
+    if doc.file_url and doc.file_url not in ("#", "None"):
+        filename = doc.file_url.replace("/uploads/", "").lstrip("/")
+        cand_path = os.path.join(settings.UPLOADS_DIR, filename)
+        if os.path.exists(cand_path) and os.path.getsize(cand_path) > 100:
+            clean_fn = f"{re.sub(r'[^a-zA-Z0-9_-]', '_', doc.title)[:30]}.pdf"
+            return FileResponse(cand_path, media_type="application/pdf", filename=clean_fn)
+            
+    # Auto-generate PDF on the fly if missing from disk
+    safe_rel_path = _build_pdf_from_text(doc.title, doc.raw_text or doc.summary, doc.id)
+    doc.file_url = safe_rel_path
+    db.commit()
+    
+    full_path = os.path.join(settings.UPLOADS_DIR, safe_rel_path.replace("/uploads/", "").lstrip("/"))
+    clean_fn = f"{re.sub(r'[^a-zA-Z0-9_-]', '_', doc.title)[:30]}.pdf"
+    return FileResponse(full_path, media_type="application/pdf", filename=clean_fn)
+
 @router.post("/{document_id}/generate-assets", response_model=DocumentResponse)
 def generate_assets_endpoint(document_id: str, db: Session = Depends(get_db)):
     """Menghasilkan atau memperbarui aset materi adaptif kelas (Audio Podcast, Mindmap, Gambar, Flashcard)."""
@@ -196,23 +308,21 @@ def generate_assets_endpoint(document_id: str, db: Session = Depends(get_db)):
 @router.head("/{document_id}/podcast-audio")
 def get_podcast_audio(document_id: str, episode: int = 1, db: Session = Depends(get_db)):
     """Mengalirkan file audio podcast materi edukasi adaptif per episode (MP3/WAV)."""
-    import os
-    from fastapi.responses import FileResponse
     doc = db.query(GroundedDocument).filter(GroundedDocument.id == document_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")
     
     # 1. Periksa apakah file audio episode spesifik sudah tersedia di disk
     candidate_filenames = [
-        f"{document_id}_ep{episode}.mp3",
         f"{document_id}_ep{episode}.wav",
-        f"{document_id}_podcast.mp3",
-        f"{document_id}_podcast.wav"
+        f"{document_id}_ep{episode}.mp3",
+        f"{document_id}_podcast.wav",
+        f"{document_id}_podcast.mp3"
     ]
     for fn in candidate_filenames:
-        filepath = os.path.join("uploads", "podcasts", fn)
+        filepath = os.path.join(settings.UPLOADS_DIR, "podcasts", fn)
         if os.path.exists(filepath) and os.path.getsize(filepath) > 200:
-            media_type = "audio/mpeg" if fn.endswith(".mp3") else "audio/wav"
+            media_type = "audio/wav" if fn.endswith(".wav") else "audio/mpeg"
             return FileResponse(filepath, media_type=media_type)
     
     # 2. Jika belum ada, buat langsung on-demand
@@ -220,7 +330,7 @@ def get_podcast_audio(document_id: str, episode: int = 1, db: Session = Depends(
     generate_document_adaptive_assets(document_id, db)
     
     for fn in candidate_filenames:
-        filepath = os.path.join("uploads", "podcasts", fn)
+        filepath = os.path.join(settings.UPLOADS_DIR, "podcasts", fn)
         if os.path.exists(filepath) and os.path.getsize(filepath) > 200:
             media_type = "audio/mpeg" if fn.endswith(".mp3") else "audio/wav"
             return FileResponse(filepath, media_type=media_type)
@@ -261,9 +371,8 @@ def get_podcast_episodes(document_id: str, db: Session = Depends(get_db)):
 @router.get("/{document_id}/visual-image")
 def get_visual_image(document_id: str, db: Session = Depends(get_db)):
     """Mengalirkan gambar ilustrasi materi kelas (PNG) atau SVG ilustrasi visual edukatif bermutu tinggi."""
-    import os
     from fastapi.responses import FileResponse, Response
-    filepath = os.path.join("uploads", "images", f"{document_id}_visual.png")
+    filepath = os.path.join(settings.UPLOADS_DIR, "images", f"{document_id}_visual.png")
     if os.path.exists(filepath) and os.path.getsize(filepath) > 200:
         return FileResponse(filepath, media_type="image/png")
     

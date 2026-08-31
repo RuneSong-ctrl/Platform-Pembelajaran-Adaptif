@@ -50,6 +50,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import os
+from fastapi.staticfiles import StaticFiles
+
 # Root Health Check Endpoint
 @app.get("/", tags=["Health Check"])
 def root():
@@ -61,5 +64,10 @@ def root():
         "api_v1": settings.API_V1_STR,
     }
 
+# Mount uploads directory for static files (PDFs, assets, audio)
+os.makedirs(settings.UPLOADS_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=settings.UPLOADS_DIR), name="uploads")
+
 # Mount API v1 Router
 app.include_router(api_router, prefix=settings.API_V1_STR)
+

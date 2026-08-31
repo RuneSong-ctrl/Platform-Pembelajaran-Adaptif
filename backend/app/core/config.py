@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -9,6 +10,9 @@ class Settings(BaseSettings):
     
     # Database URL
     DATABASE_URL: str = "sqlite:///./eduadapt.db"
+    
+    # Uploads Directory (Single source of truth for all modules)
+    UPLOADS_DIR: str = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads"))
     
     # CORS Origins
     CORS_ORIGINS: List[str] = [

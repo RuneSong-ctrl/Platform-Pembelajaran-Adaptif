@@ -103,6 +103,19 @@ export interface Classroom {
   createdAt: string;
 }
 
+export interface ClassAnnouncement {
+  id: string;
+  classroomId: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  content: string;
+  createdAt: string;
+  type: "announcement" | "material_posted" | "task_posted";
+  referenceId?: string;
+  referenceTitle?: string;
+}
+
 export interface LearningScheduleItem {
   id: string;
   studentId: string;
