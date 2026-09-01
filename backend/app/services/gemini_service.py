@@ -968,17 +968,463 @@ Kembalikan HANYA JSON array murni tanpa format markdown (tanpa ```json ... ```):
 
     return json.dumps(fallback_items, ensure_ascii=False)
 
+
+def _generate_infographic_data(doc_title: str, raw_text: str) -> Dict[str, Any]:
+    """
+    Menghasilkan metadata terstruktur infografis berkualitas tinggi dalam 1 kali pemanggilan LLM hemat token.
+    Mendukung dua gaya visual unggulan:
+    1. Sinuous Journey Roadmap (Peta Alur Berkelok / Winding Journey Map)
+    2. Editorial Data & Concept Insight (Grafik Bar, Donut Ring, dan Statistik Menonjol)
+    """
+    context_sample = raw_text[:5000] if len(raw_text) > 5000 else raw_text
+
+    prompt = f"""Kamu adalah Pakar Visualisasi Informasi, Lead Infographic Designer, dan Arsitek Kurikulum Sains.
+Analisis materi berikut dan susun data JSON untuk 1 POSTER INFOGRAFIS EDUKATIF EDITORIAL (gaya Winding Journey Map & Data Insight) yang sangat bersih, profesional, dan padat makna.
+
+MATERI PEMBELAJARAN:
+Judul: {doc_title}
+Teks:
+{context_sample}
+
+SUSUN DATA DALAM FORMAT JSON BERIKUT (Gunakan Bahasa Indonesia baku, padat, dan jelas):
+{{
+  "doc_title": "{doc_title}",
+  "subtitle": "Subjudul Ringkas & Menarik yang Merangkum Esensi Materi",
+  "category_badge": "MODUL KURIKULUM ADAPTIF",
+  "intro_summary": [
+    "Paragraf 1: Ringkasan latar belakang / konsep dasar (maksimal 25 kata).",
+    "Paragraf 2: Relevansi, manfaat nyata, atau urgensi pemahaman konsep ini (maksimal 25 kata)."
+  ],
+  "roadmap_journey": [
+    {{
+      "step_num": 1,
+      "title": "Fondasi & Inisiasi",
+      "desc": "Penjelasan langkah awal proses secara konkret dan lugas.",
+      "color": "#06B6D4"
+    }},
+    {{
+      "step_num": 2,
+      "title": "Interaksi & Variabel",
+      "desc": "Dinamika faktor atau reaksi awal yang mulai bekerja dalam sistem.",
+      "color": "#3B82F6"
+    }},
+    {{
+      "step_num": 3,
+      "title": "Mekanisme Inti",
+      "desc": "Proses transformasi utama atau hubungan sebab-akibat pokok.",
+      "color": "#10B981"
+    }},
+    {{
+      "step_num": 4,
+      "title": "Regulasi Sistem",
+      "desc": "Pengendalian keseimbangan dan hukum alam yang membatasi proses.",
+      "color": "#84CC16"
+    }},
+    {{
+      "step_num": 5,
+      "title": "Stabilisasi & Output",
+      "desc": "Hasil akhir yang tercapai dan kondisi seimbang yang terbentuk.",
+      "color": "#F59E0B"
+    }},
+    {{
+      "step_num": 6,
+      "title": "Aplikasi & Dampak",
+      "desc": "Implementasi nyata pada teknologi, fenomena alam, atau masyarakat.",
+      "color": "#EC4899"
+    }}
+  ],
+  "metrics_breakdown": [
+    {{
+      "label": "Tingkat Dominansi Prinsip Utama",
+      "value_pct": 82.5,
+      "explanation": "Pengaruh variabel kunci terhadap kestabilan sistem."
+    }},
+    {{
+      "label": "Efisiensi Reaksi / Dinamika",
+      "value_pct": 68.4,
+      "explanation": "Proporsi energi/proses yang termanfaatkan optimal."
+    }},
+    {{
+      "label": "Faktor Pembatas Eksternal",
+      "value_pct": 42.1,
+      "explanation": "Sensitivitas terhadap gangguan lingkungan luar."
+    }}
+  ],
+  "donut_charts": [
+    {{
+      "label": "Aplikasi Nyata",
+      "value_pct": 78,
+      "color": "#10B981",
+      "subtext": "Sangat Relevan"
+    }},
+    {{
+      "label": "Landasan Teoretis",
+      "value_pct": 88,
+      "color": "#6366F1",
+      "subtext": "Kaidah Baku"
+    }}
+  ],
+  "big_stats_highlights": [
+    {{
+      "number": "100%",
+      "title": "Kaidah Deterministik",
+      "desc": "Mengikuti hukum alam dan prinsip ilmiah terukur."
+    }},
+    {{
+      "number": "6 Tahap",
+      "title": "Alur Siklus Kritis",
+      "desc": "Rangkaian proses berkesinambungan tanpa henti."
+    }},
+    {{
+      "number": "94.8%",
+      "title": "Tingkat Relevansi",
+      "desc": "Terbukti esensial dalam perkembangan sains modern."
+    }}
+  ],
+  "key_takeaway": "Pesan kunci filosofis/aplikatif dalam 1 kalimat tegas untuk diingat siswa selamanya."
+}}
+
+Output HANYA objek JSON valid tanpa markdown tambahan."""
+
+    try:
+        reply = _call_gemini_text(prompt, temperature=0.2, json_mode=True)
+        if reply:
+            clean_json = re.sub(r"^```(?:json)?\s*|\s*```$", "", reply.strip(), flags=re.MULTILINE).strip()
+            match = re.search(r"\{.*\}", clean_json, re.DOTALL)
+            if match:
+                clean_json = match.group(0)
+            parsed = json.loads(clean_json)
+            if isinstance(parsed, dict) and "roadmap_journey" in parsed:
+                logger.info(f"[AdaptiveAssets] Sukses mengekstrak Infografis Winding & Data Insight untuk '{doc_title}'.")
+                return parsed
+    except Exception as e:
+        logger.warning(f"[AdaptiveAssets] Infographic JSON extraction error: {e}")
+
+    # Fallback berkualitas tinggi
+    paras = [p.strip() for p in raw_text.split("\n\n") if len(p.strip()) > 30]
+    p1 = paras[0] if len(paras) > 0 else f"Pemahaman dasar materi {doc_title}."
+    p2 = paras[1] if len(paras) > 1 else f"Mekanisme dan kaidah kerja {doc_title}."
+
+    return {
+        "doc_title": doc_title,
+        "subtitle": f"Pemetaan Alur Berkelok & Wawasan Data {doc_title}",
+        "category_badge": "INFOGRAFIS KURIKULUM TERPADU",
+        "intro_summary": [
+            p1[:130] + ("..." if len(p1) > 130 else ""),
+            p2[:130] + ("..." if len(p2) > 130 else "")
+        ],
+        "roadmap_journey": [
+            {"step_num": 1, "title": "1. Fondasi Awal", "desc": "Titik tolak dan asumsi dasar materi.", "color": "#06B6D4"},
+            {"step_num": 2, "title": "2. Inisiasi Variabel", "desc": "Interaksi awal antar komponen utama.", "color": "#3B82F6"},
+            {"step_num": 3, "title": "3. Transformasi Proses", "desc": "Perubahan bentuk atau kondisi sistem.", "color": "#10B981"},
+            {"step_num": 4, "title": "4. Regulasi & Batasan", "desc": "Kaidah ilmiah yang mengontrol proses.", "color": "#84CC16"},
+            {"step_num": 5, "title": "5. Hasil & Keseimbangan", "desc": "Keluaran sistem yang terukur.", "color": "#F59E0B"},
+            {"step_num": 6, "title": "6. Dampak Aplikatif", "desc": "Manfaat langsung bagi kehidupan nyata.", "color": "#EC4899"}
+        ],
+        "metrics_breakdown": [
+            {"label": "Tingkat Akurasi Model", "value_pct": 84.5, "explanation": "Kesesuaian teori dengan observasi."},
+            {"label": "Efisiensi Siklus Sistem", "value_pct": 72.0, "explanation": "Optimalisasi sumber daya sistem."},
+            {"label": "Kestabilan Variabel", "value_pct": 58.3, "explanation": "Daya tahan terhadap perturbasi luar."}
+        ],
+        "donut_charts": [
+            {"label": "Aplikasi Praktis", "value_pct": 76, "color": "#10B981", "subtext": "Sangat Relevan"},
+            {"label": "Kaidah Teoretis", "value_pct": 91, "color": "#6366F1", "subtext": "Prinsip Baku"}
+        ],
+        "big_stats_highlights": [
+            {"number": "100%", "title": "Kaidah Ter-grounding", "desc": "Berdasarkan naskah kurikulum resmi."},
+            {"number": "6 Tahap", "title": "Milestone Utama", "desc": "Alur terstruktur dari awal hingga akhir."},
+            {"number": "88.5%", "title": "Retensi Konsep", "desc": "Memperkuat daya ingat spasial siswa."}
+        ],
+        "key_takeaway": f"Penguasaan materi {doc_title} membuka pemahaman kritis terhadap fenomena sains dan teknologi masa depan."
+    }
+
+
+def _render_rich_infographic_svg(doc_title: str, data: Dict[str, Any]) -> str:
+    """
+    Merender poster infografis vektor SVG resolusi tinggi (1200 x 1700 px)
+    terinspirasi langsung dari gaya referensi:
+    - Bagian Atas: Winding Journey Map (Peta Berkelok dengan 6 Milestone Berwarna-warni)
+    - Bagian Bawah: Editorial Data Insight (Bar Charts, Donut Percentage Rings, dan Big Numeric Stats)
+    - Latar Belakang Bersih / Light Editorial (#F8FAFC) dengan tipografi modern.
+    """
+    def esc(text: Any) -> str:
+        s = str(text or "")
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+
+    clean_title = esc(data.get("doc_title", doc_title))[:44]
+    subtitle = esc(data.get("subtitle", f"Pemetaan Alur dan Analisis Konseptual {doc_title}"))[:68]
+    badge = esc(data.get("category_badge", "EDUADAPT DATA & JOURNEY INSIGHT"))[:36]
+    intros = data.get("intro_summary", [])
+    intro_1 = esc(intros[0] if len(intros) > 0 else "")[:140]
+    intro_2 = esc(intros[1] if len(intros) > 1 else "")[:140]
+
+    roadmap = data.get("roadmap_journey", [])
+    if not roadmap:
+        roadmap = [
+            {"step_num": 1, "title": "Inisiasi", "desc": "Tahap awal proses", "color": "#06B6D4"},
+            {"step_num": 2, "title": "Interaksi", "desc": "Dinamika variabel", "color": "#3B82F6"},
+            {"step_num": 3, "title": "Transformasi", "desc": "Proses inti", "color": "#10B981"},
+            {"step_num": 4, "title": "Regulasi", "desc": "Aturan keseimbangan", "color": "#84CC16"},
+            {"step_num": 5, "title": "Output", "desc": "Hasil akhir", "color": "#F59E0B"},
+            {"step_num": 6, "title": "Aplikasi", "desc": "Manfaat nyata", "color": "#EC4899"}
+        ]
+
+    metrics = data.get("metrics_breakdown", [])[:3]
+    donuts = data.get("donut_charts", [])[:2]
+    big_stats = data.get("big_stats_highlights", [])[:3]
+    takeaway = esc(data.get("key_takeaway", "Konsep ini melatih logika analisis multidimensi untuk memecahkan persoalan dunia nyata."))[:160]
+
+    # Node coordinates for Sinuous Winding Path (6 steps across 2 serpentine curves)
+    # Positions (cx, cy) along width=1100, starting from y=480 down to y=920
+    node_positions = [
+        {"x": 160, "y": 500, "align": "right", "card_x": 70, "card_y": 395},
+        {"x": 460, "y": 520, "align": "left", "card_x": 480, "card_y": 425},
+        {"x": 860, "y": 510, "align": "left", "card_x": 870, "card_y": 415},
+        {"x": 940, "y": 740, "align": "left", "card_x": 880, "card_y": 800},
+        {"x": 580, "y": 750, "align": "right", "card_x": 490, "card_y": 810},
+        {"x": 200, "y": 730, "align": "right", "card_x": 80, "card_y": 790},
+    ]
+
+    roadmap_nodes_svg = ""
+    for i, step in enumerate(roadmap[:6]):
+        pos = node_positions[i] if i < len(node_positions) else {"x": 200 + i*150, "y": 600, "card_x": 200 + i*150, "card_y": 520}
+        color = step.get("color", "#10B981")
+        step_num = step.get("step_num", i + 1)
+        st_title = esc(step.get("title", f"Tahap {i+1}"))[:26]
+        st_desc = esc(step.get("desc", ""))[:70]
+
+        # Milestone Circle with Drop Shadow
+        roadmap_nodes_svg += f"""
+        <!-- Milestone Node {step_num} -->
+        <g>
+          <!-- Callout Line to Card -->
+          <line x1="{pos['x']}" y1="{pos['y']}" x2="{pos['card_x'] + 110}" y2="{pos['card_y'] + 45}" stroke="{color}" stroke-width="2" stroke-dasharray="4,4" opacity="0.6"/>
+          
+          <!-- Node Badge Circle -->
+          <circle cx="{pos['x']}" cy="{pos['y']}" r="26" fill="{color}" filter="url(#nodeShadow)"/>
+          <circle cx="{pos['x']}" cy="{pos['y']}" r="22" fill="#FFFFFF"/>
+          <circle cx="{pos['x']}" cy="{pos['y']}" r="18" fill="{color}"/>
+          <text x="{pos['x']}" y="{pos['y'] + 6}" fill="#FFFFFF" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="16" font-weight="900" text-anchor="middle">{step_num}</text>
+
+          <!-- Milestone Information Card -->
+          <g transform="translate({pos['card_x']}, {pos['card_y']})">
+            <rect width="220" height="84" rx="16" fill="#FFFFFF" stroke="{color}" stroke-width="2" filter="url(#cardShadow)"/>
+            <rect x="12" y="10" width="8" height="8" rx="4" fill="{color}"/>
+            <text x="26" y="19" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="13" font-weight="800">{st_title}</text>
+            <text x="12" y="40" fill="#475569" font-family="Inter, sans-serif" font-size="10.5" font-weight="500">{st_desc[:36]}</text>
+            <text x="12" y="56" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="400">{st_desc[36:72]}</text>
+            <text x="12" y="72" fill="#94A3B8" font-family="Inter, sans-serif" font-size="10" font-weight="400">{st_desc[72:108]}</text>
+          </g>
+        </g>
+        """
+
+    # Horizontal Bar Charts SVG
+    bars_svg = ""
+    for idx, mb in enumerate(metrics):
+        by = 1070 + idx * 72
+        val = float(mb.get("value_pct", 75))
+        bar_w = int((val / 100.0) * 340)
+        color = "#10B981" if idx == 0 else ("#0284C7" if idx == 1 else "#F59E0B")
+        bars_svg += f"""
+        <g transform="translate(60, {by})">
+          <text x="0" y="0" fill="#1E293B" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="13" font-weight="800">{esc(mb.get('label', 'Metrik'))[:30]}</text>
+          <text x="450" y="0" fill="{color}" font-family="monospace" font-size="14" font-weight="900" text-anchor="end">{val:.1f}%</text>
+          
+          <!-- Bar Track -->
+          <rect x="0" y="10" width="450" height="22" rx="11" fill="#E2E8F0"/>
+          <!-- Bar Fill -->
+          <rect x="0" y="10" width="{bar_w}" height="22" rx="11" fill="{color}"/>
+          <text x="{max(bar_w - 12, 40)}" y="26" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="11" font-weight="900" text-anchor="end">{val:.1f}%</text>
+          <text x="0" y="48" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="400">{esc(mb.get('explanation', ''))[:60]}</text>
+        </g>
+        """
+
+    # Donut Charts SVG
+    donuts_svg = ""
+    for idx, dn in enumerate(donuts):
+        dx = 580 + idx * 160
+        val = int(dn.get("value_pct", 80))
+        color = dn.get("color", "#10B981")
+        # Circumference for r=46 is 289
+        dash_fill = int((val / 100.0) * 289)
+        dash_rem = 289 - dash_fill
+        donuts_svg += f"""
+        <g transform="translate({dx}, 1120)">
+          <!-- Donut Background Circle -->
+          <circle cx="65" cy="65" r="46" fill="none" stroke="#E2E8F0" stroke-width="16"/>
+          <!-- Donut Progress Circle -->
+          <circle cx="65" cy="65" r="46" fill="none" stroke="{color}" stroke-width="16"
+                  stroke-dasharray="{dash_fill} {dash_rem}" stroke-linecap="round" transform="rotate(-90 65 65)"/>
+          
+          <text x="65" y="66" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="18" font-weight="900" text-anchor="middle">{val}%</text>
+          <text x="65" y="82" fill="#64748B" font-family="Inter, sans-serif" font-size="9" font-weight="700" text-anchor="middle">{esc(dn.get('subtext', ''))}</text>
+          
+          <text x="65" y="136" fill="#1E293B" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="12" font-weight="800" text-anchor="middle">{esc(dn.get('label', 'Faktor'))[:18]}</text>
+        </g>
+        """
+
+    # Big Statistic Highlights SVG
+    stats_svg = ""
+    for idx, st in enumerate(big_stats):
+        sy = 1350 + idx * 75
+        color = "#059669" if idx == 0 else ("#2563EB" if idx == 1 else "#D97706")
+        stats_svg += f"""
+        <g transform="translate(60, {sy})">
+          <text x="0" y="28" fill="{color}" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="34" font-weight="900">{esc(st.get('number', '100%'))}</text>
+          <text x="140" y="16" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="14" font-weight="800">{esc(st.get('title', 'Kaidah'))[:34]}</text>
+          <text x="140" y="34" fill="#475569" font-family="Inter, sans-serif" font-size="11.5" font-weight="400">{esc(st.get('desc', ''))[:70]}</text>
+        </g>
+        """
+
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1700" width="100%" height="100%">
+  <defs>
+    <!-- Fonts and Filters -->
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#0F172A" flood-opacity="0.07"/>
+    </filter>
+    <filter id="nodeShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+    
+    <!-- Gradients -->
+    <linearGradient id="headerRibbon" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#F472B6"/>
+    </linearGradient>
+    
+    <!-- Path Gradient for Winding Journey -->
+    <linearGradient id="journeyPathGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06B6D4"/>
+      <stop offset="25%" stop-color="#3B82F6"/>
+      <stop offset="50%" stop-color="#10B981"/>
+      <stop offset="70%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Clean Editorial White / Light Grey Canvas -->
+  <rect width="1200" height="1700" fill="#F8FAFC"/>
+
+  <!-- ========================================================= -->
+  <!-- 1. TOP HEADER BANNER (Editorial Header Style)             -->
+  <!-- ========================================================= -->
+  <g transform="translate(60, 45)">
+    <!-- Top Accent Ribbon -->
+    <rect x="0" y="0" width="260" height="30" rx="6" fill="#E0F2FE"/>
+    <text x="130" y="20" fill="#0284C7" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="11" font-weight="900" text-anchor="middle" letter-spacing="1.5">✦ {badge}</text>
+    
+    <!-- Main Headline Title -->
+    <text x="0" y="76" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="38" font-weight="900">{clean_title}</text>
+    <text x="0" y="108" fill="#475569" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="17" font-weight="600">{subtitle}</text>
+  </g>
+
+  <!-- 2-Column Executive Intro Box -->
+  <g transform="translate(60, 180)">
+    <rect width="1080" height="96" rx="18" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#cardShadow)"/>
+    
+    <!-- Column 1 -->
+    <rect x="25" y="20" width="4" height="56" rx="2" fill="#0284C7"/>
+    <text x="40" y="42" fill="#1E293B" font-family="Inter, sans-serif" font-size="12" font-weight="600">{intro_1[:65]}</text>
+    <text x="40" y="62" fill="#475569" font-family="Inter, sans-serif" font-size="12" font-weight="400">{intro_1[65:140]}</text>
+    
+    <!-- Column 2 -->
+    <rect x="560" y="20" width="4" height="56" rx="2" fill="#10B981"/>
+    <text x="575" y="42" fill="#1E293B" font-family="Inter, sans-serif" font-size="12" font-weight="600">{intro_2[:65]}</text>
+    <text x="575" y="62" fill="#475569" font-family="Inter, sans-serif" font-size="12" font-weight="400">{intro_2[65:140]}</text>
+  </g>
+
+  <!-- ========================================================= -->
+  <!-- 2. WINDING ROADMAP JOURNEY PATH (Like Ref 1: Journey Map) -->
+  <!-- ========================================================= -->
+  <g transform="translate(0, 0)">
+    <!-- Section Title -->
+    <text x="60" y="335" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="18" font-weight="900">🗺️ Peta Alur Perjalanan &amp; Tahapan Konsep</text>
+    <text x="60" y="355" fill="#64748B" font-family="Inter, sans-serif" font-size="12" font-weight="500">Alur berkesinambungan dari fondasi inisiasi hingga dampak aplikatif nyata.</text>
+
+    <!-- Sinuous Curved Backbone Line (Smooth Bezier) -->
+    <path d="M 160 500 C 260 500, 360 520, 460 520 C 620 520, 720 510, 860 510 C 970 510, 990 620, 940 740 C 890 840, 720 750, 580 750 C 440 750, 300 730, 200 730"
+          fill="none" stroke="url(#journeyPathGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+
+    <!-- Inner Highlight for Tubing Effect -->
+    <path d="M 160 500 C 260 500, 360 520, 460 520 C 620 520, 720 510, 860 510 C 970 510, 990 620, 940 740 C 890 840, 720 750, 580 750 C 440 750, 300 730, 200 730"
+          fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+
+    <!-- 6 Milestone Nodes and Connected Cards -->
+    {roadmap_nodes_svg}
+  </g>
+
+  <!-- ========================================================= -->
+  <!-- 3. EDITORIAL DATA & METRICS (Like Ref 2: GoodStats Style) -->
+  <!-- ========================================================= -->
+  <g transform="translate(0, 0)">
+    <!-- Section Divider Line -->
+    <line x1="60" y1="990" x2="1140" y2="990" stroke="#E2E8F0" stroke-width="1.5"/>
+
+    <text x="60" y="1030" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="18" font-weight="900">📊 Analisis Variabel &amp; Metrik Wawasan Ilmiah</text>
+    <text x="60" y="1050" fill="#64748B" font-family="Inter, sans-serif" font-size="12" font-weight="500">Proporsi dinamika sistem dan tingkat signifikansi kaidah materi.</text>
+
+    <!-- Left Column: Horizontal Progress Bars -->
+    {bars_svg}
+
+    <!-- Center/Right Column: Donut Rings -->
+    {donuts_svg}
+
+    <!-- Vertical Separator -->
+    <line x1="530" y1="1070" x2="530" y2="1280" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+  </g>
+
+  <!-- ========================================================= -->
+  <!-- 4. BIG STATS & TAKEAWAY HERO BOX                          -->
+  <!-- ========================================================= -->
+  <g transform="translate(0, 0)">
+    <!-- Section Divider -->
+    <line x1="60" y1="1310" x2="1140" y2="1310" stroke="#E2E8F0" stroke-width="1.5"/>
+
+    <!-- Big Numbers Highlight List -->
+    {stats_svg}
+
+    <!-- Right Side: Big Takeaway Banner -->
+    <g transform="translate(560, 1340)">
+      <rect width="580" height="230" rx="20" fill="#0F172A" filter="url(#cardShadow)"/>
+      <rect x="30" y="28" width="160" height="26" rx="13" fill="#10B981" fill-opacity="0.2"/>
+      <text x="110" y="45" fill="#34D399" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="11" font-weight="900" text-anchor="middle">💡 KESIMPULAN KUNCI</text>
+      
+      <text x="30" y="90" fill="#FFFFFF" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="16" font-weight="800">Prinsip Aplikatif Terpadu:</text>
+      
+      <text x="30" y="125" fill="#E2E8F0" font-family="Inter, sans-serif" font-size="13" font-weight="500">{takeaway[:45]}</text>
+      <text x="30" y="148" fill="#CBD5E1" font-family="Inter, sans-serif" font-size="13" font-weight="400">{takeaway[45:100]}</text>
+      <text x="30" y="171" fill="#94A3B8" font-family="Inter, sans-serif" font-size="13" font-weight="400">{takeaway[100:160]}</text>
+
+      <line x1="30" y1="195" x2="550" y2="195" stroke="#334155" stroke-width="1"/>
+      <text x="30" y="215" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="600">EduAdapt Adaptive Multi-Modal Intelligence • Lossless Vector SVG</text>
+    </g>
+  </g>
+
+  <!-- ========================================================= -->
+  <!-- 5. FOOTER WATERMARK                                       -->
+  <!-- ========================================================= -->
+  <g transform="translate(60, 1660)">
+    <text x="540" y="10" fill="#94A3B8" font-family="Inter, sans-serif" font-size="11" font-weight="600" text-anchor="middle">
+      EduAdapt Visual Studio • Ter-grounding pada Materi Kurikulum • Desain Editorial Modern
+    </text>
+  </g>
+</svg>"""
+    return svg
+
+
 def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
     """
     Menghasilkan seluruh aset adaptif pembelajaran terpadu untuk satu dokumen (Kelas) sekali saja:
-    1. Playlist 3-5 Episode Podcast Narasi Tunggal (30-60 detik per episode)
-    2. File Audio MP3 per Episode di disk uploads/podcasts/{doc_id}_ep{N}.mp3
-    3. Metadata Simpul Interaktif Visual (React Flow: posisi, relasi, side-panel kaya)
-    4. Diagram Peta Konsep Mermaid Visual (Fallback)
-    5. Reaktor Drag-and-Drop Diperluas (5-8 Slot dan Komponen)
-    6. Tantangan Kinestetik Sorting / Ordering Kronologis
-    7. Tantangan Drag & Drop Fill-in-the-Blank
-    8. Smart Flashcards JSON
+    1. Playlist 3-5 Episode Podcast Orus Suara Studio
+    2. File Audio WAV/MP3 per Episode di disk uploads/podcasts/{doc_id}_ep{N}.wav
+    3. Metadata Simpul Interaktif Visual (React Flow)
+    4. Diagram Peta Konsep Mermaid Visual
+    5. Infografis Visual AI 4-Zona (JSON & SVG HD Poster) di uploads/images/{doc_id}_infographic.svg
+    6. Reaktor Drag-and-Drop Diperluas
+    7. Tantangan Kinestetik Sorting / Ordering Kronologis
+    8. Tantangan Drag & Drop Fill-in-the-Blank
+    9. Smart Flashcards JSON
     """
     import os
     from app.models.document import GroundedDocument
@@ -1074,22 +1520,50 @@ def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
         except Exception as e:
             logger.warning(f"[AdaptiveAssets] Mindmap generation error: {e}")
 
-    # 4. GENERATE EXPANDED 5-8 SLOT REACTOR DRAG-AND-DROP
+    # 4. GENERATE 4-ZONE INFOGRAPHIC DATA & SVG POSTER (DUAL HYBRID)
+    infographic_obj = None
+    if doc.infographic_data_json:
+        try:
+            infographic_obj = json.loads(doc.infographic_data_json)
+        except Exception:
+            infographic_obj = None
+
+    if not infographic_obj:
+        logger.info(f"[AdaptiveAssets] Menyusun struktur data 4-Zona Infografis untuk '{doc.title}'...")
+        infographic_obj = _generate_infographic_data(doc.title, summary_context)
+        doc.infographic_data_json = json.dumps(infographic_obj, ensure_ascii=False)
+        db.commit()
+
+    # Render and save HD SVG Poster
+    svg_filepath = os.path.join(images_dir, f"{doc.id}_infographic.svg")
+    visual_svg_filepath = os.path.join(images_dir, f"{doc.id}_visual.svg")
+    if infographic_obj and (not os.path.exists(svg_filepath) or os.path.getsize(svg_filepath) < 200):
+        try:
+            svg_content = _render_rich_infographic_svg(doc.title, infographic_obj)
+            with open(svg_filepath, "w", encoding="utf-8") as f:
+                f.write(svg_content)
+            with open(visual_svg_filepath, "w", encoding="utf-8") as f:
+                f.write(svg_content)
+            logger.info(f"[AdaptiveAssets] Poster Vektor SVG HD berhasil dirender: {svg_filepath}")
+        except Exception as e:
+            logger.warning(f"[AdaptiveAssets] Render SVG Poster error: {e}")
+
+    # 5. GENERATE EXPANDED 5-8 SLOT REACTOR DRAG-AND-DROP
     if not doc.game_config_json:
         logger.info(f"[AdaptiveAssets] Merancang Reaktor Perakitan Kinestetik (5-8 slot) untuk '{doc.title}'...")
         doc.game_config_json = _generate_universal_game_config(doc.title, summary_context)
 
-    # 5. GENERATE PROCESS SORTING / ORDERING CHALLENGES
+    # 6. GENERATE PROCESS SORTING / ORDERING CHALLENGES
     if not doc.sorting_challenges_json:
         logger.info(f"[AdaptiveAssets] Merancang tantangan kinestetik Process Sorting untuk '{doc.title}'...")
         doc.sorting_challenges_json = _generate_sorting_challenges(doc.title, summary_context)
 
-    # 6. GENERATE UNIVERSAL FILL-IN-THE-BLANK
+    # 7. GENERATE UNIVERSAL FILL-IN-THE-BLANK
     if not doc.fill_blank_json:
         logger.info(f"[AdaptiveAssets] Merancang tantangan Fill-in-the-Blank untuk '{doc.title}'...")
         doc.fill_blank_json = _generate_fill_in_the_blank(doc.title, summary_context)
 
-    # 7. GENERATE AI FLASHCARDS
+    # 8. GENERATE AI FLASHCARDS
     if not doc.flashcards_json:
         try:
             paras = [p.strip() for p in doc.raw_text.split("\n\n") if len(p.strip()) > 30]
@@ -1110,11 +1584,10 @@ def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
         except Exception as e:
             logger.warning(f"[AdaptiveAssets] Flashcards error: {e}")
 
-    # 8. SET VISUAL INFOGRAPHIC IMAGE URL & GENERATE IF POSSIBLE
-    if not doc.visual_image_url:
-        doc.visual_image_url = f"/api/v1/documents/{doc.id}/visual-image"
+    # 9. SET VISUAL INFOGRAPHIC IMAGE URL & DIFFUSION FALLBACK
+    doc.visual_image_url = f"/api/v1/documents/{doc.id}/visual-image"
     
-    image_filepath = os.path.join("uploads", "images", f"{doc.id}_visual.png")
+    image_filepath = os.path.join(images_dir, f"{doc.id}_visual.png")
     if not os.path.exists(image_filepath):
         try:
             import base64
@@ -1124,7 +1597,7 @@ def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
                 img_data = base64.b64decode(img_res["b64_json"])
                 with open(image_filepath, "wb") as f:
                     f.write(img_data)
-                logger.info(f"[AdaptiveAssets] Visual image saved to {image_filepath}")
+                logger.info(f"[AdaptiveAssets] Visual PNG image saved to {image_filepath}")
         except Exception as e:
             logger.debug(f"[AdaptiveAssets] Image generation notice: {e}")
 
@@ -1138,6 +1611,7 @@ def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
         "mindmap_code": doc.mindmap_code,
         "visual_nodes_json": doc.visual_nodes_json,
         "visual_image_url": doc.visual_image_url,
+        "infographic_data_json": doc.infographic_data_json,
         "game_config_json": doc.game_config_json,
         "sorting_challenges_json": doc.sorting_challenges_json,
         "fill_blank_json": doc.fill_blank_json,

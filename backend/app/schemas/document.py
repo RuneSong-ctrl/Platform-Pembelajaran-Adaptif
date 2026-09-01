@@ -19,6 +19,7 @@ class DocumentBase(BaseModel):
     game_config_json: Optional[str] = None
     fill_blank_json: Optional[str] = None
     sorting_challenges_json: Optional[str] = None
+    infographic_data_json: Optional[str] = None
 
 class DocumentCreate(DocumentBase):
     pass

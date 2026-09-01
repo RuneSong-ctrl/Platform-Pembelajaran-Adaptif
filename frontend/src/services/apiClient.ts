@@ -12,6 +12,7 @@ import {
   AssignmentSubmission,
   ParentTeacherNote,
   LearningScheduleItem,
+  InfographicData,
 } from "@/types";
 
 export const API_BASE_URL =
@@ -92,6 +93,7 @@ export function normalizeDocument(d: any): GroundedDocument {
     gameConfigJson: d.game_config_json || d.gameConfigJson || "",
     fillBlankJson: d.fill_blank_json || d.fillBlankJson || "",
     sortingChallengesJson: d.sorting_challenges_json || d.sortingChallengesJson || "",
+    infographicDataJson: d.infographic_data_json || d.infographicDataJson || "",
   };
 }
 
@@ -355,6 +357,10 @@ export class ApiService {
 
   static async fetchPodcastEpisodes(documentId: string) {
     return this.request<any[]>(`/documents/${documentId}/podcast-episodes`);
+  }
+
+  static async getInfographic(documentId: string): Promise<InfographicData | null> {
+    return this.request<InfographicData>(`/documents/${documentId}/infographic`);
   }
 
   // --- TASKS & AI QUIZ ---

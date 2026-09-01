@@ -25,4 +25,5 @@ class GroundedDocument(Base):
     game_config_json = Column(Text, nullable=True)
     fill_blank_json = Column(Text, nullable=True)
     sorting_challenges_json = Column(Text, nullable=True)
+    infographic_data_json = Column(Text, nullable=True)
     uploaded_at = Column(DateTime, default=datetime.utcnow)

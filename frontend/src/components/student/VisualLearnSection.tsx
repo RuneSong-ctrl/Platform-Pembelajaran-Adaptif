@@ -3,6 +3,7 @@ import { GroundedDocument } from "@/types";
 import { API_BASE_URL } from "@/services/apiClient";
 import InteractiveConceptMap from "@/components/student/InteractiveConceptMap";
 import AdaptiveFlashcards, { FlashcardItem } from "@/components/student/AdaptiveFlashcards";
+import RichInfographicStudio from "@/components/student/RichInfographicStudio";
 import { audioSynth } from "@/services/audioSynth";
 import {
   Layers,
@@ -129,63 +130,9 @@ export default function VisualLearnSection({ doc }: VisualLearnSectionProps) {
         <InteractiveConceptMap doc={doc} />
       )}
 
-      {/* 🖼️ 2. AI VISUAL INFOGRAPHIC POSTER */}
+      {/* 🖼️ 2. AI VISUAL INFOGRAPHIC STUDIO (DUAL HYBRID HD) */}
       {activeVisualTab === "INFOGRAPHIC" && (
-        <section className="clay-card bg-white p-4 sm:p-6 rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/5">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#E3DBF8] text-[#4B3B7A] border border-[#D0C4F7]">
-                Visual Infographic Studio
-              </span>
-              <h3 className="text-base sm:text-lg font-black text-[#1C1E26] mt-1">
-                Poster Infografis Materi: {doc.title}
-              </h3>
-              <p className="text-xs text-[#5A5E70] mt-0.5">
-                Representasi visual komprehensif struktur materi untuk memperkuat ingatan visual spasial.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  audioSynth.playClickSound();
-                  setIsImageModalOpen(true);
-                }}
-                className="px-3.5 py-1.5 rounded-xl bg-[#F4F0FD] hover:bg-[#E3DBF8] text-[#4B3B7A] text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
-              >
-                <Maximize2 className="w-3.5 h-3.5" />
-                <span>Perbesar Poster</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Infographic Image Viewer Frame */}
-          <div
-            onClick={() => setIsImageModalOpen(true)}
-            className="relative w-full max-h-[500px] min-h-[300px] rounded-3xl overflow-hidden bg-[#151221] border border-black/10 shadow-inner flex items-center justify-center cursor-pointer group"
-          >
-            <img
-              src={visualImgSrc}
-              alt={`Infografis ${doc.title}`}
-              className="w-full h-full object-contain max-h-[500px] transition-transform duration-300 group-hover:scale-102"
-              loading="lazy"
-              onError={(e) => {
-                // Fallback to default visual image endpoint
-                const target = e.currentTarget;
-                if (!target.src.endsWith("/visual-image")) {
-                  target.src = resolveImageUrl(`/api/v1/documents/${doc.id}/visual-image`);
-                }
-              }}
-            />
-
-            {/* Hover overlay hint */}
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-xs font-black backdrop-blur-2xs">
-              <Maximize2 className="w-5 h-5" />
-              <span>Klik untuk Melihat Tampilan Penuh HD</span>
-            </div>
-          </div>
-        </section>
+        <RichInfographicStudio doc={doc} />
       )}
 
       {/* 🃏 3. ADAPTIVE VISUAL FLASHCARDS REVIEW */}

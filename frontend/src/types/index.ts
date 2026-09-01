@@ -149,6 +149,93 @@ export interface GroundedDocument {
   gameConfigJson?: string;
   fillBlankJson?: string;
   sortingChallengesJson?: string;
+  infographicDataJson?: string;
+}
+
+export interface InfographicPillar {
+  name: string;
+  desc: string;
+}
+
+export interface InfographicCoreConcept {
+  title: string;
+  big_idea: string;
+  definition: string;
+  key_pillars: InfographicPillar[];
+}
+
+export interface InfographicStep {
+  step_num: number;
+  title: string;
+  description: string;
+  badge: string;
+}
+
+export interface InfographicMechanismFlow {
+  flow_title: string;
+  steps: InfographicStep[];
+}
+
+export interface InfographicFactItem {
+  title: string;
+  formula_or_rule: string;
+  explanation: string;
+  importance_level: string;
+}
+
+export interface InfographicKeyFacts {
+  title: string;
+  items: InfographicFactItem[];
+}
+
+export interface InfographicCaseStudy {
+  scenario_title: string;
+  analogy_title: string;
+  analogy_story: string;
+  takeaway: string;
+}
+
+export interface InfographicRoadmapStep {
+  step_num: number;
+  title: string;
+  desc: string;
+  color?: string;
+}
+
+export interface InfographicMetricBreakdown {
+  label: string;
+  value_pct: number;
+  explanation?: string;
+}
+
+export interface InfographicDonutChart {
+  label: string;
+  value_pct: number;
+  color?: string;
+  subtext?: string;
+}
+
+export interface InfographicBigStat {
+  number: string;
+  title: string;
+  desc: string;
+}
+
+export interface InfographicData {
+  doc_title: string;
+  subtitle?: string;
+  category_badge?: string;
+  intro_summary?: string[];
+  roadmap_journey?: InfographicRoadmapStep[];
+  metrics_breakdown?: InfographicMetricBreakdown[];
+  donut_charts?: InfographicDonutChart[];
+  big_stats_highlights?: InfographicBigStat[];
+  key_takeaway?: string;
+  theme_color?: string;
+  core_concept?: InfographicCoreConcept;
+  mechanism_flow?: InfographicMechanismFlow;
+  key_facts_formulas?: InfographicKeyFacts;
+  case_study_analogy?: InfographicCaseStudy;
 }
 
 export interface PodcastEpisode {
