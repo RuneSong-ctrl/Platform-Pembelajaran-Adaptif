@@ -153,8 +153,33 @@ class AIGatewayService:
             except Exception as e:
                 logger.warning(f"[AIGateway] Error koneksi Gateway TTS: {e}")
 
-        # 3. Cadangan Cepat & Jernih
-        return AIGatewayService._synthesize_edge_tts(text, selected_voice)
+        # 3. Cadangan Cepat & Jernih via Edge-TTS
+        edge_audio = AIGatewayService._synthesize_edge_tts(text, selected_voice)
+        if edge_audio and len(edge_audio) > 300:
+            return edge_audio
+
+        # 4. Fallback Terakhir: Minimal WAV jika offline
+        return AIGatewayService._create_minimal_wav(2.0)
+
+    @staticmethod
+    def _create_minimal_wav(duration_sec: float = 2.0) -> bytes:
+        """Fallback audio WAV standar jika jaringan/TTS offline."""
+        try:
+            import io
+            import wave
+            import struct
+            sample_rate = 16000
+            n_samples = int(sample_rate * duration_sec)
+            buf = io.BytesIO()
+            with wave.open(buf, "wb") as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(sample_rate)
+                data = struct.pack(f"<{n_samples}h", *([0] * n_samples))
+                wf.writeframes(data)
+            return buf.getvalue()
+        except Exception:
+            return b""
 
     @staticmethod
     def generate_image(prompt: str, size: str = "1024x1024", model: Optional[str] = None) -> Optional[Dict[str, Any]]:

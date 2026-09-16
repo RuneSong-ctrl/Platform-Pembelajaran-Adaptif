@@ -74,6 +74,19 @@ venv.bak/
 *.sqlite3
 eduadapt.db
 
+# Uploaded media and user inputs
+uploads/*
+!uploads/.gitkeep
+!uploads/images/
+uploads/images/*
+!uploads/images/.gitkeep
+!uploads/podcasts/
+uploads/podcasts/*
+!uploads/podcasts/.gitkeep
+!uploads/generated/
+uploads/generated/*
+!uploads/generated/.gitkeep
+
 # MyPy & Type Checking Caches
 .mypy_cache/
 .dmypy.json
