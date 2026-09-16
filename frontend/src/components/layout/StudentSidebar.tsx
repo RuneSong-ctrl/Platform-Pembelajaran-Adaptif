@@ -32,10 +32,10 @@ export default function StudentSidebar() {
       active: pathname === "/student",
     },
     {
-      href: "/student/learn",
-      label: "Materi Adaptif",
-      icon: Layers,
-      active: pathname.startsWith("/student/learn"),
+      href: "/student/class",
+      label: "Ruang Kelas",
+      icon: School,
+      active: pathname.startsWith("/student/class"),
     },
     {
       href: "/student/ai",
@@ -44,10 +44,10 @@ export default function StudentSidebar() {
       active: pathname.startsWith("/student/ai"),
     },
     {
-      href: "/student/class",
-      label: "Ruang Kelas",
-      icon: School,
-      active: pathname.startsWith("/student/class"),
+      href: "/student/learn",
+      label: "Materi Adaptif",
+      icon: Layers,
+      active: pathname.startsWith("/student/learn"),
     },
     {
       href: "/student/schedule",

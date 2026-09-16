@@ -744,7 +744,7 @@ export default function StudentHomePage() {
                       <div
                         onClick={() => {
                           audioSynth.playClickSound();
-                          navigate(`/student/learn?format=AUDITORI&doc=${activeDoc?.id || ""}`);
+                          navigate(`/student/learn?doc=${activeDoc?.id || ""}`);
                         }}
                         className="clay-card clay-lavender p-5 text-[#2D2152] space-y-4 cursor-pointer group hover:shadow-md transition-all rounded-3xl"
                       >
@@ -1080,9 +1080,9 @@ export default function StudentHomePage() {
                 {/* Quick Interactive Modality Action */}
                 {style === "KINESTETIK" && (
                   <button
-                    onClick={async () => {
+                    onClick={() => {
                       audioSynth.playSuccessSound();
-                      await trackLearningActivity("practice", 1, "Simulasi Lab Cepat dari Beranda");
+                      navigate(`/student/learn?doc=${activeDoc?.id || ""}`);
                     }}
                     className="w-full py-2.5 px-3 rounded-xl bg-[#785308] text-white text-xs font-black hover:bg-[#5E4006] transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs"
                   >
@@ -1093,9 +1093,9 @@ export default function StudentHomePage() {
 
                 {style === "VISUAL" && (
                   <button
-                    onClick={async () => {
+                    onClick={() => {
                       audioSynth.playClickSound();
-                      await trackLearningActivity("visual", 1, "Membaca Bagan Diagram dari Beranda");
+                      navigate(`/student/learn?doc=${activeDoc?.id || ""}`);
                     }}
                     className="w-full py-2.5 px-3 rounded-xl bg-[#1D5E4D] text-white text-xs font-black hover:bg-[#154639] transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs"
                   >
@@ -1108,7 +1108,7 @@ export default function StudentHomePage() {
                   <button
                     onClick={() => {
                       audioSynth.playClickSound();
-                      navigate(`/student/learn?format=AUDITORI&doc=${activeDoc?.id || ""}`);
+                      navigate(`/student/learn?doc=${activeDoc?.id || ""}`);
                     }}
                     className="w-full py-2.5 px-3 rounded-xl bg-[#4B3B7A] text-white text-xs font-black hover:bg-[#3B2D62] transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs"
                   >

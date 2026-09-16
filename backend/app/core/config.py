@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -9,6 +10,9 @@ class Settings(BaseSettings):
     
     # Database URL
     DATABASE_URL: str = "sqlite:///./eduadapt.db"
+    
+    # Uploads Directory (Single source of truth for all modules)
+    UPLOADS_DIR: str = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads"))
     
     # CORS Origins
     CORS_ORIGINS: List[str] = [
@@ -90,6 +94,22 @@ class Settings(BaseSettings):
                 self.EMBEDDING_ENDPOINT = f"{base}/embeddings"
             if not self.CHAT_ENDPOINT:
                 self.CHAT_ENDPOINT = f"{base}/chat/completions"
+
+    @property
+    def clean_chat_model(self) -> str:
+        """Mengembalikan nama model chat bersih tanpa prefix gateway (cocok untuk SDK Gemini resmi)."""
+        raw = self.GEMINI_CHAT_MODEL or self.CHAT_MODEL or "gemini-2.5-flash"
+        if raw.startswith("gemini/"):
+            return raw[len("gemini/"):]
+        return raw
+
+    @property
+    def clean_embedding_model(self) -> str:
+        """Mengembalikan nama model embedding bersih tanpa prefix gateway."""
+        raw = self.GEMINI_EMBEDDING_MODEL or self.EMBEDDING_MODEL or "gemini-embedding-001"
+        if raw.startswith("gemini/"):
+            return raw[len("gemini/"):]
+        return raw
 
     model_config = SettingsConfigDict(case_sensitive=True, env_file=".env", extra="ignore")
 

@@ -1,0 +1,346 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1700" width="100%" height="100%">
+  <defs>
+    <!-- Fonts and Filters -->
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#0F172A" flood-opacity="0.07"/>
+    </filter>
+    <filter id="nodeShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+    
+    <!-- Gradients -->
+    <linearGradient id="headerRibbon" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#F472B6"/>
+    </linearGradient>
+    
+    <!-- Path Gradient for Winding Journey -->
+    <linearGradient id="journeyPathGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06B6D4"/>
+      <stop offset="25%" stop-color="#3B82F6"/>
+      <stop offset="50%" stop-color="#10B981"/>
+      <stop offset="70%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Clean Editorial White / Light Grey Canvas -->
+  <rect width="1200" height="1700" fill="#F8FAFC"/>
+
+  <!-- ========================================================= -->
+  <!-- 1. TOP HEADER BANNER (Editorial Header Style)             -->
+  <!-- ========================================================= -->
+  <g transform="translate(60, 45)">
+    <!-- Top Accent Ribbon -->
+    <rect x="0" y="0" width="260" height="30" rx="6" fill="#E0F2FE"/>
+    <text x="130" y="20" fill="#0284C7" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="11" font-weight="900" text-anchor="middle" letter-spacing="1.5">✦ MODUL KURIKULUM ADAPTIF</text>
+    
+    <!-- Main Headline Title -->
+    <text x="0" y="76" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="38" font-weight="900">E Bookfisikakuantum</text>
+    <text x="0" y="108" fill="#475569" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="17" font-weight="600">Memahami Revolusi Sains dan Fenomena Subatomik Menuju Teknologi Masa</text>
+  </g>
+
+  <!-- 2-Column Executive Intro Box -->
+  <g transform="translate(60, 180)">
+    <rect width="1080" height="96" rx="18" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#cardShadow)"/>
+    
+    <!-- Column 1 -->
+    <rect x="25" y="20" width="4" height="56" rx="2" fill="#0284C7"/>
+    <text x="40" y="42" fill="#1E293B" font-family="Inter, sans-serif" font-size="12" font-weight="600">Fisika kuantum merevolusi cara kita memahami alam semesta pada ti</text>
+    <text x="40" y="62" fill="#475569" font-family="Inter, sans-serif" font-size="12" font-weight="400">ngkat fundamental, melampaui batas fisika klasik menuju dunia subatomik.</text>
+    
+    <!-- Column 2 -->
+    <rect x="560" y="20" width="4" height="56" rx="2" fill="#10B981"/>
+    <text x="575" y="42" fill="#1E293B" font-family="Inter, sans-serif" font-size="12" font-weight="600">Buku ini menyajikan konsep dasar hingga aplikasi teknologi modern</text>
+    <text x="575" y="62" fill="#475569" font-family="Inter, sans-serif" font-size="12" font-weight="400"> secara komprehensif, terstruktur, dan mudah dipahami.</text>
+  </g>
+
+  <!-- ========================================================= -->
+  <!-- 2. WINDING ROADMAP JOURNEY PATH (Like Ref 1: Journey Map) -->
+  <!-- ========================================================= -->
+  <g transform="translate(0, 0)">
+    <!-- Section Title -->
+    <text x="60" y="335" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="18" font-weight="900">🗺️ Peta Alur Perjalanan &amp; Tahapan Konsep</text>
+    <text x="60" y="355" fill="#64748B" font-family="Inter, sans-serif" font-size="12" font-weight="500">Alur berkesinambungan dari fondasi inisiasi hingga dampak aplikatif nyata.</text>
+
+    <!-- Sinuous Curved Backbone Line (Smooth Bezier) -->
+    <path d="M 160 500 C 260 500, 360 520, 460 520 C 620 520, 720 510, 860 510 C 970 510, 990 620, 940 740 C 890 840, 720 750, 580 750 C 440 750, 300 730, 200 730"
+          fill="none" stroke="url(#journeyPathGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+
+    <!-- Inner Highlight for Tubing Effect -->
+    <path d="M 160 500 C 260 500, 360 520, 460 520 C 620 520, 720 510, 860 510 C 970 510, 990 620, 940 740 C 890 840, 720 750, 580 750 C 440 750, 300 730, 200 730"
+          fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+
+    <!-- 6 Milestone Nodes and Connected Cards -->
+    
+        <!-- Milestone Node 1 -->
+        <g>
+          <!-- Callout Line to Card -->
+          <line x1="160" y1="500" x2="180" y2="440" stroke="#06B6D4" stroke-width="2" stroke-dasharray="4,4" opacity="0.6"/>
+          
+          <!-- Node Badge Circle -->
+          <circle cx="160" cy="500" r="26" fill="#06B6D4" filter="url(#nodeShadow)"/>
+          <circle cx="160" cy="500" r="22" fill="#FFFFFF"/>
+          <circle cx="160" cy="500" r="18" fill="#06B6D4"/>
+          <text x="160" y="506" fill="#FFFFFF" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="16" font-weight="900" text-anchor="middle">1</text>
+
+          <!-- Milestone Information Card -->
+          <g transform="translate(70, 395)">
+            <rect width="220" height="84" rx="16" fill="#FFFFFF" stroke="#06B6D4" stroke-width="2" filter="url(#cardShadow)"/>
+            <rect x="12" y="10" width="8" height="8" rx="4" fill="#06B6D4"/>
+            <text x="26" y="19" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="13" font-weight="800">Konsep Dasar &amp; Radiasi</text>
+            <text x="12" y="40" fill="#475569" font-family="Inter, sans-serif" font-size="10.5" font-weight="500">Mempelajari awal mula fisika kuantum</text>
+            <text x="12" y="56" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="400">, termasuk radiasi benda hitam dan</text>
+            <text x="12" y="72" fill="#94A3B8" font-family="Inter, sans-serif" font-size="10" font-weight="400"></text>
+          </g>
+        </g>
+        
+        <!-- Milestone Node 2 -->
+        <g>
+          <!-- Callout Line to Card -->
+          <line x1="460" y1="520" x2="590" y2="470" stroke="#3B82F6" stroke-width="2" stroke-dasharray="4,4" opacity="0.6"/>
+          
+          <!-- Node Badge Circle -->
+          <circle cx="460" cy="520" r="26" fill="#3B82F6" filter="url(#nodeShadow)"/>
+          <circle cx="460" cy="520" r="22" fill="#FFFFFF"/>
+          <circle cx="460" cy="520" r="18" fill="#3B82F6"/>
+          <text x="460" y="526" fill="#FFFFFF" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="16" font-weight="900" text-anchor="middle">2</text>
+
+          <!-- Milestone Information Card -->
+          <g transform="translate(480, 425)">
+            <rect width="220" height="84" rx="16" fill="#FFFFFF" stroke="#3B82F6" stroke-width="2" filter="url(#cardShadow)"/>
+            <rect x="12" y="10" width="8" height="8" rx="4" fill="#3B82F6"/>
+            <text x="26" y="19" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="13" font-weight="800">Matematika Kuantum</text>
+            <text x="12" y="40" fill="#475569" font-family="Inter, sans-serif" font-size="10.5" font-weight="500">Menggunakan ruang Hilbert, operator </text>
+            <text x="12" y="56" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="400">Hermitian, dan transformasi Fourie</text>
+            <text x="12" y="72" fill="#94A3B8" font-family="Inter, sans-serif" font-size="10" font-weight="400"></text>
+          </g>
+        </g>
+        
+        <!-- Milestone Node 3 -->
+        <g>
+          <!-- Callout Line to Card -->
+          <line x1="860" y1="510" x2="980" y2="460" stroke="#10B981" stroke-width="2" stroke-dasharray="4,4" opacity="0.6"/>
+          
+          <!-- Node Badge Circle -->
+          <circle cx="860" cy="510" r="26" fill="#10B981" filter="url(#nodeShadow)"/>
+          <circle cx="860" cy="510" r="22" fill="#FFFFFF"/>
+          <circle cx="860" cy="510" r="18" fill="#10B981"/>
+          <text x="860" y="516" fill="#FFFFFF" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="16" font-weight="900" text-anchor="middle">3</text>
+
+          <!-- Milestone Information Card -->
+          <g transform="translate(870, 415)">
+            <rect width="220" height="84" rx="16" fill="#FFFFFF" stroke="#10B981" stroke-width="2" filter="url(#cardShadow)"/>
+            <rect x="12" y="10" width="8" height="8" rx="4" fill="#10B981"/>
+            <text x="26" y="19" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="13" font-weight="800">Mekanika &amp; Struktur At</text>
+            <text x="12" y="40" fill="#475569" font-family="Inter, sans-serif" font-size="10.5" font-weight="500">Membedah mekanika kuantum, struktur </text>
+            <text x="12" y="56" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="400">atom, serta fenomena spin dan stat</text>
+            <text x="12" y="72" fill="#94A3B8" font-family="Inter, sans-serif" font-size="10" font-weight="400"></text>
+          </g>
+        </g>
+        
+        <!-- Milestone Node 4 -->
+        <g>
+          <!-- Callout Line to Card -->
+          <line x1="940" y1="740" x2="990" y2="845" stroke="#84CC16" stroke-width="2" stroke-dasharray="4,4" opacity="0.6"/>
+          
+          <!-- Node Badge Circle -->
+          <circle cx="940" cy="740" r="26" fill="#84CC16" filter="url(#nodeShadow)"/>
+          <circle cx="940" cy="740" r="22" fill="#FFFFFF"/>
+          <circle cx="940" cy="740" r="18" fill="#84CC16"/>
+          <text x="940" y="746" fill="#FFFFFF" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="16" font-weight="900" text-anchor="middle">4</text>
+
+          <!-- Milestone Information Card -->
+          <g transform="translate(880, 800)">
+            <rect width="220" height="84" rx="16" fill="#FFFFFF" stroke="#84CC16" stroke-width="2" filter="url(#cardShadow)"/>
+            <rect x="12" y="10" width="8" height="8" rx="4" fill="#84CC16"/>
+            <text x="26" y="19" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="13" font-weight="800">Teori Lanjutan</text>
+            <text x="12" y="40" fill="#475569" font-family="Inter, sans-serif" font-size="10.5" font-weight="500">Mengkaji teori perturbasi, teori med</text>
+            <text x="12" y="56" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="400">an kuantum, dan elektrodinamika ku</text>
+            <text x="12" y="72" fill="#94A3B8" font-family="Inter, sans-serif" font-size="10" font-weight="400"></text>
+          </g>
+        </g>
+        
+        <!-- Milestone Node 5 -->
+        <g>
+          <!-- Callout Line to Card -->
+          <line x1="580" y1="750" x2="600" y2="855" stroke="#F59E0B" stroke-width="2" stroke-dasharray="4,4" opacity="0.6"/>
+          
+          <!-- Node Badge Circle -->
+          <circle cx="580" cy="750" r="26" fill="#F59E0B" filter="url(#nodeShadow)"/>
+          <circle cx="580" cy="750" r="22" fill="#FFFFFF"/>
+          <circle cx="580" cy="750" r="18" fill="#F59E0B"/>
+          <text x="580" y="756" fill="#FFFFFF" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="16" font-weight="900" text-anchor="middle">5</text>
+
+          <!-- Milestone Information Card -->
+          <g transform="translate(490, 810)">
+            <rect width="220" height="84" rx="16" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2" filter="url(#cardShadow)"/>
+            <rect x="12" y="10" width="8" height="8" rx="4" fill="#F59E0B"/>
+            <text x="26" y="19" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="13" font-weight="800">Komputasi &amp; Informasi</text>
+            <text x="12" y="40" fill="#475569" font-family="Inter, sans-serif" font-size="10.5" font-weight="500">Mengenal tren komputasi kuantum sert</text>
+            <text x="12" y="56" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="400">a aplikasinya dalam material moder</text>
+            <text x="12" y="72" fill="#94A3B8" font-family="Inter, sans-serif" font-size="10" font-weight="400"></text>
+          </g>
+        </g>
+        
+        <!-- Milestone Node 6 -->
+        <g>
+          <!-- Callout Line to Card -->
+          <line x1="200" y1="730" x2="190" y2="835" stroke="#EC4899" stroke-width="2" stroke-dasharray="4,4" opacity="0.6"/>
+          
+          <!-- Node Badge Circle -->
+          <circle cx="200" cy="730" r="26" fill="#EC4899" filter="url(#nodeShadow)"/>
+          <circle cx="200" cy="730" r="22" fill="#FFFFFF"/>
+          <circle cx="200" cy="730" r="18" fill="#EC4899"/>
+          <text x="200" y="736" fill="#FFFFFF" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="16" font-weight="900" text-anchor="middle">6</text>
+
+          <!-- Milestone Information Card -->
+          <g transform="translate(80, 790)">
+            <rect width="220" height="84" rx="16" fill="#FFFFFF" stroke="#EC4899" stroke-width="2" filter="url(#cardShadow)"/>
+            <rect x="12" y="10" width="8" height="8" rx="4" fill="#EC4899"/>
+            <text x="26" y="19" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="13" font-weight="800">Filosofi &amp; Teknologi</text>
+            <text x="12" y="40" fill="#475569" font-family="Inter, sans-serif" font-size="10.5" font-weight="500">Mengeksplorasi interpretasi filosofi</text>
+            <text x="12" y="56" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="400">s dan implementasi praktis dalam s</text>
+            <text x="12" y="72" fill="#94A3B8" font-family="Inter, sans-serif" font-size="10" font-weight="400"></text>
+          </g>
+        </g>
+        
+  </g>
+
+  <!-- ========================================================= -->
+  <!-- 3. EDITORIAL DATA & METRICS (Like Ref 2: GoodStats Style) -->
+  <!-- ========================================================= -->
+  <g transform="translate(0, 0)">
+    <!-- Section Divider Line -->
+    <line x1="60" y1="990" x2="1140" y2="990" stroke="#E2E8F0" stroke-width="1.5"/>
+
+    <text x="60" y="1030" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="18" font-weight="900">📊 Analisis Variabel &amp; Metrik Wawasan Ilmiah</text>
+    <text x="60" y="1050" fill="#64748B" font-family="Inter, sans-serif" font-size="12" font-weight="500">Proporsi dinamika sistem dan tingkat signifikansi kaidah materi.</text>
+
+    <!-- Left Column: Horizontal Progress Bars -->
+    
+        <g transform="translate(60, 1070)">
+          <text x="0" y="0" fill="#1E293B" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="13" font-weight="800">Kedalaman Landasan Teoretis</text>
+          <text x="450" y="0" fill="#10B981" font-family="monospace" font-size="14" font-weight="900" text-anchor="end">90.0%</text>
+          
+          <!-- Bar Track -->
+          <rect x="0" y="10" width="450" height="22" rx="11" fill="#E2E8F0"/>
+          <!-- Bar Fill -->
+          <rect x="0" y="10" width="306" height="22" rx="11" fill="#10B981"/>
+          <text x="294" y="26" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="11" font-weight="900" text-anchor="end">90.0%</text>
+          <text x="0" y="48" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="400">Penguasaan kaidah matematis dan fisik subatomik.</text>
+        </g>
+        
+        <g transform="translate(60, 1142)">
+          <text x="0" y="0" fill="#1E293B" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="13" font-weight="800">Relevansi Teknologi Modern</text>
+          <text x="450" y="0" fill="#0284C7" font-family="monospace" font-size="14" font-weight="900" text-anchor="end">85.5%</text>
+          
+          <!-- Bar Track -->
+          <rect x="0" y="10" width="450" height="22" rx="11" fill="#E2E8F0"/>
+          <!-- Bar Fill -->
+          <rect x="0" y="10" width="290" height="22" rx="11" fill="#0284C7"/>
+          <text x="278" y="26" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="11" font-weight="900" text-anchor="end">85.5%</text>
+          <text x="0" y="48" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="400">Penerapan konsep pada komputasi dan informasi kuantum.</text>
+        </g>
+        
+        <g transform="translate(60, 1214)">
+          <text x="0" y="0" fill="#1E293B" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="13" font-weight="800">Kompleksitas Fenomena Alam</text>
+          <text x="450" y="0" fill="#F59E0B" font-family="monospace" font-size="14" font-weight="900" text-anchor="end">75.0%</text>
+          
+          <!-- Bar Track -->
+          <rect x="0" y="10" width="450" height="22" rx="11" fill="#E2E8F0"/>
+          <!-- Bar Fill -->
+          <rect x="0" y="10" width="255" height="22" rx="11" fill="#F59E0B"/>
+          <text x="243" y="26" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="11" font-weight="900" text-anchor="end">75.0%</text>
+          <text x="0" y="48" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="400">Tingkat tantangan pemahaman fenomena subatomik.</text>
+        </g>
+        
+
+    <!-- Center/Right Column: Donut Rings -->
+    
+        <g transform="translate(580, 1120)">
+          <!-- Donut Background Circle -->
+          <circle cx="65" cy="65" r="46" fill="none" stroke="#E2E8F0" stroke-width="16"/>
+          <!-- Donut Progress Circle -->
+          <circle cx="65" cy="65" r="46" fill="none" stroke="#10B981" stroke-width="16"
+                  stroke-dasharray="245 44" stroke-linecap="round" transform="rotate(-90 65 65)"/>
+          
+          <text x="65" y="66" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="18" font-weight="900" text-anchor="middle">85%</text>
+          <text x="65" y="82" fill="#64748B" font-family="Inter, sans-serif" font-size="9" font-weight="700" text-anchor="middle">Sangat Inovatif</text>
+          
+          <text x="65" y="136" fill="#1E293B" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="12" font-weight="800" text-anchor="middle">Aplikasi Teknologi</text>
+        </g>
+        
+        <g transform="translate(740, 1120)">
+          <!-- Donut Background Circle -->
+          <circle cx="65" cy="65" r="46" fill="none" stroke="#E2E8F0" stroke-width="16"/>
+          <!-- Donut Progress Circle -->
+          <circle cx="65" cy="65" r="46" fill="none" stroke="#6366F1" stroke-width="16"
+                  stroke-dasharray="265 24" stroke-linecap="round" transform="rotate(-90 65 65)"/>
+          
+          <text x="65" y="66" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="18" font-weight="900" text-anchor="middle">92%</text>
+          <text x="65" y="82" fill="#64748B" font-family="Inter, sans-serif" font-size="9" font-weight="700" text-anchor="middle">Fondasi Utama</text>
+          
+          <text x="65" y="136" fill="#1E293B" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="12" font-weight="800" text-anchor="middle">Kaidah Matematis</text>
+        </g>
+        
+
+    <!-- Vertical Separator -->
+    <line x1="530" y1="1070" x2="530" y2="1280" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+  </g>
+
+  <!-- ========================================================= -->
+  <!-- 4. BIG STATS & TAKEAWAY HERO BOX                          -->
+  <!-- ========================================================= -->
+  <g transform="translate(0, 0)">
+    <!-- Section Divider -->
+    <line x1="60" y1="1310" x2="1140" y2="1310" stroke="#E2E8F0" stroke-width="1.5"/>
+
+    <!-- Big Numbers Highlight List -->
+    
+        <g transform="translate(60, 1350)">
+          <text x="0" y="28" fill="#059669" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="34" font-weight="900">12</text>
+          <text x="140" y="16" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="14" font-weight="800">Penulis Ahli</text>
+          <text x="140" y="34" fill="#475569" font-family="Inter, sans-serif" font-size="11.5" font-weight="400">Disusun oleh akademisi dan praktisi sains berpengalaman.</text>
+        </g>
+        
+        <g transform="translate(60, 1425)">
+          <text x="0" y="28" fill="#2563EB" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="34" font-weight="900">6</text>
+          <text x="140" y="16" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="14" font-weight="800">Tahap Eksplorasi</text>
+          <text x="140" y="34" fill="#475569" font-family="Inter, sans-serif" font-size="11.5" font-weight="400">Alur belajar terstruktur dari konsep dasar hingga aplikasi.</text>
+        </g>
+        
+        <g transform="translate(60, 1500)">
+          <text x="0" y="28" fill="#D97706" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="34" font-weight="900">2024</text>
+          <text x="140" y="16" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="14" font-weight="800">Terbitan Terbaru</text>
+          <text x="140" y="34" fill="#475569" font-family="Inter, sans-serif" font-size="11.5" font-weight="400">Referensi mutakhir untuk kurikulum sains masa kini.</text>
+        </g>
+        
+
+    <!-- Right Side: Big Takeaway Banner -->
+    <g transform="translate(560, 1340)">
+      <rect width="580" height="230" rx="20" fill="#0F172A" filter="url(#cardShadow)"/>
+      <rect x="30" y="28" width="160" height="26" rx="13" fill="#10B981" fill-opacity="0.2"/>
+      <text x="110" y="45" fill="#34D399" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="11" font-weight="900" text-anchor="middle">💡 KESIMPULAN KUNCI</text>
+      
+      <text x="30" y="90" fill="#FFFFFF" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="16" font-weight="800">Prinsip Aplikatif Terpadu:</text>
+      
+      <text x="30" y="125" fill="#E2E8F0" font-family="Inter, sans-serif" font-size="13" font-weight="500">Fisika kuantum membuka jendela pemahaman fund</text>
+      <text x="30" y="148" fill="#CBD5E1" font-family="Inter, sans-serif" font-size="13" font-weight="400">amental terhadap semesta untuk membangun teknologi masa</text>
+      <text x="30" y="171" fill="#94A3B8" font-family="Inter, sans-serif" font-size="13" font-weight="400"> depan yang revolusioner.</text>
+
+      <line x1="30" y1="195" x2="550" y2="195" stroke="#334155" stroke-width="1"/>
+      <text x="30" y="215" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="600">EduAdapt Adaptive Multi-Modal Intelligence • Lossless Vector SVG</text>
+    </g>
+  </g>
+
+  <!-- ========================================================= -->
+  <!-- 5. FOOTER WATERMARK                                       -->
+  <!-- ========================================================= -->
+  <g transform="translate(60, 1660)">
+    <text x="540" y="10" fill="#94A3B8" font-family="Inter, sans-serif" font-size="11" font-weight="600" text-anchor="middle">
+      EduAdapt Visual Studio • Ter-grounding pada Materi Kurikulum • Desain Editorial Modern
+    </text>
+  </g>
+</svg>

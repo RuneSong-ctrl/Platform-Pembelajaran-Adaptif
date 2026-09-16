@@ -36,41 +36,7 @@ export default function BottomNav() {
           <span className="text-[10px] font-bold mt-0.5">Home</span>
         </Link>
 
-        {/* Tab 2: Materi */}
-        <Link
-          to="/student/learn"
-          onClick={() => audioSynth.playClickSound()}
-          className={`flex flex-col items-center justify-center p-1 transition-all rounded-2xl flex-1 ${
-            pathname.startsWith("/student/learn")
-              ? "text-[#1C1E26] scale-105 font-extrabold"
-              : "text-[#9195A8] hover:text-[#1C1E26]"
-          }`}
-        >
-          <div
-            className={`p-1.5 rounded-full transition-colors ${
-              pathname.startsWith("/student/learn") ? "bg-[#D1EBE1] text-[#1D5E4D]" : ""
-            }`}
-          >
-            <Layers className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
-          </div>
-          <span className="text-[10px] font-bold mt-0.5">Materi</span>
-        </Link>
-
-        {/* Center Raised Floating 3D AI Assistant Button */}
-        <div className="relative -top-4 px-1">
-          <Link
-            to="/student/ai"
-            onClick={() => audioSynth.playClickSound()}
-            className={`w-12 h-12 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_10px_22px_rgba(59,130,246,0.4)] border-2 border-white transition-all transform hover:scale-110 active:scale-95 cursor-pointer bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white ${
-              pathname.startsWith("/student/ai") ? "ring-3 ring-[#3B82F6]/50" : ""
-            }`}
-            title="Asisten Belajar AI"
-          >
-            <Bot className="w-6 h-6 stroke-[2.3] transition-transform duration-200" />
-          </Link>
-        </div>
-
-        {/* Tab 3: Kelas */}
+        {/* Tab 2: Kelas */}
         <Link
           to="/student/class"
           onClick={() => audioSynth.playClickSound()}
@@ -90,7 +56,41 @@ export default function BottomNav() {
           <span className="text-[10px] font-bold mt-0.5">Kelas</span>
         </Link>
 
-        {/* Tab 4: Profil */}
+        {/* Center Raised Floating 3D AI Assistant Button */}
+        <div className="relative -top-4 px-1">
+          <Link
+            to="/student/ai"
+            onClick={() => audioSynth.playClickSound()}
+            className={`w-12 h-12 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_10px_22px_rgba(59,130,246,0.4)] border-2 border-white transition-all transform hover:scale-110 active:scale-95 cursor-pointer bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white ${
+              pathname.startsWith("/student/ai") ? "ring-3 ring-[#3B82F6]/50" : ""
+            }`}
+            title="Asisten Belajar AI"
+          >
+            <Bot className="w-6 h-6 stroke-[2.3] transition-transform duration-200" />
+          </Link>
+        </div>
+
+        {/* Tab 4: Materi */}
+        <Link
+          to="/student/learn"
+          onClick={() => audioSynth.playClickSound()}
+          className={`flex flex-col items-center justify-center p-1 transition-all rounded-2xl flex-1 ${
+            pathname.startsWith("/student/learn")
+              ? "text-[#1C1E26] scale-105 font-extrabold"
+              : "text-[#9195A8] hover:text-[#1C1E26]"
+          }`}
+        >
+          <div
+            className={`p-1.5 rounded-full transition-colors ${
+              pathname.startsWith("/student/learn") ? "bg-[#D1EBE1] text-[#1D5E4D]" : ""
+            }`}
+          >
+            <Layers className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
+          </div>
+          <span className="text-[10px] font-bold mt-0.5">Materi</span>
+        </Link>
+
+        {/* Tab 5: Profil */}
         <Link
           to="/student/profile"
           onClick={() => audioSynth.playClickSound()}
