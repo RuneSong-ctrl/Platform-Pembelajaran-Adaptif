@@ -161,79 +161,124 @@ class AIGatewayService:
         """
         Menghasilkan URL atau data gambar konsep materi menggunakan 9router Image Gen Endpoint atau Google Imagen 3 SDK.
         """
-        if not settings.IMAGE_GEN_ENDPOINT:
-            return None
-
-        endpoint = AIGatewayService._normalize_endpoint(settings.IMAGE_GEN_ENDPOINT, "images/generations")
+        endpoint = AIGatewayService._normalize_endpoint(settings.IMAGE_GEN_ENDPOINT, "images/generations") if settings.IMAGE_GEN_ENDPOINT else ""
         api_key = settings.IMAGE_GEN_API_KEY or settings.GEMINI_API_KEY or settings.AI_API_KEY or ""
         selected_model = model or settings.IMAGE_GEN_MODEL
 
-        if not endpoint or not api_key or not selected_model:
-            logger.warning("[AIGateway] Image Gen Endpoint, API Key, atau IMAGE_GEN_MODEL belum disetel di .env.")
+        if endpoint and api_key and selected_model:
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": selected_model,
+                "prompt": prompt,
+                "n": 1,
+                "size": size,
+                "response_format": "url"
+            }
+
+            try:
+                with httpx.Client(timeout=15.0) as client:
+                    response = client.post(endpoint, json=payload, headers=headers)
+                    if response.status_code == 200:
+                        data = response.json()
+                        return data
+                    else:
+                        logger.warning(f"[AIGateway] Image Gen gateway gagal status={response.status_code}: {response.text[:200]}")
+            except Exception as e:
+                logger.warning(f"[AIGateway] Error koneksi Gateway Image Gen: {e}")
+
+        # Fallback ke Google Imagen 3 SDK resmi jika endpoint 9router tidak aktif atau gagal
+        return AIGatewayService._generate_image_google_sdk(prompt)
+
+    @staticmethod
+    def _generate_image_google_sdk(prompt: str) -> Optional[Dict[str, Any]]:
+        """Menghasilkan gambar via Google GenAI SDK (model: imagen-3.0-generate-002)."""
+        if not settings.GEMINI_API_KEY or settings.GEMINI_API_KEY.startswith("sk-"):
             return None
-
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": selected_model,
-            "prompt": prompt,
-            "n": 1,
-            "size": size,
-            "response_format": "url"
-        }
-
         try:
-            with httpx.Client(timeout=15.0) as client:
-                response = client.post(endpoint, json=payload, headers=headers)
-                if response.status_code == 200:
-                    data = response.json()
-                    return data
-                else:
-                    logger.error(f"[AIGateway] Image Gen gagal status={response.status_code}: {response.text[:200]}")
-                    return None
+            import base64
+            from google import genai
+            from google.genai import types
+
+            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            result = client.models.generate_images(
+                model="imagen-3.0-generate-002",
+                prompt=prompt,
+                config=types.GenerateImagesConfig(
+                    number_of_images=1,
+                    output_mime_type="image/png",
+                    aspect_ratio="1:1"
+                )
+            )
+            if result and result.generated_images:
+                img_bytes = result.generated_images[0].image.image_bytes
+                b64_str = base64.b64encode(img_bytes).decode('utf-8')
+                return {"b64_json": b64_str}
         except Exception as e:
-            logger.error(f"[AIGateway] Error koneksi Image Gen: {e}")
-            return None
+            logger.warning(f"[AIGateway] Google Imagen 3 SDK notice: {e}")
+        return None
 
     @staticmethod
     def generate_embeddings(texts: List[str], model: Optional[str] = None) -> Optional[List[List[float]]]:
         """
-        Menghasilkan vektor embedding menggunakan 9router Embeddings Endpoint.
+        Menghasilkan vektor embedding menggunakan 9router Embeddings Endpoint atau Google Gemini SDK.
         """
-        if not settings.EMBEDDING_ENDPOINT:
-            return None
-
-        endpoint = AIGatewayService._normalize_endpoint(settings.EMBEDDING_ENDPOINT, "embeddings")
+        endpoint = AIGatewayService._normalize_endpoint(settings.EMBEDDING_ENDPOINT, "embeddings") if settings.EMBEDDING_ENDPOINT else ""
         api_key = settings.EMBEDDING_API_KEY or settings.GEMINI_API_KEY or settings.AI_API_KEY or ""
         selected_model = model or settings.EMBEDDING_MODEL or settings.GEMINI_EMBEDDING_MODEL
 
-        if not endpoint or not api_key or not selected_model:
-            logger.warning("[AIGateway] Embedding Endpoint, API Key, atau EMBEDDING_MODEL belum disetel di .env.")
+        if endpoint and api_key and selected_model:
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": selected_model,
+                "input": texts
+            }
+
+            try:
+                with httpx.Client(timeout=15.0) as client:
+                    response = client.post(endpoint, json=payload, headers=headers)
+                    if response.status_code == 200:
+                        data = response.json()
+                        if "data" in data and isinstance(data["data"], list):
+                            return [item["embedding"] for item in data["data"]]
+                    else:
+                        logger.warning(f"[AIGateway] Embedding gateway respons status={response.status_code}. Mencoba Google Gemini SDK...")
+            except Exception as e:
+                logger.warning(f"[AIGateway] Error koneksi Gateway Embedding: {e}. Mencoba Google Gemini SDK...")
+
+        # Fallback ke Google Gemini SDK resmi jika gateway kosong atau gagal
+        return AIGatewayService._generate_embeddings_gemini_sdk(texts, selected_model)
+
+    @staticmethod
+    def _generate_embeddings_gemini_sdk(texts: List[str], model: Optional[str] = None) -> Optional[List[List[float]]]:
+        """Menghasilkan embeddings via Google GenAI SDK resmi."""
+        if not settings.GEMINI_API_KEY or settings.GEMINI_API_KEY.startswith("sk-"):
             return None
-
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": selected_model,
-            "input": texts
-        }
-
         try:
-            with httpx.Client(timeout=15.0) as client:
-                response = client.post(endpoint, json=payload, headers=headers)
-                if response.status_code == 200:
-                    data = response.json()
-                    if "data" in data and isinstance(data["data"], list):
-                        return [item["embedding"] for item in data["data"]]
-                else:
-                    logger.error(f"[AIGateway] Embedding gagal status={response.status_code}: {response.text[:200]}")
-                    return None
+            from google import genai
+            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            target_model = model or settings.clean_embedding_model or "text-embedding-004"
+            if "/" in target_model:
+                target_model = target_model.split("/")[-1]
+
+            results = []
+            for t in texts:
+                res = client.models.embed_content(
+                    model=target_model,
+                    contents=t
+                )
+                if hasattr(res, "embedding") and res.embedding:
+                    results.append(res.embedding.values)
+                elif hasattr(res, "embeddings") and res.embeddings:
+                    results.append(res.embeddings[0].values)
+            return results if len(results) == len(texts) else None
         except Exception as e:
-            logger.error(f"[AIGateway] Error koneksi Embedding: {e}")
+            logger.error(f"[AIGateway] Google Gemini SDK Embedding error: {e}")
             return None
 
     @staticmethod
@@ -241,67 +286,61 @@ class AIGatewayService:
         """
         Menghasilkan teks chat/kuis menggunakan 9router Chat Completions Endpoint atau Google Gemini SDK resmi.
         """
-        if not settings.CHAT_ENDPOINT:
-            return None
-
-        endpoint = AIGatewayService._normalize_endpoint(settings.CHAT_ENDPOINT, "chat/completions")
+        endpoint = AIGatewayService._normalize_endpoint(settings.CHAT_ENDPOINT, "chat/completions") if settings.CHAT_ENDPOINT else ""
         api_key = settings.CHAT_API_KEY or settings.GEMINI_API_KEY or settings.AI_API_KEY or ""
         selected_model = model or settings.CHAT_MODEL or settings.GEMINI_CHAT_MODEL or "gemini-2.5-flash"
 
-        if not endpoint or not api_key or not selected_model:
-            logger.warning("[AIGateway] Chat Endpoint, API Key, atau CHAT_MODEL belum disetel di .env.")
-            return None
+        if endpoint and api_key and selected_model:
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": selected_model,
+                "messages": messages,
+                "temperature": temperature,
+                "stream": False
+            }
 
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": selected_model,
-            "messages": messages,
-            "temperature": temperature,
-            "stream": False
-        }
+            models_to_try = [selected_model]
+            for alt in ["gemini/gemini-3.7-flash", "gemini/gemini-3.5-flash-lite"]:
+                if alt not in models_to_try:
+                    models_to_try.append(alt)
 
-        models_to_try = [selected_model]
-        for alt in ["gemini/gemini-3.7-flash", "gemini/gemini-3.5-flash-lite"]:
-            if alt not in models_to_try:
-                models_to_try.append(alt)
+            for current_model in models_to_try:
+                payload["model"] = current_model
+                try:
+                    with httpx.Client(timeout=20.0) as client:
+                        response = client.post(endpoint, json=payload, headers=headers)
+                        if response.status_code == 200:
+                            try:
+                                data = response.json()
+                                choices = data.get("choices", [])
+                                if choices:
+                                    return choices[0].get("message", {}).get("content", "")
+                            except Exception:
+                                import json as _json
+                                chunks = []
+                                for line in response.text.split("\n"):
+                                    line = line.strip()
+                                    if line.startswith("data: ") and line != "data: [DONE]":
+                                        try:
+                                            d = _json.loads(line[6:])
+                                            delta = d.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                                            if delta:
+                                                chunks.append(delta)
+                                        except Exception:
+                                            pass
+                                if chunks:
+                                    return "".join(chunks)
+                        elif response.status_code == 404:
+                            continue
+                        else:
+                            logger.debug(f"[AIGateway] Chat completions gagal status={response.status_code}")
+                except Exception as e:
+                    logger.debug(f"[AIGateway] Error koneksi Chat ({current_model}): {e}")
 
-        for current_model in models_to_try:
-            payload["model"] = current_model
-            try:
-                with httpx.Client(timeout=20.0) as client:
-                    response = client.post(endpoint, json=payload, headers=headers)
-                    if response.status_code == 200:
-                        try:
-                            data = response.json()
-                            choices = data.get("choices", [])
-                            if choices:
-                                return choices[0].get("message", {}).get("content", "")
-                        except Exception:
-                            import json as _json
-                            chunks = []
-                            for line in response.text.split("\n"):
-                                line = line.strip()
-                                if line.startswith("data: ") and line != "data: [DONE]":
-                                    try:
-                                        d = _json.loads(line[6:])
-                                        delta = d.get("choices", [{}])[0].get("delta", {}).get("content", "")
-                                        if delta:
-                                            chunks.append(delta)
-                                    except Exception:
-                                        pass
-                            if chunks:
-                                return "".join(chunks)
-                    elif response.status_code == 404:
-                        continue
-                    else:
-                        logger.debug(f"[AIGateway] Chat completions gagal status={response.status_code}")
-            except Exception as e:
-                logger.debug(f"[AIGateway] Error koneksi Chat ({current_model}): {e}")
-
-        # Fallback akhir ke Gemini SDK jika 9router gagal
+        # Fallback akhir ke Gemini SDK jika 9router tidak disetel atau gagal
         return AIGatewayService._generate_chat_gemini_sdk(messages, selected_model, temperature)
 
     @staticmethod
