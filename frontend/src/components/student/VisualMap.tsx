@@ -1,10 +1,16 @@
 import React, { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { audioSynth } from "@/services/audioSynth";
-import { Download, Eye, Layers, Maximize2, Sparkles, X, ZoomIn, ZoomOut } from "@/components/ui/icons";
+import { Download, Eye, Layers, Maximize2, Network, Sparkles, X, ZoomIn, ZoomOut } from "@/components/ui/icons";
 import { renderedLabel, toMermaid, type Diagram, type DiagramNode } from "@/lib/mermaidDiagram";
 import InfographicPoster, { type PosterArt } from "./InfographicPoster";
 import type { Infographic } from "./SourcedInfographic";
 import type { SourceRef } from "./UnitVisual";
+
+const PASTEL: [string, string][] = [["#D2E5FA", "#21518A"], ["#D1EBE1", "#1D5E4D"], ["#E3DBF8", "#4B3B7A"], ["#FEE7B3", "#785308"], ["#FCD9D7", "#852C28"]];
+const branchColours = Object.fromEntries(Array.from({ length: 12 }, (_, i) => {
+  const [base, dark] = PASTEL[i % PASTEL.length];
+  return [[`cScale${i}`, base], [`cScaleLabel${i}`, dark], [`cScaleInv${i}`, dark]];
+}).flat());
 
 type Props = { info: Infographic; sources: (refs: SourceRef[]) => ReactNode; art?: PosterArt | null };
 type Tab = "image" | "diagram" | "poster";
@@ -20,7 +26,12 @@ function loadMermaid() {
       theme: "base",
       htmlLabels: false, // plain SVG text keeps PNG export possible
       fontFamily: "'Plus Jakarta Sans', Inter, Arial, sans-serif",
-      themeVariables: { primaryColor: "#E0F2FE", primaryBorderColor: "#0284C7", primaryTextColor: "#0F172A", lineColor: "#64748B", fontSize: "16px" },
+      themeVariables: {
+        primaryColor: "#D2E5FA", primaryBorderColor: "#21518A", primaryTextColor: "#1C1E26", lineColor: "#595F72", fontSize: "16px",
+        // mindmap branches: the pastel tokens in a fixed order instead of Mermaid's rainbow; the root matches the dark clay centre
+        ...branchColours, git0: "#1C1E26", gitBranchLabel0: "#FFFFFF",
+      },
+      themeCSS: ".mindmap-node rect, .node rect { rx: 12px; ry: 12px; }",
       flowchart: { htmlLabels: false, curve: "basis" },
     });
     return mermaid;
@@ -124,22 +135,22 @@ export default function VisualMap({ info, sources, art = null }: Props) {
   const tabLabel = (value: Tab) => (value === "image" ? "Infografis AI" : value === "diagram" && diagram ? kindLabel[diagram.kind] : "Poster");
 
   const outline = diagram && (
-    <details className="rounded-2xl border border-slate-200 bg-white p-4" open={failed}>
-      <summary className="cursor-pointer text-sm font-bold text-slate-700">Lihat diagram sebagai daftar</summary>
+    <details className="rounded-2xl border border-[#E6E4EE] bg-white p-4" open={failed}>
+      <summary className="cursor-pointer text-sm font-bold text-[#475569]">Lihat diagram sebagai daftar</summary>
       <ul className="mt-2 space-y-2 text-sm">
         {diagram.nodes.map(node => {
           const depth = diagram.kind === "mindmap" ? depthOf(node, diagram) : 0;
           return (
             <li key={node.id} style={{ marginLeft: depth * 16 }}>
-              <button type="button" className="text-left font-semibold text-[#0F172A] underline-offset-2 hover:underline" onClick={() => setSelected(node)}>
+              <button type="button" className="text-left font-semibold text-[#1C1E26] underline-offset-2 hover:underline" onClick={() => setSelected(node)}>
                 {node.label}
               </button>
-              {node.detail && <span className="text-slate-600"> — {node.detail}</span>}
+              {node.detail && <span className="text-[#475569]">: {node.detail}</span>}
             </li>
           );
         })}
         {diagram.kind === "flowchart" && diagram.edges.map((edge, i) => (
-          <li key={`e${i}`} className="text-slate-600">
+          <li key={`e${i}`} className="text-[#475569]">
             {labelOf(diagram, edge.source)} → {edge.label ? `${edge.label} → ` : ""}{labelOf(diagram, edge.target)}
           </li>
         ))}
@@ -148,19 +159,19 @@ export default function VisualMap({ info, sources, art = null }: Props) {
   );
 
   const canvas = (fullscreen: boolean) => (
-    <div className={`rounded-2xl bg-white border border-slate-200 overflow-auto ${fullscreen ? "flex-1" : "max-h-[75vh]"}`}>
+    <div className={`rounded-2xl bg-white border border-[#E6E4EE] overflow-auto ${fullscreen ? "flex-1" : "max-h-[75vh]"}`}>
       {/* Diagrams keep a readable minimum width; on phones the box scrolls instead of shrinking the text. */}
       <div style={{ width: `${zoom}%`, minWidth: tab === "diagram" ? `${7.2 * zoom}px` : "100%" }} className="mx-auto p-3 sm:p-5 transition-[width]">
         {tab === "image" ? (
           <InfographicPoster ref={fullscreen ? undefined : posterRef} info={info} art={art} />
         ) : tab === "diagram" ? (
           failed ? (
-            <p className="p-6 text-sm text-slate-600">Diagram belum dapat digambar di perangkat ini. Lihat versi daftar di bawah.</p>
+            <p className="p-6 text-sm text-[#475569]">Diagram belum dapat digambar di perangkat ini. Lihat versi daftar di bawah.</p>
           ) : svg && diagram ? (
             <MermaidCanvas svg={svg} diagram={diagram} selectedId={selected?.id ?? null} onSelect={choose}
               boxRef={fullscreen ? undefined : diagramBox} />
           ) : (
-            <p role="status" className="p-6 text-sm text-slate-600">Menggambar diagram…</p>
+            <p role="status" className="p-6 text-sm text-[#475569]">Menggambar diagram…</p>
           )
         ) : (
           <InfographicPoster ref={fullscreen ? undefined : posterRef} info={info} />
@@ -172,20 +183,20 @@ export default function VisualMap({ info, sources, art = null }: Props) {
   const toolbar = (fullscreen: boolean) => (
     <div className="flex flex-wrap items-center gap-2">
       {tabs.length > 1 && (
-        <div className="flex items-center bg-[#F1F5F9] p-1 rounded-2xl border border-black/5" role="tablist" aria-label="Bentuk visual">
+        <div className="flex items-center bg-[#F0EEF6] p-1 rounded-2xl border border-black/5" role="tablist" aria-label="Bentuk visual">
           {tabs.map(value => (
             <button key={value} type="button" role="tab" aria-selected={tab === value}
               onClick={() => { audioSynth.playClickSound(); setTab(value); setZoom(100); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer ${tab === value ? "bg-[#0284C7] text-white" : "text-[#0284C7] hover:bg-[#E0F2FE]"}`}>
+              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer ${tab === value ? "bg-[#21518A] text-white" : "text-[#21518A] hover:bg-[#D2E5FA]"}`}>
               {value === "image" ? <Sparkles className="w-3.5 h-3.5" /> : value === "diagram" ? <Layers className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               {tabLabel(value)}
             </button>
           ))}
         </div>
       )}
-      <div className="flex items-center bg-[#F8F9FD] rounded-xl border border-black/5 p-0.5">
+      <div className="flex items-center bg-[#F7F6FA] rounded-xl border border-black/5 p-0.5">
         <button type="button" aria-label="Perkecil" disabled={zoom <= 60} onClick={() => setZoom(z => Math.max(60, z - 20))} className="p-2 rounded-lg disabled:opacity-40 cursor-pointer"><ZoomOut className="w-4 h-4" /></button>
-        <button type="button" aria-label="Ukuran semula" onClick={() => setZoom(100)} className="px-2 py-1 text-[11px] font-bold text-[#0284C7] cursor-pointer">{zoom}%</button>
+        <button type="button" aria-label="Ukuran semula" onClick={() => setZoom(100)} className="px-2 py-1 text-[11px] font-bold text-[#21518A] cursor-pointer">{zoom}%</button>
         <button type="button" aria-label="Perbesar" disabled={zoom >= 250} onClick={() => setZoom(z => Math.min(250, z + 30))} className="p-2 rounded-lg disabled:opacity-40 cursor-pointer"><ZoomIn className="w-4 h-4" /></button>
       </div>
       {!fullscreen && (
@@ -193,19 +204,19 @@ export default function VisualMap({ info, sources, art = null }: Props) {
           <Maximize2 className="w-3.5 h-3.5" />Layar penuh
         </button>
       )}
-      <button type="button" onClick={saveSvg} className="px-3 py-2 rounded-xl bg-[#0F172A] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"><Download className="w-3.5 h-3.5" />SVG</button>
-      <button type="button" onClick={savePng} className="px-3 py-2 rounded-xl bg-[#0F172A] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"><Download className="w-3.5 h-3.5" />PNG</button>
+      <button type="button" onClick={saveSvg} className="px-3 py-2 rounded-xl bg-[#1C1E26] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"><Download className="w-3.5 h-3.5" />SVG</button>
+      <button type="button" onClick={savePng} className="px-3 py-2 rounded-xl bg-[#1C1E26] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"><Download className="w-3.5 h-3.5" />PNG</button>
     </div>
   );
 
   return (
     <section className="space-y-4 min-w-0" aria-label="Peta visual materi">
-      <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+      <div className="clay-card p-4 sm:p-5 space-y-4">
         <div className="space-y-3">
           <div className="min-w-0">
-            <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md bg-[#E0F2FE] text-[#0284C7] border border-[#BAE6FD]">✦ Peta visual materi</span>
-            <h2 className="text-lg sm:text-xl font-black text-[#0F172A] mt-2 break-words">{tab === "diagram" && diagram ? diagram.title : info.title}</h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] bg-[#D1EBE1] text-[#1D5E4D]"><Network className="w-3.5 h-3.5" />Peta visual materi</span>
+            <h2 className="text-lg sm:text-xl font-extrabold text-[#1C1E26] mt-2 break-words">{tab === "diagram" && diagram ? diagram.title : info.title}</h2>
+            <p className="text-xs text-[#595F72] mt-0.5">
               {tab === "image"
                 ? "Ilustrasi dan ikon dibuat AI; semua tulisan diambil dari materi guru. Bisa diunduh dan dicetak."
                 : tab === "diagram"
@@ -227,10 +238,10 @@ export default function VisualMap({ info, sources, art = null }: Props) {
       </div>
 
       {full && (
-        <div className="fixed inset-0 z-50 bg-slate-900/90 flex flex-col gap-3 p-3 sm:p-6" role="dialog" aria-modal="true" aria-label="Peta visual layar penuh">
+        <div className="fixed inset-0 z-50 bg-[#1C1E26] flex flex-col gap-3 p-3 sm:p-6" role="dialog" aria-modal="true" aria-label="Peta visual layar penuh">
           <div className="flex flex-wrap items-center justify-between gap-2 bg-white rounded-2xl p-2">
             {toolbar(true)}
-            <button type="button" aria-label="Tutup layar penuh" onClick={() => setFull(false)} className="p-2 rounded-xl bg-slate-100 cursor-pointer"><X className="w-5 h-5" /></button>
+            <button type="button" aria-label="Tutup layar penuh" onClick={() => setFull(false)} className="p-2 rounded-xl bg-[#F0EEF6] cursor-pointer"><X className="w-5 h-5" /></button>
           </div>
           {canvas(true)}
         </div>
@@ -246,8 +257,8 @@ function NodeDetail({ diagram, node, onSelect, onClose, sources }: {
   if (!node) {
     // Kept small on wide screens so the floating hint covers as little of the map as possible.
     return (
-      <aside className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/95 p-3 text-xs text-slate-600" aria-live="polite">
-        <p className="font-bold text-slate-800 text-sm">Penjelasan simpul</p>
+      <aside className="rounded-2xl border border-dashed border-[#E6E4EE] bg-[#F7F6FA] p-3 text-xs text-[#475569]" aria-live="polite">
+        <p className="font-bold text-[#1C1E26] text-sm">Penjelasan simpul</p>
         <p className="mt-1">Klik kotak mana pun untuk membaca penjelasan, contoh, dan cabangnya.</p>
       </aside>
     );
@@ -266,35 +277,35 @@ function NodeDetail({ diagram, node, onSelect, onClose, sources }: {
   const related = [...children, ...next];
   const chip = (item: DiagramNode) => (
     <button key={item.id} type="button" onClick={() => onSelect(item)}
-      className="px-2.5 py-1 rounded-lg bg-white border border-sky-200 text-xs font-bold text-[#0369A1] hover:bg-sky-100 cursor-pointer">
+      className="px-2.5 py-1 rounded-lg bg-white border border-[#21518A]/25 text-xs font-bold text-[#21518A] hover:bg-[#D2E5FA] cursor-pointer">
       {item.label}
     </button>
   );
   return (
-    <aside className="rounded-2xl border border-sky-200 bg-sky-50 p-4 space-y-3" aria-live="polite">
+    <aside className="rounded-2xl border border-[#21518A]/25 bg-[#EDF4FD] p-4 space-y-3" aria-live="polite">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {trail.length > 0 && (
-            <p className="text-[11px] font-bold text-slate-500 break-words">Bagian dari: {trail.map(item => item.label).join(" › ")}</p>
+            <p className="text-[11px] font-bold text-[#595F72] break-words">Bagian dari: {trail.map(item => item.label).join(" › ")}</p>
           )}
-          <h3 className="font-black text-[#0F172A] break-words">{node.label}</h3>
+          <h3 className="font-extrabold text-[#1C1E26] break-words">{node.label}</h3>
         </div>
         <button type="button" aria-label="Tutup penjelasan" onClick={onClose} className="p-1 rounded-lg hover:bg-white cursor-pointer"><X className="w-4 h-4" /></button>
       </div>
-      {node.detail && <p className="text-sm text-slate-700 leading-relaxed break-words">{node.detail}</p>}
+      {node.detail && <p className="text-sm text-[#475569] leading-relaxed break-words">{node.detail}</p>}
       {node.example && (
-        <div className="rounded-xl bg-white border border-amber-200 p-3">
-          <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">Contoh</p>
-          <p className="text-sm text-slate-700 mt-1 break-words">{node.example}</p>
+        <div className="rounded-xl bg-white border border-[#785308]/25 p-3">
+          <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#785308]">Contoh</p>
+          <p className="text-sm text-[#475569] mt-1 break-words">{node.example}</p>
         </div>
       )}
       {related.length > 0 && (
         <div>
-          <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">{diagram.kind === "flowchart" ? "Langkah berikutnya" : "Cabang"}</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#595F72] mb-1.5">{diagram.kind === "flowchart" ? "Langkah berikutnya" : "Cabang"}</p>
           <div className="flex flex-wrap gap-1.5">{related.map(chip)}</div>
         </div>
       )}
-      <details><summary className="cursor-pointer text-xs font-bold text-slate-500 py-1">Sumber</summary>{sources(node.source_refs)}</details>
+      <details><summary className="cursor-pointer text-xs font-bold text-[#595F72] py-1">Sumber</summary>{sources(node.source_refs)}</details>
     </aside>
   );
 }
@@ -363,7 +374,7 @@ function MermaidCanvas({ svg, diagram, selectedId, onSelect, boxRef }: {
       group.setAttribute("aria-pressed", String(on));
       // Outline the chosen node's own shape (not its text) so it stays visible while reading the explanation.
       group.querySelectorAll<SVGElement>(":scope > rect, :scope > path, :scope > circle, :scope > polygon, :scope > g > rect, :scope > g > path, :scope > g > circle").forEach(shape => {
-        shape.style.stroke = on ? "#0F172A" : "";
+        shape.style.stroke = on ? "#1C1E26" : "";
         shape.style.strokeWidth = on ? "4px" : "";
       });
     });

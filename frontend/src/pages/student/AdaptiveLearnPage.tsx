@@ -7,7 +7,7 @@ import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
 import LearningUnits from "@/components/student/LearningUnits";
 import AuditoryLearnSection from "@/components/student/AuditoryLearnSection";
-import PracticeMission from "@/components/student/PracticeMission";
+import KinestheticLearning from "@/components/student/KinestheticLearning";
 import {
   Eye,
   Headphones,
@@ -259,7 +259,7 @@ export default function AdaptiveLearnPage() {
                   Pilih Modul Pembelajaran
                 </h2>
                 <p className="text-xs text-[#5A5E70]">
-                  Kelas: <span className="font-bold text-[#1C1E26]">{currentClassroom?.name}</span> — pilih topik materi yang ingin kamu kuasai.
+                  Kelas: <span className="font-bold text-[#1C1E26]">{currentClassroom?.name}</span>. Pilih topik materi yang ingin kamu kuasai.
                 </p>
               </div>
 
@@ -329,12 +329,12 @@ export default function AdaptiveLearnPage() {
           {/* ========================================================= */}
           {activeDoc && (
             <div className="space-y-4 w-full max-w-full min-w-0">
-              {/* 👁️ SISWA VISUAL */}
+              {/* SISWA VISUAL */}
               {studentStyle === "VISUAL" && (
                 <LearningUnits key={activeDoc.id} documentId={activeDoc.id} showVisual />
               )}
 
-              {/* 🎧 SISWA AUDITORI */}
+              {/* SISWA AUDITORI */}
               {studentStyle === "AUDITORI" && (
                 <AuditoryLearnSection
                   doc={activeDoc}
@@ -342,10 +342,10 @@ export default function AdaptiveLearnPage() {
                 />
               )}
 
-              {/* ✋ SISWA KINESTETIK */}
+              {/* SISWA KINESTETIK */}
               {studentStyle === "KINESTETIK" && (
-                <PracticeMission key={activeDoc.id} documentId={activeDoc.id}
-                  onStageComplete={stage => void trackLearningActivity("practice", 1, stage.title)} />
+                <KinestheticLearning key={activeDoc.id} documentId={activeDoc.id}
+                  onActivity={title => void trackLearningActivity("practice", 1, title)} />
               )}
 
               {/* Action Button to Adaptive Quiz */}

@@ -4,7 +4,7 @@ import { ApiService, API_BASE_URL } from "@/services/apiClient";
 import UnitVisual, { type SourceRef, type Visual } from "./UnitVisual";
 import SourcedInfographic, { type Infographic } from "./SourcedInfographic";
 import VisualMap from "./VisualMap";
-import PracticeMission from "./PracticeMission";
+import KinestheticLearning from "./KinestheticLearning";
 type Concept = { name: string; explanation: string; source_refs: SourceRef[] };
 type Check = { question: string; options: string[]; correct_index: number; explanation: string; source_refs: SourceRef[] };
 type Unit = {
@@ -98,37 +98,37 @@ export default function LearningUnits({ documentId, teacher = false, showVisual 
   };
   const sources = (refs: SourceRef[]) => refs.map((ref, i) => {
     const source = data?.sources.find(item => item.id === ref.segment_id);
-    return <blockquote key={`${ref.segment_id}-${i}`} className="border-l-2 border-slate-300 pl-3 text-sm text-slate-600 my-2">
+    return <blockquote key={`${ref.segment_id}-${i}`} className="border-l-2 border-[#E6E4EE] pl-3 text-sm text-[#475569] my-2">
       “{ref.quote}” <span className="block text-xs">{source?.page
         ? <a className="underline" href={`${API_BASE_URL}/documents/${encodeURIComponent(documentId)}/pdf#page=${source.page}`} target="_blank" rel="noreferrer">{source.label}</a>
         : source?.label || ref.segment_id}</span>
     </blockquote>;
   });
   const disabled = busy || data?.state === "PROCESSING";
-  return <section className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4" aria-label="Unit belajar bersumber">
-    <h2 className="font-bold text-lg">{teacher ? "Tinjau unit belajar" : "Konsep dari materi guru"}</h2>
-    {error && <p role="alert" className="text-red-700">{error}</p>}
+  return <section className="clay-card p-5 sm:p-6 space-y-4" aria-label="Unit belajar bersumber">
+    <h2 className="text-[18px] leading-[26px] font-bold text-[#1C1E26]">{teacher ? "Tinjau unit belajar" : "Konsep dari materi guru"}</h2>
+    {error && <p role="alert" className="text-[#852C28]">{error}</p>}
     {!data && !error && <p role="status">Memuat unit belajar…</p>}
     {data && <>
-      <p role="status" className="text-sm text-slate-600">{teacher ? labels[data.state] || data.state : data.units.length ? "Materi telah disetujui guru." : "Unit belajar belum dipublikasikan oleh guru."}
+      <p role="status" className="text-sm text-[#475569]">{teacher ? labels[data.state] || data.state : data.units.length ? "Materi telah disetujui guru." : "Unit belajar belum dipublikasikan oleh guru."}
         {teacher && data.published_revision != null && ` · Revisi terpublikasi: ${data.published_revision}`}
       </p>
-      {teacher && data.error && <p className="text-red-700">{data.error}</p>}
+      {teacher && data.error && <p className="text-[#852C28]">{data.error}</p>}
       {teacher && <div className="flex flex-wrap gap-2">
         <button className="border rounded-lg px-3 py-2" disabled={busy || dirty} onClick={() => void action("generate")}>{data.state === "PROCESSING" ? "Coba ulang jika terhenti >30 menit" : data.units.length ? "Buat ulang draf" : "Buat / coba ulang"}</button>
         <button className="border rounded-lg px-3 py-2" disabled={disabled || !dirty} onClick={() => void action("save")}>Simpan perubahan</button>
-        <button className="bg-slate-900 text-white rounded-lg px-3 py-2" disabled={disabled || dirty || data.state !== "DRAFT" || !data.units.length} onClick={() => void action("approve")}>Setujui dan publikasikan</button>
+        <button className="bg-[#1C1E26] text-white rounded-lg px-3 py-2" disabled={disabled || dirty || data.state !== "DRAFT" || !data.units.length} onClick={() => void action("approve")}>Setujui dan publikasikan</button>
       </div>}
-      {teacher && <p className="text-xs text-slate-600">Periksa kebenaran konsep dan jawaban terhadap kutipan sebelum menyetujui. Kecocokan kutipan bukan jaminan penjelasan AI benar. Podcast tidak berubah.</p>}
+      {teacher && <p className="text-xs text-[#475569]">Periksa kebenaran konsep dan jawaban terhadap kutipan sebelum menyetujui. Kecocokan kutipan bukan jaminan penjelasan AI benar. Podcast tidak berubah.</p>}
       {teacher && data.infographic && (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2" aria-live="polite">
-          <p className="text-sm font-semibold text-slate-800">Ilustrasi & ikon AI untuk infografis</p>
-          {!data.image && <p className="text-sm text-slate-600">Belum ada gambar untuk draf ini.</p>}
-          {data.image?.state === "PROCESSING" && <p role="status" className="text-sm text-slate-600">Sedang menggambar ilustrasi dan ikon (±15–40 detik)…</p>}
-          {data.image?.state === "ERROR" && <p className="text-sm text-red-700">{data.image.error}</p>}
+        <div className="rounded-2xl border border-[#E6E4EE] bg-[#F7F6FA] p-4 space-y-2" aria-live="polite">
+          <p className="text-sm font-semibold text-[#1C1E26]">Ilustrasi & ikon AI untuk infografis</p>
+          {!data.image && <p className="text-sm text-[#475569]">Belum ada gambar untuk draf ini.</p>}
+          {data.image?.state === "PROCESSING" && <p role="status" className="text-sm text-[#475569]">Sedang menggambar ilustrasi dan ikon (±15–40 detik)…</p>}
+          {data.image?.state === "ERROR" && <p className="text-sm text-[#852C28]">{data.image.error}</p>}
           {data.image?.state === "READY" && (data.image.lettered?.length
-            ? <p className="text-sm text-amber-800">Gambar berikut mungkin masih memuat tulisan dari AI: {data.image.lettered.join(", ")}. Periksa di tab Infografis AI, lalu buat ulang atau hapus sebelum menyetujui.</p>
-            : <p className="text-sm text-emerald-800">Gambar sudah diperiksa bebas tulisan; semua teks di infografis berasal dari materi. Tetap lihat hasilnya sebelum menyetujui.</p>)}
+            ? <p className="text-sm text-[#785308]">Gambar berikut mungkin masih memuat tulisan dari AI: {data.image.lettered.join(", ")}. Periksa di tab Infografis AI, lalu buat ulang atau hapus sebelum menyetujui.</p>
+            : <p className="text-sm text-[#1D5E4D]">Gambar sudah diperiksa bebas tulisan; semua teks di infografis berasal dari materi. Tetap lihat hasilnya sebelum menyetujui.</p>)}
           <div className="flex flex-wrap gap-2">
             <button className="border rounded-lg px-3 py-2 text-sm bg-white" disabled={busy || data.state !== "DRAFT" || data.image?.state === "PROCESSING"} onClick={() => void imageAction("POST")}>
               {data.image ? "Buat ulang gambar" : "Buat gambar"}
@@ -158,16 +158,16 @@ export default function LearningUnits({ documentId, teacher = false, showVisual 
         />
       )}
       {teacher && data.units.length > 0 && !data.infographic && (
-        <p className="text-sm text-slate-600">Infografis belum tersedia untuk draf ini. Buat ulang draf untuk menyusunnya.</p>
+        <p className="text-sm text-[#475569]">Infografis belum tersedia untuk draf ini. Buat ulang draf untuk menyusunnya.</p>
       )}
       {teacher && data.units.length > 0 && (
-        <details className="rounded-2xl border border-amber-200 bg-amber-50/40 p-3">
-          <summary className="cursor-pointer font-semibold py-1">Pratinjau misi praktik (siswa kinestetik)</summary>
-          <p className="text-xs text-slate-600 my-2">Disusun otomatis dari alur, peta konsep, dan urutan unit di draf ini. Siswa mengerjakannya berurutan; tahap berikutnya terbuka setelah tahap sebelumnya selesai.</p>
-          <PracticeMission documentId={documentId} preview={{ infographic: data.infographic ?? null, units: data.units }} sources={sources} />
+        <details className="rounded-2xl border border-[#785308]/25 bg-[#FFF6DF] p-3">
+          <summary className="cursor-pointer font-semibold py-1">Pratinjau materi kinestetik: Games & Challenge</summary>
+          <p className="text-xs text-[#475569] my-2">Disusun otomatis dari alur, peta konsep, dan urutan unit di draf ini. Siswa mengerjakannya berurutan; tahap berikutnya terbuka setelah tahap sebelumnya selesai.</p>
+          <KinestheticLearning documentId={documentId} preview={{ infographic: data.infographic ?? null, units: data.units }} sources={sources} />
         </details>
       )}
-      {data.units.map((unit, index) => <article key={unit.id} className="border-t border-slate-200 pt-4 space-y-3">
+      {data.units.map((unit, index) => <article key={unit.id} className="border-t border-[#E6E4EE] pt-4 space-y-3">
         {teacher ? <>
           <label className="block text-sm">Judul unit<input disabled={disabled} className="block border rounded-lg w-full p-2" value={unit.title} onChange={event => change(index, { title: event.target.value })} /></label>
           <label className="block text-sm">Tujuan pembelajaran<textarea disabled={disabled} className="block border rounded-lg w-full p-2" value={unit.learning_objective} onChange={event => change(index, { learning_objective: event.target.value })} /></label>
@@ -175,8 +175,8 @@ export default function LearningUnits({ documentId, teacher = false, showVisual 
         {(teacher || showVisual) && (unit.visual
           ? <><UnitVisual visual={unit.visual} sources={sources} disabled={disabled} onChange={teacher ? visual => change(index, { visual }) : undefined} />
             {teacher && <button type="button" disabled={disabled} className="border rounded-lg px-3 py-2 text-sm" onClick={() => change(index, { visual: null, suggested_visual: "none" })}>Jangan gunakan visual ini</button>}</>
-          : <p className="text-sm text-slate-600">Visual belum tersedia untuk unit ini. Konsep dan sumber tetap dapat dibaca.{teacher && " Buat ulang draf untuk meminta visual bersumber; hasilnya perlu ditinjau kembali."}</p>)}
-        <div className="grid gap-3 sm:grid-cols-2">{unit.concepts.map((concept, c) => <div key={c} className="rounded-xl bg-slate-50 p-4">
+          : <p className="text-sm text-[#475569]">Visual belum tersedia untuk unit ini. Konsep dan sumber tetap dapat dibaca.{teacher && " Buat ulang draf untuk meminta visual bersumber; hasilnya perlu ditinjau kembali."}</p>)}
+        <div className="grid gap-3 sm:grid-cols-2">{unit.concepts.map((concept, c) => <div key={c} className="rounded-xl bg-[#F7F6FA] p-4">
           <h4 className="font-semibold">{concept.name}</h4>
           {teacher ? <textarea aria-label={`Penjelasan ${concept.name}`} disabled={disabled} className="border rounded-lg w-full p-2" value={concept.explanation} onChange={event => change(index, { concepts: unit.concepts.map((item, n) => n === c ? { ...item, explanation: event.target.value } : item) })} /> : <p className="text-sm mt-2">{concept.explanation}</p>}
           <details><summary className="text-sm cursor-pointer mt-2">Lihat sumber</summary>{sources(concept.source_refs)}</details>
@@ -186,7 +186,7 @@ export default function LearningUnits({ documentId, teacher = false, showVisual 
           {unit.comprehension_checks?.map((check, i) => <div className="my-3" key={i}><p>{check.question}</p><ol>{check.options.map((option, n) => <li key={n}>{n + 1}. {option}{n === check.correct_index ? " (jawaban)" : ""}</li>)}</ol><p>{check.explanation}</p>{sources(check.source_refs)}</div>)}
         </details>}
       </article>)}
-      {!teacher && <p className="text-xs text-slate-600">Materi bersumber dan ditinjau guru; bukan penilaian penguasaan. Aktivitas kinestetik baru belum tersedia.</p>}
+      {!teacher && <p className="text-xs text-[#475569]">Materi bersumber dan ditinjau guru; bukan penilaian penguasaan. Aktivitas kinestetik baru belum tersedia.</p>}
     </>}
   </section>;
 }
