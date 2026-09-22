@@ -4,6 +4,7 @@ from app.api.v1.endpoints import (
     users,
     classrooms,
     documents,
+    learning_units,
     tasks,
     dda,
     assessment,
@@ -20,6 +21,7 @@ api_router.include_router(auth.router)
 api_router.include_router(users.router)
 api_router.include_router(classrooms.router)
 api_router.include_router(documents.router)
+api_router.include_router(learning_units.router)
 api_router.include_router(tasks.router)
 api_router.include_router(dda.router)
 api_router.include_router(assessment.router)

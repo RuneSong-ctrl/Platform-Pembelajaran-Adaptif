@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from app.core.database import get_db
 from app.models.user import User
+from app.core.auth import current_user
+from app.core.scope import visible_classrooms, visible_classroom_ids, visible_student_ids
 from app.models.submission import AssignmentSubmission
 from app.models.schedule import LearningSchedule
 from app.models.credential import BlockchainCredential
@@ -24,93 +26,91 @@ from app.schemas.user import (
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
+def visible_people(actor: User, db: Session) -> list[User]:
+    """The signed-in user, their students/children, their classes' teachers, and parents linked to those students."""
+    classes = visible_classrooms(actor, db)
+    students = visible_student_ids(actor, db)
+    ids = {actor.id} | students | {c.teacher_id for c in classes}
+    parents = [u for u in db.query(User).filter(User.role == "ORTU").all() if students & set(u.children_ids or [])]
+    people = db.query(User).filter(User.id.in_(ids)).all()
+    return people + [p for p in parents if p.id not in ids]
+
 @router.get("", response_model=List[UserResponse])
-def get_all_users(db: Session = Depends(get_db)):
-    return db.query(User).all()
+def get_all_users(db: Session = Depends(get_db), actor: User = Depends(current_user)):
+    return visible_people(actor, db)
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(payload: UserCreate, db: Session = Depends(get_db)):
-    clean_email = payload.email.strip().lower()
-    existing = db.query(User).filter(User.email == clean_email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email sudah terdaftar")
-    
-    user_id = payload.id or f"user_{payload.role.lower()}_{uuid.uuid4().hex[:8]}"
-    avatar = payload.avatar or payload.name[:2].upper()
-    
-    initial_progress = {
-        "visual": 0,
-        "audio": 0,
-        "practice": 0,
-        "visual_completed": 0,
-        "visual_total": 0,
-        "audio_minutes": 0,
-        "audio_completed": 0,
-        "practice_completed": 0,
-        "practice_total": 0,
-    }
-    if payload.learning_progress:
-        initial_progress.update(payload.learning_progress.model_dump(exclude_unset=True))
-    
-    user = User(
-        id=user_id,
-        name=payload.name.strip(),
-        email=clean_email,
-        role=payload.role.upper(),
-        avatar=avatar,
-        grade=payload.grade,
-        learning_style=payload.learning_style or "VISUAL",
-        modality_scores=payload.modality_scores.model_dump() if payload.modality_scores else {"visual": 80, "audio": 45, "practice": 55},
-        learning_progress=initial_progress,
-        processing_speed=payload.processing_speed or "MODERATE",
-        xp_total=payload.xp_total or 0,
-        streak_days=payload.streak_days or 1,
-        hearts=payload.hearts or 5,
-        current_dda_level=payload.current_dda_level or "BASIC",
-        children_ids=payload.children_ids or [],
-        subject_specialization=payload.subject_specialization,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
+    raise HTTPException(410, "Gunakan registrasi dengan password melalui /auth/register.")
 
 @router.get("/{user_id}", response_model=UserResponse)
-def get_user_by_id(user_id: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
+def get_user_by_id(user_id: str, db: Session = Depends(get_db), actor: User = Depends(current_user)):
+    user = next((person for person in visible_people(actor, db) if person.id == user_id), None)
     if not user:
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
     return user
 
 @router.patch("/{user_id}", response_model=UserResponse)
-def update_user_profile(user_id: str, updates: UserUpdate, db: Session = Depends(get_db)):
+def update_user_profile(user_id: str, updates: UserUpdate, db: Session = Depends(get_db), actor: User = Depends(current_user)):
+    if actor.id != user_id:
+        raise HTTPException(403, "Profil hanya dapat diubah oleh pemilik akun.")
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
-    
+
     update_data = updates.model_dump(exclude_unset=True)
+    if "name" in update_data:
+        update_data["name"] = (update_data["name"] or "").strip()
+        if not update_data["name"]:
+            raise HTTPException(422, "Nama tidak boleh kosong.")
+    if "email" in update_data:
+        update_data["email"] = str(update_data["email"]).strip().lower()
+        taken = db.query(User).filter(User.email == update_data["email"], User.id != user.id).first()
+        if taken:
+            raise HTTPException(409, "Email sudah dipakai akun lain.")
+    if update_data.get("learning_style") not in (None, "VISUAL", "AUDITORI", "KINESTETIK"):
+        raise HTTPException(422, "Gaya belajar tidak valid.")
+    scores = update_data.get("modality_scores")
+    if scores is not None and (set(scores) != {"visual", "audio", "practice"}
+                               or any(not 0 <= value <= 100 for value in scores.values())):
+        raise HTTPException(422, "Skor modalitas tidak valid.")
+    avatar = update_data.get("avatar")
+    if avatar and len(avatar) > 32 and not (avatar.startswith("data:image/") and len(avatar) <= 1_500_000):
+        raise HTTPException(422, "Avatar tidak valid atau terlalu besar.")
+
     for key, value in update_data.items():
         setattr(user, key, value)
-        
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(422, "Profil belum dapat disimpan. Periksa data yang diisi.")
     db.refresh(user)
     return user
 
-@router.get("/{user_id}/progress", response_model=LearningProgressResponse)
-def get_student_learning_progress(user_id: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
+def visible_person(user_id: str, actor: User, db: Session) -> User:
+    user = next((person for person in visible_people(actor, db) if person.id == user_id), None)
     if not user:
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
+    return user
 
+@router.get("/{user_id}/progress", response_model=LearningProgressResponse)
+def get_student_learning_progress(user_id: str, db: Session = Depends(get_db), actor: User = Depends(current_user)):
+    return learning_progress_for(visible_person(user_id, actor, db), db)
+
+def learning_progress_for(user: User, db: Session) -> LearningProgressResponse:
+    user_id = user.id
     raw_prog = user.learning_progress or {}
-    
+
     # Real activity aggregation from database tables
     submissions = db.query(AssignmentSubmission).filter(AssignmentSubmission.student_id == user_id).all()
     schedules = db.query(LearningSchedule).filter(LearningSchedule.student_id == user_id).all()
     credentials = db.query(BlockchainCredential).filter(BlockchainCredential.student_id == user_id).all()
-    
-    db_docs_count = db.query(GroundedDocument).count()
-    db_tasks_count = db.query(GroundedTask).count()
+
+    # Only the curriculum of classes this student has joined counts toward their totals.
+    class_ids = visible_classroom_ids(user, db) if user.role == "SISWA" else set()
+    db_docs_count = db.query(GroundedDocument).filter(GroundedDocument.classroom_id.in_(class_ids)).count() if class_ids else 0
+    db_tasks_count = db.query(GroundedTask).filter(GroundedTask.classroom_id.in_(class_ids)).count() if class_ids else 0
 
     visual_sched_done = sum(1 for s in schedules if s.format == "Visual" and s.completed)
     audio_sched_done = sum(1 for s in schedules if s.format == "Audio" and s.completed)
@@ -119,15 +119,14 @@ def get_student_learning_progress(user_id: str, db: Session = Depends(get_db)):
     subs_graded = sum(1 for sub in submissions if sub.status == "GRADED")
     subs_total = len(submissions)
 
-    # Dynamic totals derived from curriculum database
-    v_total = max(raw_prog.get("visual_total") or 0, db_docs_count, 4)
-    p_total = max(raw_prog.get("practice_total") or 0, db_tasks_count, 4)
+    v_total = max(raw_prog.get("visual_total") or 0, db_docs_count)
+    p_total = max(raw_prog.get("practice_total") or 0, db_tasks_count)
 
-    # Stored and tracked activity counters
-    v_completed = min(v_total, raw_prog.get("visual_completed", visual_sched_done + (1 if db_docs_count > 0 else 0)))
-    a_minutes = raw_prog.get("audio_minutes", max(audio_sched_done * 15, 10))
-    a_completed = raw_prog.get("audio_completed", max(audio_sched_done, 1))
-    p_completed = min(p_total, raw_prog.get("practice_completed", max(subs_total, practice_sched_done) + (1 if credentials else 0)))
+    # Tracked counters, falling back to real activity only (no invented starting progress).
+    v_completed = min(v_total, raw_prog.get("visual_completed", visual_sched_done))
+    a_minutes = raw_prog.get("audio_minutes", audio_sched_done * 15)
+    a_completed = raw_prog.get("audio_completed", audio_sched_done)
+    p_completed = min(p_total, raw_prog.get("practice_completed", max(subs_total, practice_sched_done)))
 
     # Calculate percentages
     v_pct = raw_prog.get("visual")
@@ -174,10 +173,11 @@ def track_student_learning_activity(
     user_id: str,
     payload: LearningActivityTrackRequest,
     db: Session = Depends(get_db),
+    actor: User = Depends(current_user),
 ):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+    if actor.id != user_id:
+        raise HTTPException(403, "Progres hanya dapat dicatat oleh pemilik akun.")
+    user = actor
 
     m_type = payload.modality_type.strip().lower()
     if m_type not in ["visual", "audio", "practice"]:
@@ -186,8 +186,9 @@ def track_student_learning_activity(
     amount = max(1, min(1000, payload.increment_amount or 1))
 
     current_prog = dict(user.learning_progress or {})
-    db_docs_count = db.query(GroundedDocument).count()
-    db_tasks_count = db.query(GroundedTask).count()
+    class_ids = visible_classroom_ids(user, db)
+    db_docs_count = db.query(GroundedDocument).filter(GroundedDocument.classroom_id.in_(class_ids)).count() if class_ids else 0
+    db_tasks_count = db.query(GroundedTask).filter(GroundedTask.classroom_id.in_(class_ids)).count() if class_ids else 0
     
     if m_type == "visual":
         current_prog["visual_completed"] = (current_prog.get("visual_completed") or 0) + amount
@@ -208,23 +209,21 @@ def track_student_learning_activity(
     db.commit()
     db.refresh(user)
 
-    return get_student_learning_progress(user_id=user_id, db=db)
+    return learning_progress_for(user, db)
 
 @router.get("/{user_id}/style-analytics", response_model=LearningStyleAnalyticsResponse)
-def get_student_style_analytics(user_id: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+def get_student_style_analytics(user_id: str, db: Session = Depends(get_db), actor: User = Depends(current_user)):
+    user = visible_person(user_id, actor, db)
 
     # Get dynamic progress from DB
-    prog = get_student_learning_progress(user_id=user_id, db=db)
+    prog = learning_progress_for(user, db)
     
     # Real database queries
     credentials = db.query(BlockchainCredential).filter(BlockchainCredential.student_id == user_id).all()
     submissions = db.query(AssignmentSubmission).filter(AssignmentSubmission.student_id == user_id).all()
     
     # Calculate real accuracy from credentials or graded submissions
-    graded_subs = [s.score for s in submissions if s.score is not None]
+    graded_subs = [s.grade for s in submissions if s.grade is not None]
     if credentials:
         avg_accuracy = round(sum(c.score or 0 for c in credentials) / len(credentials))
     elif graded_subs:
@@ -277,7 +276,7 @@ def get_student_style_analytics(user_id: str, db: Session = Depends(get_db)):
         student_id=user.id,
         learning_style=user.learning_style or "KINESTETIK",
         current_dda_level=dda_lvl,
-        xp_total=user.xp_total or (sum(c.score or 0 for c in credentials)) or 100,
+        xp_total=user.xp_total or 0,
         accuracy_avg_pct=avg_accuracy,
         visual_params=visual_params,
         auditory_params=auditory_params,

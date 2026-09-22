@@ -31,10 +31,10 @@ export default function StudentClassPage() {
     c.studentIds?.map((id) => String(id)).includes(String(currentUser?.id))
   );
 
-  const handleJoin = () => {
+  const handleJoin = async () => {
     if (!joinCodeInput) return;
     audioSynth.playClickSound();
-    const res = joinClassroom(joinCodeInput);
+    const res = await joinClassroom(joinCodeInput);
     setJoinMessage(res);
     if (res.success) {
       audioSynth.playSuccessSound();

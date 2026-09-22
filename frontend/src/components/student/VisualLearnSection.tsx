@@ -22,7 +22,7 @@ interface VisualLearnSectionProps {
 }
 
 export default function VisualLearnSection({ doc }: VisualLearnSectionProps) {
-  const [activeVisualTab, setActiveVisualTab] = useState<"MAP" | "INFOGRAPHIC">("MAP");
+  const [activeVisualTab, setActiveVisualTab] = useState<"MAP" | "INFOGRAPHIC">("INFOGRAPHIC");
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   // Helper resolusi URL gambar visual backend

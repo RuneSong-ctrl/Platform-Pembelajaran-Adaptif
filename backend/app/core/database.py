@@ -1,5 +1,5 @@
 import logging
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.core.config import settings
 
@@ -32,6 +32,31 @@ Base = declarative_base()
 
 def check_and_migrate_db():
     try:
+        with engine.begin() as conn:
+            inspector = inspect(conn)
+            if inspector.has_table("users"):
+                columns = {column["name"] for column in inspector.get_columns("users")}
+                if "password_hash" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)"))
+            if inspector.has_table("documents"):
+                columns = {column["name"] for column in inspector.get_columns("documents")}
+                for name in ["infographic_data_json", "karaoke_json", "podcast_episodes_json", "game_config_json", "visual_nodes_json", "fill_blank_json", "sorting_challenges_json"]:
+                    if name not in columns:
+                        conn.execute(text(f"ALTER TABLE documents ADD COLUMN {name} TEXT"))
+            # create_all never adds columns to an existing table, so newer model columns are added here.
+            for table_name in ["adaptive_documents", "auth_sessions"]:
+                table = Base.metadata.tables.get(table_name)
+                if table is None or not inspector.has_table(table_name):
+                    continue
+                existing = {column["name"] for column in inspector.get_columns(table_name)}
+                for column in table.columns:
+                    if column.name not in existing:
+                        ddl_type = column.type.compile(dialect=conn.dialect)
+                        conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column.name} {ddl_type}"))
+                        logger.info(f"Auto-migrated {table_name}: added {column.name} column.")
+            if inspector.has_table("adaptive_documents"):
+                for name in ["source_segments", "draft_units", "published_units", "published_sources"]:
+                    conn.execute(text(f"UPDATE adaptive_documents SET {name} = '[]' WHERE {name} IS NULL"))
         with engine.connect() as conn:
             raw_conn = conn.connection
             cursor = raw_conn.cursor()

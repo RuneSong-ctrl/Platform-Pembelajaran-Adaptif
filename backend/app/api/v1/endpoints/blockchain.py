@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
 from app.core.config import settings
+from app.core.auth import current_user, require_class_access
+from app.core.scope import visible_classroom_ids, visible_student_ids
 from app.models.credential import BlockchainCredential
 from app.models.user import User
 from app.models.classroom import Classroom
@@ -18,20 +20,31 @@ from app.services.blockchain_service import (
 router = APIRouter(prefix="/credentials", tags=["Blockchain Vault"])
 
 @router.get("", response_model=List[CredentialResponse])
-def get_all_credentials(student_id: str = None, db: Session = Depends(get_db)):
+def get_all_credentials(student_id: str = None, db: Session = Depends(get_db), actor: User = Depends(current_user)):
     query = db.query(BlockchainCredential)
+    if actor.role == "GURU":
+        classes = visible_classroom_ids(actor, db)
+        if not classes:
+            return []
+        query = query.filter(BlockchainCredential.classroom_id.in_(classes))
+    else:
+        students = visible_student_ids(actor, db)
+        if not students:
+            return []
+        query = query.filter(BlockchainCredential.student_id.in_(students))
     if student_id:
         query = query.filter(BlockchainCredential.student_id == student_id)
     return query.order_by(BlockchainCredential.block_index.asc()).all()
 
 @router.post("/mint", response_model=CredentialResponse, status_code=status.HTTP_201_CREATED)
-def mint_blockchain_credential(data: CredentialMintRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == data.student_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Siswa tidak ditemukan")
-        
+def mint_blockchain_credential(data: CredentialMintRequest, db: Session = Depends(get_db),
+                               actor: User = Depends(current_user)):
     cls = db.query(Classroom).filter(Classroom.id == data.classroom_id).first()
-    cls_name = cls.name if cls else "Kelas Sains"
+    require_class_access(cls, actor, teacher=True)
+    user = db.query(User).filter(User.id == data.student_id).first()
+    if not user or user.id not in (cls.student_ids or []):
+        raise HTTPException(status_code=404, detail="Siswa tidak ditemukan di kelas ini")
+    cls_name = cls.name
     
     # Get last block to chain
     last_block = db.query(BlockchainCredential).order_by(BlockchainCredential.block_index.desc()).first()

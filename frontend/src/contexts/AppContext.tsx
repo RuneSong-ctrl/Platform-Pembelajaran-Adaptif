@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import {
   User,
   Classroom,
@@ -44,8 +44,9 @@ import {
 interface AppContextType {
   // Auth & User Management
   isAuthenticated: boolean;
-  login: (identifier: string, password?: string) => { success: boolean; user?: User; message?: string };
-  registerUser: (data: { name: string; email: string; role: "SISWA" | "GURU" | "ORTU"; password?: string; grade?: number }) => { success: boolean; user?: User; message?: string };
+  isRestoringSession: boolean;
+  login: (identifier: string, password?: string) => Promise<{ success: boolean; user?: User; message?: string }>;
+  registerUser: (data: { name: string; email: string; role: "SISWA" | "GURU" | "ORTU"; password?: string; grade?: number }) => Promise<{ success: boolean; user?: User; message?: string }>;
   loginWithClassCode: (studentName: string, classCode: string) => { success: boolean; user?: User; message?: string; isNewStudent?: boolean };
   logout: () => void;
 
@@ -53,13 +54,13 @@ interface AppContextType {
   currentUser: User;
   users: User[];
   switchUser: (userId: string) => void;
-  updateCurrentUserProfile: (updates: Partial<User>) => void;
+  updateCurrentUserProfile: (updates: Partial<User>) => Promise<void>;
 
   // Classrooms
   classrooms: Classroom[];
   addClassroom: (name: string, grade: number, subject: string) => Classroom;
   createClassroom: (name: string, subject: string, grade?: number) => Classroom;
-  joinClassroom: (joinCode: string) => { success: boolean; message: string };
+  joinClassroom: (joinCode: string) => Promise<{ success: boolean; message: string }>;
 
   // Documents & RAG Grounding
   documents: GroundedDocument[];
@@ -129,20 +130,32 @@ const STORAGE_KEYS = {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<User[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string>(() => {
-    try {
-      return localStorage.getItem(STORAGE_KEYS.USER) || "";
-    } catch {
-      return "";
+  const [currentUserId, setCurrentUserId] = useState("");
+  const sessionVersion = useRef(0);
+  const activeUserId = useRef("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isRestoringSession, setIsRestoringSession] = useState(() => Boolean(ApiService.getToken()));
+  useEffect(() => {
+    let active = true;
+    const version = sessionVersion.current;
+    const token = ApiService.getToken();
+    const isCurrent = () => active && version === sessionVersion.current && token === ApiService.getToken();
+    if (token) {
+      ApiService.authenticatedRequest<unknown>("/auth/me").then(raw => {
+        if (!isCurrent()) return;
+        const user = normalizeUser(raw);
+        activeUserId.current = user.id;
+        setUsers(prev => [user, ...prev.filter(item => item.id !== user.id)]);
+        setCurrentUserId(user.id);
+        localStorage.setItem(STORAGE_KEYS.USER, user.id);
+        setIsAuthenticated(true);
+      }).catch(() => { if (isCurrent()) { ApiService.setToken(); setIsAuthenticated(false); } })
+        .finally(() => { if (active && version === sessionVersion.current) setIsRestoringSession(false); });
+    } else {
+      setIsRestoringSession(false);
     }
-  });
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem(STORAGE_KEYS.AUTH) === "true";
-    } catch {
-      return false;
-    }
-  });
+    return () => { active = false; };
+  }, []);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [documents, setDocuments] = useState<GroundedDocument[]>([]);
   const [tasks, setTasks] = useState<GroundedTask[]>([]);
@@ -201,17 +214,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (err) {
       console.warn("[AppContext] trackLearningActivity error:", err);
-      // Local optimistic update
-      setUsers((prev) =>
-        prev.map((u) => {
-          if (u.id !== currentUser.id) return u;
-          const curProg = { ...(u.learningProgress || { visual: 0, audio: 0, practice: 0 }) };
-          if (type === "visual") curProg.visual = Math.min(100, (curProg.visual || 0) + 15);
-          if (type === "audio") curProg.audio = Math.min(100, (curProg.audio || 0) + 20);
-          if (type === "practice") curProg.practice = Math.min(100, (curProg.practice || 0) + 20);
-          return { ...u, learningProgress: curProg };
-        })
-      );
+
     }
   };
 
@@ -237,8 +240,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Auto-sync with FastAPI backend on mount
+  // Load the signed-in account's own data; nothing is shown before login or carried over after logout.
   useEffect(() => {
+    if (!isAuthenticated || !currentUserId) {
+      setUsers(previous => previous.filter(user => user.id === activeUserId.current));
+      setClassrooms([]);
+      setDocuments([]);
+      setTasks([]);
+      setCredentials([]);
+      setLearningSchedules([]);
+      setSubmissions([]);
+      setNotes([]);
+      return;
+    }
+    const version = sessionVersion.current;
     const fetchBackendData = async () => {
       setIsSyncing(true);
       try {
@@ -261,20 +276,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ApiService.getSubmissions(),
           ApiService.getNotes(),
         ]);
+        if (version !== sessionVersion.current) return;
 
         if (backendUsers !== null && backendUsers.length > 0) {
           const normalized = backendUsers.map(normalizeUser);
-          setUsers(normalized);
-
-          // Preserve active user if stored in localStorage, otherwise pick the first user
-          const storedUid = localStorage.getItem(STORAGE_KEYS.USER);
-          if (storedUid && normalized.some((u) => u.id === storedUid)) {
-            setCurrentUserId(storedUid);
-          } else if (storedUid && !normalized.some((u) => u.id === storedUid)) {
-            // keep currentUserId as is
-          } else if (!storedUid && normalized.length > 0) {
-            setCurrentUserId(normalized[0].id);
-          }
+          setUsers(previous => [
+            ...previous.filter(user => user.id === activeUserId.current),
+            ...normalized.filter(user => user.id !== activeUserId.current),
+          ]);
         }
         if (backendClassrooms !== null) {
           setClassrooms(backendClassrooms.map(normalizeClassroom));
@@ -305,30 +314,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     fetchBackendData();
-  }, []);
+  }, [isAuthenticated, currentUserId]);
 
-  // Load from local storage if available
+  // Older builds cached other accounts' records in this browser; never restore them.
   useEffect(() => {
     try {
-      const savedAuth = localStorage.getItem(STORAGE_KEYS.AUTH);
-      if (savedAuth === "true") setIsAuthenticated(true);
-
-      const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
-      if (savedUser) setCurrentUserId(savedUser);
-
-      const savedCreds = localStorage.getItem(STORAGE_KEYS.CREDENTIALS);
-      if (savedCreds) setCredentials(JSON.parse(savedCreds));
-
-      const savedTasks = localStorage.getItem(STORAGE_KEYS.TASKS);
-      if (savedTasks) setTasks(JSON.parse(savedTasks));
-
-      const savedDocs = localStorage.getItem(STORAGE_KEYS.DOCS);
-      if (savedDocs) setDocuments(JSON.parse(savedDocs));
-
-      const savedSubs = localStorage.getItem(STORAGE_KEYS.SUBMISSIONS);
-      if (savedSubs) setSubmissions(JSON.parse(savedSubs));
+      [STORAGE_KEYS.CREDENTIALS, STORAGE_KEYS.TASKS, STORAGE_KEYS.DOCS, STORAGE_KEYS.SUBMISSIONS]
+        .forEach(key => localStorage.removeItem(key));
     } catch {
-      // safe fallback
+      // storage unavailable
     }
   }, []);
 
@@ -348,245 +342,90 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     currentDDALevel: "BASIC",
   };
 
-  const currentUser = users.find((u) => u.id === currentUserId) || users[0] || DEFAULT_EMPTY_USER;
+  const currentUser = users.find((u) => u.id === currentUserId) || DEFAULT_EMPTY_USER;
 
-  const login = (identifier: string, password?: string): { success: boolean; user?: User; message?: string } => {
-    const cleanId = identifier.trim().toLowerCase();
-    if (!cleanId) {
-      return { success: false, message: "Harap masukkan email, NISN, atau NIP." };
-    }
-
-    // Find matching user by email, id, or partial name
-    const foundUser = users.find(
-      (u) =>
-        u.email.toLowerCase() === cleanId ||
-        u.id.toLowerCase() === cleanId ||
-        u.name.toLowerCase().includes(cleanId)
-    );
-
-    if (!foundUser) {
-      return { success: false, message: "Akun tidak terdaftar. Periksa kembali kredensial Anda." };
-    }
-
-    setCurrentUserId(foundUser.id);
+  const acceptSession = (response: { token: string; user: unknown }) => {
+    const user = normalizeUser(response.user);
+    ApiService.setToken(response.token);
+    activeUserId.current = user.id;
+    setIsRestoringSession(false);
+    setUsers(prev => [user, ...prev.filter(item => item.id !== user.id)]);
+    setCurrentUserId(user.id);
     setIsAuthenticated(true);
-    try {
-      localStorage.setItem(STORAGE_KEYS.AUTH, "true");
-      localStorage.setItem(STORAGE_KEYS.USER, foundUser.id);
-    } catch {
-      // safe fallback
-    }
-
-    // Background sync to backend
-    ApiService.login(cleanId, password).catch(() => {});
-
-    return { success: true, user: foundUser };
+    localStorage.setItem(STORAGE_KEYS.USER, user.id);
+    return { success: true, user };
   };
 
-  const registerUser = (data: {
-    name: string;
-    email: string;
-    role: "SISWA" | "GURU" | "ORTU";
-    password?: string;
-    grade?: number;
-  }): { success: boolean; user?: User; message?: string } => {
-    const cleanName = data.name.trim();
-    const cleanEmail = data.email.trim().toLowerCase();
-
-    if (!cleanName) {
-      return { success: false, message: "Harap masukkan nama lengkap Anda." };
-    }
-    if (!cleanEmail) {
-      return { success: false, message: "Harap masukkan alamat email Anda." };
-    }
-
-    const existing = users.find((u) => u.email.toLowerCase() === cleanEmail);
-    if (existing) {
-      return { success: false, message: "Email ini sudah terdaftar. Silakan langsung masuk." };
-    }
-
-    const initials = cleanName
-      .split(" ")
-      .map((p) => p[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-
-    const newUser: User = {
-      id: `user_${data.role.toLowerCase()}_${Date.now().toString(36)}`,
-      name: cleanName,
-      email: cleanEmail,
-      role: data.role,
-      avatar: initials || data.role.slice(0, 2),
-      grade: data.role === "SISWA" ? (data.grade || 10) : undefined,
-      learningStyle: undefined,
-      xpTotal: data.role === "SISWA" ? 100 : 0,
-      streakDays: 1,
-      hearts: 5,
-      currentDDALevel: "BASIC",
-    };
-
-    setUsers((prev) => [newUser, ...prev]);
-    setCurrentUserId(newUser.id);
-    setIsAuthenticated(true);
+  const login = async (identifier: string, password?: string) => {
+    const version = ++sessionVersion.current;
     try {
-      localStorage.setItem(STORAGE_KEYS.AUTH, "true");
-      localStorage.setItem(STORAGE_KEYS.USER, newUser.id);
-    } catch {
-      // safe fallback
+      const response = await ApiService.authenticatedRequest<{ token: string; user: unknown }>("/auth/login", {
+        method: "POST", body: JSON.stringify({ identifier, password }),
+      });
+      if (version !== sessionVersion.current) return { success: false, message: "Permintaan sesi sudah dibatalkan." };
+      return acceptSession(response);
+    } catch (error) {
+      if (version !== sessionVersion.current) return { success: false, message: "Permintaan sesi sudah dibatalkan." };
+      ApiService.setToken();
+      activeUserId.current = "";
+      setCurrentUserId("");
+      setIsRestoringSession(false);
+      setIsAuthenticated(false);
+      return { success: false, message: error instanceof Error ? error.message : "Gagal masuk." };
     }
-
-    // Background sync to backend FastAPI / Database
-    ApiService.registerUser({
-      name: cleanName,
-      email: cleanEmail,
-      role: data.role,
-      password: data.password,
-      grade: data.grade,
-    }).then((res) => {
-      if (res && res.user) {
-        const backendUser = normalizeUser(res.user);
-        setUsers((prev) => [backendUser, ...prev.filter((u) => u.id !== newUser.id && u.id !== backendUser.id)]);
-        setCurrentUserId(backendUser.id);
-        try {
-          localStorage.setItem(STORAGE_KEYS.USER, backendUser.id);
-        } catch {}
-      }
-    }).catch(() => {});
-
-    return { success: true, user: newUser };
   };
 
-  const loginWithClassCode = (
-    studentName: string,
-    classCode: string
-  ): { success: boolean; user?: User; message?: string; isNewStudent?: boolean } => {
-    const cleanName = studentName.trim();
-    const cleanCode = classCode.trim().toUpperCase();
-
-    if (!cleanName) {
-      return { success: false, message: "Harap masukkan nama lengkap siswa." };
-    }
-    if (!cleanCode) {
-      return { success: false, message: "Harap masukkan 6 digit kode kelas." };
-    }
-
-    const targetClass = classrooms.find((c) => c.joinCode.toUpperCase() === cleanCode);
-    if (!targetClass) {
-      return { success: false, message: "Kode kelas tidak ditemukan. Minta kode 6-digit dari guru Anda." };
-    }
-
-    // Check if student with same name exists, else create new
-    let studentUser = users.find(
-      (u) => u.role === "SISWA" && u.name.toLowerCase() === cleanName.toLowerCase()
-    );
-    let isNew = false;
-
-    if (!studentUser) {
-      isNew = true;
-      const initials = cleanName
-        .split(" ")
-        .map((p) => p[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-      studentUser = {
-        id: `user_siswa_${Date.now().toString(36)}`,
-        name: cleanName,
-        email: `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, "")}@student.eduadapt.id`,
-        role: "SISWA",
-        avatar: initials || "ST",
-        grade: targetClass.grade || 10,
-        learningStyle: undefined, // Needs initial assessment!
-        xpTotal: 100,
-        streakDays: 1,
-        hearts: 5,
-        currentDDALevel: "BASIC",
-      };
-      setUsers((prev) => [studentUser!, ...prev]);
-
-      // Persist new student user to backend database
-      ApiService.createUser({
-        id: studentUser.id,
-        name: studentUser.name,
-        email: studentUser.email,
-        role: "SISWA",
-        avatar: studentUser.avatar,
-        grade: studentUser.grade,
-        learning_style: "VISUAL",
-        xp_total: 100,
-        streak_days: 1,
-        hearts: 5,
-        current_dda_level: "BASIC",
-      }).catch(() => {});
-    }
-
-    // Add to classroom if not already in
-    if (!targetClass.studentIds.includes(studentUser.id)) {
-      setClassrooms((prev) =>
-        prev.map((c) =>
-          c.id === targetClass.id
-            ? { ...c, studentIds: [...c.studentIds, studentUser!.id] }
-            : c
-        )
-      );
-      ApiService.joinClassroom(cleanCode, studentUser.id).catch(() => {});
-    }
-
-    setCurrentUserId(studentUser.id);
-    setIsAuthenticated(true);
+  const registerUser = async (data: {
+    name: string; email: string; role: "SISWA" | "GURU" | "ORTU"; password?: string; grade?: number;
+  }) => {
+    const version = ++sessionVersion.current;
     try {
-      localStorage.setItem(STORAGE_KEYS.AUTH, "true");
-      localStorage.setItem(STORAGE_KEYS.USER, studentUser.id);
-    } catch {
-      // safe fallback
+      const response = await ApiService.authenticatedRequest<{ token: string; user: unknown }>("/auth/register", {
+        method: "POST", body: JSON.stringify(data),
+      });
+      if (version !== sessionVersion.current) return { success: false, message: "Permintaan sesi sudah dibatalkan." };
+      return acceptSession(response);
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : "Registrasi gagal." };
     }
-
-    return { success: true, user: studentUser, isNewStudent: isNew || !studentUser.learningStyle };
   };
+
+  const loginWithClassCode = (_studentName: string, _classCode: string) => ({
+    success: false, message: "Masuk atau daftar dengan password dahulu, lalu gabung kelas menggunakan kode dari halaman kelas.",
+  });
 
   const logout = () => {
+    sessionVersion.current += 1;
+    activeUserId.current = "";
+    setIsRestoringSession(false);
+    void ApiService.authenticatedRequest("/auth/logout", { method: "POST" }).catch(() => {});
+    ApiService.setToken();
     setIsAuthenticated(false);
-    try {
-      localStorage.removeItem(STORAGE_KEYS.AUTH);
-      localStorage.removeItem(STORAGE_KEYS.USER);
-    } catch {
-      // safe fallback
-    }
+    setCurrentUserId("");
+    localStorage.removeItem(STORAGE_KEYS.AUTH);
+    localStorage.removeItem(STORAGE_KEYS.USER);
   };
 
-  const switchUser = (userId: string) => {
-    setCurrentUserId(userId);
-    try {
-      localStorage.setItem(STORAGE_KEYS.USER, userId);
-    } catch {
-      // safe fallback
-    }
+  const switchUser = (_userId: string) => {
+    // Changing identity requires a new authenticated session.
+    logout();
   };
 
-  const updateCurrentUserProfile = (updates: Partial<User>) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === currentUser.id ? { ...u, ...updates } : u))
-    );
-
-    // Persist profile changes directly to backend database
-    if (currentUser.id) {
-      ApiService.updateUserProfile(currentUser.id, {
-        name: updates.name,
-        email: updates.email,
-        avatar: updates.avatar,
-        grade: updates.grade,
-        learning_style: updates.learningStyle,
-        modality_scores: updates.modalityScores,
-        processing_speed: updates.processingSpeed,
-        xp_total: updates.xpTotal,
-        streak_days: updates.streakDays,
-        hearts: updates.hearts,
-        current_dda_level: updates.currentDDALevel,
-      }).catch((err) => {
-        console.warn("[AppContext] Profile update backend sync error", err);
-      });
+  const updateCurrentUserProfile = async (updates: Partial<User>) => {
+    const version = sessionVersion.current;
+    const userId = currentUser.id;
+    if (!isAuthenticated || !userId) throw new Error("Silakan masuk kembali sebelum menyimpan profil.");
+    const response = await ApiService.updateUserProfile(userId, {
+      name: updates.name, email: updates.email, avatar: updates.avatar, grade: updates.grade,
+      learning_style: updates.learningStyle, modality_scores: updates.modalityScores,
+      processing_speed: updates.processingSpeed, xp_total: updates.xpTotal,
+      streak_days: updates.streakDays, hearts: updates.hearts, current_dda_level: updates.currentDDALevel,
+    });
+    if (version !== sessionVersion.current || activeUserId.current !== userId) {
+      throw new Error("Sesi telah berubah. Masuk kembali untuk memeriksa profil.");
     }
+    const user = normalizeUser(response);
+    setUsers(previous => previous.map(item => item.id === userId ? user : item));
   };
 
   const addClassroom = (name: string, grade: number, subject: string): Classroom => {
@@ -615,12 +454,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       teacher_name: currentUser.name,
     })
       .then((res) => {
-        if (res) {
-          const norm = normalizeClassroom(res);
-          setClassrooms((prev) => prev.map((c) => (c.id === newClass.id ? norm : c)));
-        }
-      })
-      .catch(() => {});
+        // A class the server never saved must not stay on screen: uploads to it would fail.
+        setClassrooms((prev) => res
+          ? prev.map((c) => (c.id === newClass.id ? normalizeClassroom(res) : c))
+          : prev.filter((c) => c.id !== newClass.id));
+      });
 
     return newClass;
   };
@@ -629,23 +467,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return addClassroom(name, grade, subject);
   };
 
-  const joinClassroom = (joinCode: string): { success: boolean; message: string } => {
-    const target = classrooms.find(
-      (c) => c.joinCode.toUpperCase() === joinCode.trim().toUpperCase()
-    );
-    if (!target) {
-      return { success: false, message: "Kode kelas tidak ditemukan. Pastikan 6-karakter benar." };
+  // Students only see classes they belong to, so the join code is resolved by the server.
+  const joinClassroom = async (joinCode: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await ApiService.authenticatedRequest<{ message: string; classroom: unknown }>("/classrooms/join", {
+        method: "POST",
+        body: JSON.stringify({ join_code: joinCode.trim().toUpperCase(), student_id: currentUser.id }),
+      });
+      const joined = normalizeClassroom(res.classroom);
+      setClassrooms((prev) => [joined, ...prev.filter((c) => c.id !== joined.id)]);
+      const [docs, classTasks] = await Promise.all([ApiService.getDocuments(), ApiService.getTasks()]);
+      if (docs) setDocuments(docs.map(normalizeDocument));
+      if (classTasks) setTasks(classTasks.map(normalizeTask));
+      return { success: true, message: res.message };
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : "Gagal bergabung ke kelas." };
     }
-    if (target.studentIds.includes(currentUser.id)) {
-      return { success: false, message: "Anda sudah terdaftar di dalam kelas ini." };
-    }
-    const updated = { ...target, studentIds: [...target.studentIds, currentUser.id] };
-    setClassrooms((prev) => prev.map((c) => (c.id === target.id ? updated : c)));
-
-    // Persist to backend
-    ApiService.joinClassroom(joinCode, currentUser.id).catch(() => {});
-
-    return { success: true, message: `Berhasil bergabung ke kelas ${target.name}!` };
   };
 
   const uploadDocument = async (
@@ -673,24 +510,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       )
     );
 
-    // Persist to backend
     try {
-      const res = await ApiService.uploadDocument({
-        classroom_id: classroomId,
-        title,
-        raw_text: rawText,
-        summary: summary || newDoc.summary,
+      const res = await ApiService.authenticatedRequest<unknown>("/documents/upload", {
+        method: "POST",
+        body: JSON.stringify({ classroom_id: classroomId, title, raw_text: rawText, summary }),
       });
-      if (res) {
-        const norm = normalizeDocument(res);
-        setDocuments((prev) => prev.map((d) => (d.id === newDoc.id ? norm : d)));
-        return norm;
-      }
-    } catch {
-      // offline fallback
+      const norm = normalizeDocument(res);
+      setDocuments(prev => prev.map(d => d.id === newDoc.id ? norm : d));
+      return norm;
+    } catch (error) {
+      setDocuments(prev => prev.filter(d => d.id !== newDoc.id));
+      setClassrooms(prev => prev.map(c => c.id === classroomId ? { ...c, documentsCount: Math.max(0, c.documentsCount - 1) } : c));
+      throw error;
     }
-
-    return newDoc;
   };
 
   const uploadDocumentFile = async (
@@ -733,16 +565,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         summary: summary || tempDoc.summary,
         file,
       });
-      if (res) {
-        const norm = normalizeDocument(res);
-        setDocuments((prev) => prev.map((d) => (d.id === tempDoc.id ? norm : d)));
-        return norm;
-      }
-    } catch (err) {
-      console.warn("[AppContext] uploadDocumentFile error", err);
+      const norm = normalizeDocument(res);
+      setDocuments((prev) => prev.map((d) => (d.id === tempDoc.id ? norm : d)));
+      return norm;
+    } catch (error) {
+      setDocuments(prev => prev.filter(d => d.id !== tempDoc.id));
+      setClassrooms(prev => prev.map(c => c.id === classroomId ? { ...c, documentsCount: Math.max(0, c.documentsCount - 1) } : c));
+      throw error;
     }
-
-    return tempDoc;
   };
 
   const deleteDocument = (docId: string) => {
@@ -877,15 +707,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       issuedAt: timestamp,
     };
 
-    setCredentials((prev) => {
-      const updated = [newCert, ...prev];
-      try {
-        localStorage.setItem(STORAGE_KEYS.CREDENTIALS, JSON.stringify(updated));
-      } catch {
-        // safe
-      }
-      return updated;
-    });
+    setCredentials((prev) => [newCert, ...prev]);
 
     // Persist to backend
     try {
@@ -908,15 +730,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const mintNewCredential = (newCert: BlockchainCredential) => {
-    setCredentials((prev) => {
-      const updated = [newCert, ...prev];
-      try {
-        localStorage.setItem(STORAGE_KEYS.CREDENTIALS, JSON.stringify(updated));
-      } catch {
-        // safe
-      }
-      return updated;
-    });
+    setCredentials((prev) => [newCert, ...prev]);
   };
 
   const sendNote = (receiverId: string, studentId: string, message: string): string => {
@@ -1022,6 +836,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <AppContext.Provider
       value={{
         isAuthenticated,
+        isRestoringSession,
         login,
         registerUser,
         loginWithClassCode,

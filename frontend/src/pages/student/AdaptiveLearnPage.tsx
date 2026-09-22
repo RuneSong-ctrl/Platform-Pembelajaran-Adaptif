@@ -5,9 +5,9 @@ import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
-import VisualLearnSection from "@/components/student/VisualLearnSection";
+import LearningUnits from "@/components/student/LearningUnits";
 import AuditoryLearnSection from "@/components/student/AuditoryLearnSection";
-import KinestheticLearnSection from "@/components/student/KinestheticLearnSection";
+import PracticeMission from "@/components/student/PracticeMission";
 import {
   Eye,
   Headphones,
@@ -26,7 +26,7 @@ import {
 export default function AdaptiveLearnPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { currentUser, documents, classrooms } = useApp();
+  const { currentUser, documents, classrooms, trackLearningActivity } = useApp();
 
   const docParam = searchParams.get("doc");
   const classParam = searchParams.get("class");
@@ -331,7 +331,7 @@ export default function AdaptiveLearnPage() {
             <div className="space-y-4 w-full max-w-full min-w-0">
               {/* 👁️ SISWA VISUAL */}
               {studentStyle === "VISUAL" && (
-                <VisualLearnSection doc={activeDoc} />
+                <LearningUnits key={activeDoc.id} documentId={activeDoc.id} showVisual />
               )}
 
               {/* 🎧 SISWA AUDITORI */}
@@ -344,7 +344,8 @@ export default function AdaptiveLearnPage() {
 
               {/* ✋ SISWA KINESTETIK */}
               {studentStyle === "KINESTETIK" && (
-                <KinestheticLearnSection doc={activeDoc} />
+                <PracticeMission key={activeDoc.id} documentId={activeDoc.id}
+                  onStageComplete={stage => void trackLearningActivity("practice", 1, stage.title)} />
               )}
 
               {/* Action Button to Adaptive Quiz */}

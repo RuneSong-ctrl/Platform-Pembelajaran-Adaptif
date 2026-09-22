@@ -53,9 +53,8 @@ lerna-debug.log*
 next-env.d.ts
 
 # IDE & Editor configs
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
+.vscode/
+.claude/
 .idea/
 *.suo
 *.ntvs*
@@ -99,3 +98,4 @@ venv/
 *.sqlite3
 *.db
 !*.example.db
+

@@ -33,7 +33,7 @@ import {
 
 export default function StudentProfilePage() {
   const navigate = useNavigate();
-  const { currentUser, updateCurrentUserProfile } = useApp();
+  const { currentUser, updateCurrentUserProfile, logout } = useApp();
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -44,6 +44,9 @@ export default function StudentProfilePage() {
   const [editEmail, setEditEmail] = useState(currentUser.email);
   const [editGrade, setEditGrade] = useState(currentUser.grade || 10);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState("");
+  const [profileError, setProfileError] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
 
   // Avatar Upload State
   const [previewAvatar, setPreviewAvatar] = useState(
@@ -93,47 +96,74 @@ export default function StudentProfilePage() {
     setEditEmail(currentUser.email);
     setEditGrade(currentUser.grade || 10);
     setSaveSuccessMsg("");
+    setProfileError("");
     setShowEditModal(true);
   };
 
-  const handleSaveProfile = () => {
-    if (!editName.trim()) return;
-    audioSynth.playSuccessSound();
-    updateCurrentUserProfile({
-      name: editName.trim(),
-      email: editEmail.trim(),
-      grade: Number(editGrade) || 10,
-    });
-    setSaveSuccessMsg("Profil berhasil diperbarui!");
-    setTimeout(() => {
-      setShowEditModal(false);
-      setSaveSuccessMsg("");
-    }, 1000);
+  const handleSaveProfile = async () => {
+    if (!editName.trim() || isSavingProfile) return;
+    setIsSavingProfile(true);
+    setProfileError("");
+    try {
+      await updateCurrentUserProfile({
+        name: editName.trim(),
+        email: editEmail.trim(),
+        grade: Number(editGrade) || 10,
+      });
+      audioSynth.playSuccessSound();
+      setSaveSuccessMsg("Profil berhasil diperbarui!");
+      setTimeout(() => {
+        setShowEditModal(false);
+        setSaveSuccessMsg("");
+      }, 1000);
+    } catch (error) {
+      audioSynth.playErrorSound();
+      setProfileError(error instanceof Error ? error.message : "Profil belum tersimpan.");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const saveAvatar = async (avatar: string) => {
+    const previous = previewAvatar;
+    setAvatarError("");
+    setPreviewAvatar(avatar);
+    try {
+      await updateCurrentUserProfile({ avatar });
+      audioSynth.playSuccessSound();
+      setShowAvatarModal(false);
+    } catch (error) {
+      setPreviewAvatar(previous);
+      audioSynth.playErrorSound();
+      setAvatarError(error instanceof Error ? error.message : "Avatar belum tersimpan.");
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/") || file.size > 1024 * 1024) {
+      setAvatarError("Pilih gambar dengan ukuran maksimal 1 MB.");
+      return;
+    }
 
     audioSynth.playClickSound();
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64Url = event.target?.result as string;
-      if (base64Url) {
-        setPreviewAvatar(base64Url);
-        updateCurrentUserProfile({ avatar: base64Url });
-        audioSynth.playSuccessSound();
-        setShowAvatarModal(false);
-      }
+      if (base64Url) void saveAvatar(base64Url);
     };
     reader.readAsDataURL(file);
   };
 
   const handleSelectPreset = (preset: string) => {
-    audioSynth.playSuccessSound();
-    setPreviewAvatar(preset);
-    updateCurrentUserProfile({ avatar: preset });
-    setShowAvatarModal(false);
+    void saveAvatar(preset);
+  };
+
+  const handleLogout = () => {
+    audioSynth.playClickSound();
+    logout();
+    navigate("/", { replace: true });
   };
 
   return (
@@ -361,10 +391,8 @@ export default function StudentProfilePage() {
 
           {/* Logout Button */}
           <button
-            onClick={() => {
-              audioSynth.playClickSound();
-              navigate("/");
-            }}
+            type="button"
+            onClick={handleLogout}
             className="clay-btn bg-[#FCD9D7] text-[#852C28] hover:bg-[#F8C8C6] w-full py-3 px-4 rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-xs cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
@@ -432,6 +460,9 @@ export default function StudentProfilePage() {
                 <span>{saveSuccessMsg}</span>
               </p>
             )}
+            {profileError && (
+              <p role="alert" className="text-xs font-bold text-[#852C28] text-center">{profileError}</p>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-1">
@@ -442,10 +473,11 @@ export default function StudentProfilePage() {
               Batal
             </button>
             <button
-              onClick={handleSaveProfile}
-              className="clay-btn clay-btn-dark px-4 py-2 rounded-xl text-xs font-bold text-white cursor-pointer"
+              onClick={() => void handleSaveProfile()}
+              disabled={isSavingProfile}
+              className="clay-btn clay-btn-dark px-4 py-2 rounded-xl text-xs font-bold text-white cursor-pointer disabled:opacity-60"
             >
-              Simpan Perubahan
+              {isSavingProfile ? "Menyimpan…" : "Simpan Perubahan"}
             </button>
           </div>
         </DialogContent>
@@ -464,6 +496,9 @@ export default function StudentProfilePage() {
           </DialogHeader>
 
           <div className="space-y-4 my-3">
+            {avatarError && (
+              <p role="alert" className="text-xs font-bold text-[#852C28]">{avatarError}</p>
+            )}
             {/* Custom Upload Section */}
             <div>
               <label className="block text-xs font-bold text-[#010105] mb-1.5">
@@ -472,7 +507,7 @@ export default function StudentProfilePage() {
               <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-[rgba(28,30,38,0.15)] rounded-2xl hover:bg-[#F8F9FD] transition-colors cursor-pointer text-center">
                 <UploadCloud className="w-7 h-7 text-[#4B3B7A] mb-1" />
                 <span className="text-xs font-bold text-[#010105]">Pilih Berkas Foto</span>
-                <span className="text-[10px] text-[#9195A8]">PNG, JPG, WEBP maks 5MB</span>
+                <span className="text-[10px] text-[#9195A8]">PNG, JPG, WEBP maks 1MB</span>
                 <input
                   type="file"
                   accept="image/*"
