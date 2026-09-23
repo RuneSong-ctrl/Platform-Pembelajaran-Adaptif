@@ -183,6 +183,17 @@ export function normalizeNote(n: any): ParentTeacherNote {
   };
 }
 
+/** <audio>, <img> and <iframe> cannot send the Authorization header, so backend media links carry the token. */
+export function mediaUrl(url: string): string {
+  if (!url || /^(blob:|data:)/.test(url)) return url;
+  const origin = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+  const full = /^https?:\/\//.test(url) ? url : `${origin}${url.startsWith("/") ? "" : "/"}${url}`;
+  const token = ApiService.getToken();
+  if (!token || !full.startsWith(origin)) return full; // never hand the token to another host
+  const [base, hash] = full.split("#");
+  return `${base}${base.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}${hash ? `#${hash}` : ""}`;
+}
+
 export class ApiService {
   static getToken() { return sessionStorage.getItem("eduadapt_token"); }
   static setToken(token?: string) {
@@ -307,6 +318,7 @@ export class ApiService {
     try {
       const response = await fetch(`${API_BASE_URL}/documents/extract-text`, {
         method: "POST",
+        headers: { Authorization: `Bearer ${this.getToken() || ""}` },
         body: formData,
       });
       if (!response.ok) {
@@ -594,6 +606,7 @@ export class ApiService {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${this.getToken() || ""}`,
         },
         body: JSON.stringify(data),
       });

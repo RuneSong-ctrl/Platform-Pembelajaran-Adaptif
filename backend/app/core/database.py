@@ -12,20 +12,8 @@ database_url = settings.DATABASE_URL
 if database_url.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
 
-try:
-    engine = create_engine(
-        database_url,
-        connect_args=connect_args,
-        pool_pre_ping=True,
-        echo=False
-    )
-    # Test connection
-    with engine.connect() as conn:
-        logger.info(f"Connected successfully to database: {database_url}")
-except Exception as e:
-    logger.warning(f"Failed to connect to configured DB ({database_url}): {e}. Falling back to SQLite.")
-    fallback_url = "sqlite:///./eduadapt.db"
-    engine = create_engine(fallback_url, connect_args={"check_same_thread": False})
+# No fallback: if the configured DB is down the server must fail loudly, not write to a stray SQLite file.
+engine = create_engine(database_url, connect_args=connect_args, pool_pre_ping=True)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

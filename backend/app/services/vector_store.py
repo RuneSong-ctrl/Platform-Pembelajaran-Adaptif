@@ -228,6 +228,8 @@ def search_relevant_chunks(
     """
     Melakukan hybrid semantic & keyword similarity search untuk menemukan top-k chunk yang paling relevan.
     """
+    if not classroom_id and not document_id:
+        return []  # unscoped search would leak other classes' material
     ensure_vector_index_loaded()
 
     query_vec = np.array(get_text_embedding(query), dtype=np.float32)
@@ -243,11 +245,6 @@ def search_relevant_chunks(
                 continue
             all_chunks.append(chk)
     
-    # If filtered classroom has no chunks, search across all documents as fallback
-    if not all_chunks:
-        for doc_id, chunks in _VECTOR_INDEX.items():
-            all_chunks.extend(chunks)
-            
     if not all_chunks:
         return []
     

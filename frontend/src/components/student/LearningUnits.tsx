@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ApiService, API_BASE_URL } from "@/services/apiClient";
+import { ApiService, mediaUrl } from "@/services/apiClient";
 
 import UnitVisual, { type SourceRef, type Visual } from "./UnitVisual";
 import SourcedInfographic, { type Infographic } from "./SourcedInfographic";
@@ -21,7 +21,6 @@ type AiImage = {
   state: "PROCESSING" | "READY" | "ERROR";
   hero_url?: string | null; icons?: { label: string; url: string }[]; lettered?: string[]; error?: string;
 };
-const assetBase = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
 const labels: Record<string, string> = {
   NOT_GENERATED: "Belum dibuat", PROCESSING: "Sedang menyusun unit", DRAFT: "Draf siap ditinjau", ERROR: "Generasi gagal",
 };
@@ -100,7 +99,7 @@ export default function LearningUnits({ documentId, teacher = false, showVisual 
     const source = data?.sources.find(item => item.id === ref.segment_id);
     return <blockquote key={`${ref.segment_id}-${i}`} className="border-l-2 border-[#E6E4EE] pl-3 text-sm text-[#475569] my-2">
       “{ref.quote}” <span className="block text-xs">{source?.page
-        ? <a className="underline" href={`${API_BASE_URL}/documents/${encodeURIComponent(documentId)}/pdf#page=${source.page}`} target="_blank" rel="noreferrer">{source.label}</a>
+        ? <a className="underline" href={mediaUrl(`/api/v1/documents/${encodeURIComponent(documentId)}/pdf#page=${source.page}`)} target="_blank" rel="noreferrer">{source.label}</a>
         : source?.label || ref.segment_id}</span>
     </blockquote>;
   });
@@ -144,8 +143,8 @@ export default function LearningUnits({ documentId, teacher = false, showVisual 
           info={data.infographic}
           sources={sources}
           art={data.image?.state === "READY" ? {
-            hero: data.image.hero_url ? `${assetBase}${data.image.hero_url}` : null,
-            icons: Object.fromEntries((data.image.icons || []).map(icon => [icon.label, `${assetBase}${icon.url}`])),
+            hero: data.image.hero_url ? mediaUrl(data.image.hero_url) : null,
+            icons: Object.fromEntries((data.image.icons || []).map(icon => [icon.label, mediaUrl(icon.url)])),
           } : null}
         />
       )}

@@ -1,17 +1,12 @@
 """Run standalone: python tests/test_learning_units.py. No user DB, media, or AI calls."""
-import os
-import sys
 import json
-import tempfile
+import shutil
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-TEST_DIR = tempfile.TemporaryDirectory()
-os.environ["DATABASE_URL"] = "sqlite:///" + str(Path(TEST_DIR.name) / "test.db").replace("\\", "/")
-os.environ["UPLOADS_DIR"] = str(Path(TEST_DIR.name) / "uploads")
+from conftest import TEST_DIR  # points the app at a temp DB before it is imported
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -22,6 +17,7 @@ from app.models.user import User
 from app.models.classroom import Classroom
 from app.models.document import GroundedDocument
 from app.api.v1.endpoints import auth, documents, learning_units, users, classrooms, tasks, submissions
+from app.main import serve_upload
 from app.services.learning_unit_service import (
     AdaptiveDocument, make_segments, validate_units, generate_units, validate_infographic,
 )
@@ -35,6 +31,7 @@ app.include_router(users.router)
 app.include_router(classrooms.router)
 app.include_router(tasks.router)
 app.include_router(submissions.router)
+app.get("/uploads/{path:path}")(serve_upload)
 
 
 def unit(segment_id="seg_1", quote="Kucing termasuk hewan mamalia."):
@@ -79,7 +76,7 @@ def infographic(**overrides):
 
 class LearningUnitTests(unittest.TestCase):
     def setUp(self):
-        assert Path(engine.url.database).resolve().is_relative_to(Path(TEST_DIR.name).resolve()), "Tests must use their own temporary database"
+        assert Path(engine.url.database).resolve().is_relative_to(TEST_DIR.resolve()), "Tests must use their own temporary database"
         # No test may reach the real image model or OCR; tests that need them patch these again.
         for target in ("app.services.ai_image_service.draw", "app.services.ai_image_service.read_text"):
             patcher = patch(target, side_effect=RuntimeError("no image AI in tests"))
@@ -526,7 +523,7 @@ class LearningUnitTests(unittest.TestCase):
             failed = self.client.get(self.url, headers=self.student).json()
             self.assertEqual(failed["state"], "ERROR")
             self.assertEqual(failed["units"], published["units"])
-            self.assertEqual(self.client.get("/documents/doc/podcast-audio").content, original)
+            self.assertEqual(self.client.get("/documents/doc/podcast-audio", headers=self.student).content, original)
             self.assertEqual(audio.read_bytes(), original)
             with SessionLocal() as db:
                 self.assertEqual(db.get(GroundedDocument, "doc").podcast_script, "Existing podcast")
@@ -547,8 +544,23 @@ class LearningUnitTests(unittest.TestCase):
                 self.assertEqual(restored.podcast_script, "[Mamalia]\nExisting podcast")
             self.assertEqual(tts.call_count, 1)
             self.assertEqual(text_ai.call_count, 0)  # the podcast pipeline makes no extra AI calls
-        self.assertEqual(self.client.get("/documents/doc/podcast-audio").status_code, 200)
-        self.assertEqual(self.client.get("/documents/doc/visual-image").status_code, 409)
+        self.assertEqual(self.client.get("/documents/doc/podcast-audio").status_code, 401)
+        token = self.student["Authorization"].split()[1]
+        self.assertEqual(self.client.get(f"/documents/doc/podcast-audio?token={token}").status_code, 200)
+        self.assertEqual(self.client.get("/documents/doc/visual-image", headers=self.student).status_code, 409)
+
+    def test_media_needs_login_and_class_access(self):
+        folder = Path(settings.UPLOADS_DIR)
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "doc_modul.pdf").write_bytes(b"%PDF-1.4 test")
+        token = self.student["Authorization"].split()[1]
+        self.assertEqual(self.client.get("/uploads/doc_modul.pdf").status_code, 401)
+        self.assertEqual(self.client.get("/uploads/doc_modul.pdf", headers=self.other).status_code, 403)
+        self.assertEqual(self.client.get(f"/uploads/doc_modul.pdf?token={token}").content, b"%PDF-1.4 test")
+        self.assertEqual(self.client.get("/uploads/..%2F..%2Feduadapt.db", headers=self.teacher).status_code, 404)
+        self.assertEqual(self.client.get("/documents/doc/pdf", headers=self.other).status_code, 403)
+        self.assertEqual(self.client.post("/documents/extract-text", headers=self.student,
+                                          files={"file": ("a.txt", b"x")}).status_code, 403)
 
 
 if __name__ == "__main__":
@@ -556,4 +568,4 @@ if __name__ == "__main__":
         unittest.main()
     finally:
         engine.dispose()
-        TEST_DIR.cleanup()
+        shutil.rmtree(TEST_DIR, ignore_errors=True)

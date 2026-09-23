@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { GroundedDocument, PodcastEpisode } from "@/types";
-import { API_BASE_URL } from "@/services/apiClient";
+import { mediaUrl } from "@/services/apiClient";
 import { audioSynth } from "@/services/audioSynth";
 import confetti from "canvas-confetti";
 import {
@@ -121,14 +121,7 @@ export default function AuditoryLearnSection({
   };
 
   // Resolve absolute audio URL
-  const resolveAudioUrl = (url: string | undefined): string => {
-    if (!url) return "";
-    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) {
-      return url;
-    }
-    const cleanBase = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
-    return `${cleanBase}${url.startsWith("/") ? "" : "/"}${url}`;
-  };
+  const resolveAudioUrl = (url: string | undefined): string => (url ? mediaUrl(url) : "");
 
   const resolvedAudioSrc = resolveAudioUrl(currentEpisode?.audioUrl);
 

@@ -1,3 +1,4 @@
+import uuid
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
@@ -30,15 +31,26 @@ def test_ai_cache_and_rate_limit():
     assert cached is not None
     assert cached["answer"] == "cached answer"
 
+def login(client, role="SISWA"):
+    email = f"ai.{uuid.uuid4().hex[:8]}@example.org"
+    resp = client.post("/api/v1/auth/register", json={"name": "Devan", "email": email, "role": role, "password": "secretpassword123"})
+    return {"Authorization": f"Bearer {resp.json()['token']}"}
+
+def test_ai_routes_need_login():
+    with TestClient(app) as client:
+        assert client.post("/api/v1/ai/chat", json={"message": "halo"}).status_code == 401
+        assert client.post("/api/v1/ai/tts", json={"text": "halo"}, headers=login(client)).status_code == 403
+
 def test_ai_chat_endpoint():
     with TestClient(app) as client:
+        auth = login(client)
         payload = {
             "message": "Bagaimana proses pencernaan karbohidrat di mulut?",
             "learning_style": "VISUAL",
             "student_name": "Devan",
             "student_id": "std_101"
         }
-        response = client.post("/api/v1/ai/chat", json=payload)
+        response = client.post("/api/v1/ai/chat", json=payload, headers=auth)
         assert response.status_code == 200
         data = response.json()
         assert "text" in data
@@ -46,14 +58,14 @@ def test_ai_chat_endpoint():
         assert "model" in data
         
         # Second identical call should hit cache
-        resp2 = client.post("/api/v1/ai/chat", json=payload)
+        resp2 = client.post("/api/v1/ai/chat", json=payload, headers=auth)
         assert resp2.status_code == 200
         assert resp2.json()["cached"] is True
 
 def test_ai_diagram_endpoint():
     with TestClient(app) as client:
         payload = {"concept": "Siklus Krebs"}
-        response = client.post("/api/v1/ai/diagram", json=payload)
+        response = client.post("/api/v1/ai/diagram", json=payload, headers=login(client))
         assert response.status_code == 200
         data = response.json()
         assert "code" in data

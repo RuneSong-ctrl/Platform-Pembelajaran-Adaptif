@@ -12,10 +12,10 @@ from app.core.database import get_db
 from app.models.document import GroundedDocument
 from app.models.classroom import Classroom
 from app.models.user import User
-from app.core.auth import current_user, require_class_access
+from app.core.auth import current_user, media_user, require_class_access
 from app.core.scope import visible_classroom_ids
 from app.services.learning_unit_service import AdaptiveDocument, extract_segments, make_segments, MAX_FILE_BYTES
-from app.api.v1.endpoints.learning_units import schedule_generation
+from app.api.v1.endpoints.learning_units import access, schedule_generation
 from app.schemas.document import DocumentResponse, DocumentCreate
 from app.services.vector_store import index_document, remove_document_from_index
 
@@ -124,10 +124,14 @@ def get_documents(classroom_id: str = None, db: Session = Depends(get_db), user:
     return db.query(GroundedDocument).filter(GroundedDocument.classroom_id.in_(allowed)).all()
 
 @router.post("/extract-text")
-async def extract_text(file: UploadFile = File(...)):
+async def extract_text(file: UploadFile = File(...), user: User = Depends(current_user)):
     """Extracts text from uploaded PDF/document without saving yet, for preview/editing."""
+    if user.role != "GURU":
+        raise HTTPException(403, "Hanya guru yang dapat mengunggah materi.")
+    content = await file.read(MAX_FILE_BYTES + 1)
+    if len(content) > MAX_FILE_BYTES:
+        raise HTTPException(413, "File melebihi batas 20 MB.")
     try:
-        content = await file.read()
         extracted_text = _extract_text_from_file_bytes(file.filename, content)
         suggested_title = _clean_filename_to_title(file.filename)
         return {
@@ -291,13 +295,10 @@ def upload_document(data: DocumentCreate, background_tasks: BackgroundTasks, db:
     return new_doc
 
 @router.get("/{document_id}/pdf")
-@router.get("/{document_id}/pdf")
 @router.head("/{document_id}/pdf")
-def get_document_pdf(document_id: str, db: Session = Depends(get_db)):
+def get_document_pdf(document_id: str, db: Session = Depends(get_db), user: User = Depends(media_user)):
     """Menyajikan file dokumen PDF modul pembelajaran. Menjamin selalu tersedia (auto-build jika belum ada)."""
-    doc = db.query(GroundedDocument).filter(GroundedDocument.id == document_id).first()
-    if not doc:
-        raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")
+    doc = access(document_id, db, user)
     
     # Check if doc.file_url exists on disk
     if doc.file_url and doc.file_url not in ("#", "None"):
@@ -341,11 +342,9 @@ def generate_assets_endpoint(document_id: str, background_tasks: BackgroundTasks
 
 @router.get("/{document_id}/podcast-audio")
 @router.head("/{document_id}/podcast-audio")
-def get_podcast_audio(document_id: str, episode: int = 1, db: Session = Depends(get_db)):
+def get_podcast_audio(document_id: str, episode: int = 1, db: Session = Depends(get_db), user: User = Depends(media_user)):
     """Mengalirkan file audio podcast materi edukasi adaptif per episode (MP3/WAV)."""
-    doc = db.query(GroundedDocument).filter(GroundedDocument.id == document_id).first()
-    if not doc:
-        raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")
+    access(document_id, db, user)
     
     # 1. Periksa apakah file audio episode spesifik sudah tersedia di disk
     candidate_filenames = [
@@ -373,12 +372,10 @@ def get_podcast_audio(document_id: str, episode: int = 1, db: Session = Depends(
     raise HTTPException(status_code=404, detail="Audio podcast episode belum selesai dibuat.")
 
 @router.get("/{document_id}/podcast-episodes")
-def get_podcast_episodes(document_id: str, db: Session = Depends(get_db)):
+def get_podcast_episodes(document_id: str, db: Session = Depends(get_db), user: User = Depends(current_user)):
     """Mengambil metadata playlist episode podcast (judul, durasi, audioUrl) untuk materi ini."""
     import json
-    doc = db.query(GroundedDocument).filter(GroundedDocument.id == document_id).first()
-    if not doc:
-        raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")
+    doc = access(document_id, db, user)
     
     if not doc.podcast_episodes_json:
         from app.services.gemini_service import generate_document_adaptive_assets
@@ -405,9 +402,8 @@ def get_podcast_episodes(document_id: str, db: Session = Depends(get_db)):
 
 @router.get("/{document_id}/infographic")
 @router.get("/{document_id}/visual-image")
-def get_unreviewed_visual(document_id: str, db: Session = Depends(get_db)):
-    if not db.get(GroundedDocument, document_id):
-        raise HTTPException(404, "Dokumen tidak ditemukan")
+def get_unreviewed_visual(document_id: str, db: Session = Depends(get_db), user: User = Depends(media_user)):
+    access(document_id, db, user)
     raise HTTPException(409, "Visual lama belum terverifikasi. Gunakan unit belajar yang disetujui guru.")
 
 

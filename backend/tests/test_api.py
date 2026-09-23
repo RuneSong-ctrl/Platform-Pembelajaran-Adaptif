@@ -29,6 +29,7 @@ def test_auth_register_and_login_flow():
         assert reg_data["user"]["role"] == "SISWA"
         assert reg_data["user"]["grade"] == 11
         user_id = reg_data["user"]["id"]
+        auth = {"Authorization": f"Bearer {reg_data['token']}"}
 
         # 2. Duplicate email check
         dup_resp = client.post("/api/v1/auth/register", json=payload)
@@ -49,7 +50,7 @@ def test_auth_register_and_login_flow():
         update_resp = client.patch(f"/api/v1/users/{user_id}", json={
             "name": "Budi Santoso Updated",
             "grade": 12
-        })
+        }, headers=auth)
         assert update_resp.status_code == 200
         assert update_resp.json()["name"] == "Budi Santoso Updated"
         assert update_resp.json()["grade"] == 12
@@ -88,13 +89,15 @@ def test_learning_progress_endpoints():
             "name": "Siti Rahma",
             "email": unique_email,
             "role": "SISWA",
-            "grade": 10
+            "grade": 10,
+            "password": "secretpassword123"
         })
         assert reg_resp.status_code == 201
         user_id = reg_resp.json()["user"]["id"]
+        auth = {"Authorization": f"Bearer {reg_resp.json()['token']}"}
 
         # GET progress
-        prog_resp = client.get(f"/api/v1/users/{user_id}/progress")
+        prog_resp = client.get(f"/api/v1/users/{user_id}/progress", headers=auth)
         assert prog_resp.status_code == 200
         prog_data = prog_resp.json()
         assert "visual_progress" in prog_data
@@ -106,14 +109,14 @@ def test_learning_progress_endpoints():
             "modality_type": "visual",
             "increment_amount": 2,
             "activity_title": "Eksplorasi Diagram Sel"
-        })
+        }, headers=auth)
         assert track_resp.status_code == 200
         track_data = track_resp.json()
         assert track_data["visual_completed"] >= 2
         assert track_data["visual_progress"] > 0
 
         # GET style analytics
-        style_resp = client.get(f"/api/v1/users/{user_id}/style-analytics")
+        style_resp = client.get(f"/api/v1/users/{user_id}/style-analytics", headers=auth)
         assert style_resp.status_code == 200
         style_data = style_resp.json()
         assert "visual_params" in style_data

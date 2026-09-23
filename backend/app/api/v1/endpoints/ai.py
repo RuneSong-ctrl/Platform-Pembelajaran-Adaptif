@@ -1,15 +1,24 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.document import GroundedDocument
+from app.models.classroom import Classroom
+from app.models.user import User
+from app.core.auth import current_user, require_class_access
+from app.api.v1.endpoints.learning_units import access
 from app.services.gemini_service import chat_with_gemini, generate_ai_quiz, generate_visual_mindmap
 from app.services.gateway_service import AIGatewayService
 from app.services.cache_service import get_cache_key, get_cached_response, set_cached_response, check_rate_limit
 from app.services.vector_store import index_document
 
-router = APIRouter(prefix="/ai", tags=["AI Brain & RAG"])
+router = APIRouter(prefix="/ai", tags=["AI Brain & RAG"], dependencies=[Depends(current_user)])
+
+
+def require_teacher(user: User):
+    # Raw model proxies cost money per call; no student-facing page uses them.
+    if user.role != "GURU":
+        raise HTTPException(403, "Hanya guru yang dapat memakai fitur ini.")
 
 # --- Request & Response Schemas ---
 class ChatRequest(BaseModel):
@@ -55,9 +64,12 @@ class EmbeddingRequest(BaseModel):
     model: Optional[str] = None
 
 @router.post("/chat", response_model=ChatResponse)
-def ai_chat_endpoint(payload: ChatRequest, request: Request):
-    client_ip = request.client.host if request.client else payload.student_id or "default_client"
-    check_rate_limit(f"{client_ip}_{payload.student_id}", limit_per_minute=20)
+def ai_chat_endpoint(payload: ChatRequest, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    check_rate_limit(f"chat_{user.id}", limit_per_minute=20)
+    if payload.document_id:
+        payload.classroom_id = access(payload.document_id, db, user).classroom_id
+    elif payload.classroom_id:
+        require_class_access(db.get(Classroom, payload.classroom_id), user)
     
     # 1. Semantic Response Cache Check
     cache_key = get_cache_key(
@@ -99,17 +111,9 @@ def ai_chat_endpoint(payload: ChatRequest, request: Request):
     )
 
 @router.post("/generate-quiz")
-def ai_generate_quiz_endpoint(payload: GenerateQuizRequest, request: Request, db: Session = Depends(get_db)):
-    client_ip = request.client.host if request.client else "quiz_generator"
-    check_rate_limit(f"quiz_{client_ip}", limit_per_minute=10)
-    
-    # Find source document in DB
-    doc = db.query(GroundedDocument).filter(GroundedDocument.id == payload.document_id).first()
-    if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dokumen modul rujukan tidak ditemukan di database"
-        )
+def ai_generate_quiz_endpoint(payload: GenerateQuizRequest, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    check_rate_limit(f"quiz_{user.id}", limit_per_minute=10)
+    doc = access(payload.document_id, db, user)
     
     # Cache check
     cache_key = get_cache_key("quiz", payload.document_id, payload.topic, payload.difficulty, payload.num_questions)
@@ -130,9 +134,8 @@ def ai_generate_quiz_endpoint(payload: GenerateQuizRequest, request: Request, db
     return {"questions": questions, "cached": False}
 
 @router.post("/diagram")
-def ai_diagram_endpoint(payload: DiagramRequest, request: Request):
-    client_ip = request.client.host if request.client else "diagram_generator"
-    check_rate_limit(f"diagram_{client_ip}", limit_per_minute=15)
+def ai_diagram_endpoint(payload: DiagramRequest, user: User = Depends(current_user)):
+    check_rate_limit(f"diagram_{user.id}", limit_per_minute=15)
     
     cache_key = get_cache_key("diagram", payload.concept.strip().lower())
     cached_diag = get_cached_response(cache_key)
@@ -144,10 +147,8 @@ def ai_diagram_endpoint(payload: DiagramRequest, request: Request):
     return {**diag, "cached": False}
 
 @router.post("/index-document")
-def index_document_endpoint(payload: IndexDocRequest, db: Session = Depends(get_db)):
-    doc = db.query(GroundedDocument).filter(GroundedDocument.id == payload.document_id).first()
-    if not doc:
-        raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")
+def index_document_endpoint(payload: IndexDocRequest, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    doc = access(payload.document_id, db, user, teacher=True)
     
     chunks_count = index_document(
         document_id=doc.id,
@@ -161,7 +162,8 @@ def index_document_endpoint(payload: IndexDocRequest, db: Session = Depends(get_
     return {"status": "success", "indexed_chunks": chunks_count}
 
 @router.post("/tts", summary="Generate Audio Podcast / Narasi Materi via 9router TTS")
-def tts_endpoint(payload: TTSRequest):
+def tts_endpoint(payload: TTSRequest, user: User = Depends(current_user)):
+    require_teacher(user)
     audio_data = AIGatewayService.generate_speech(
         text=payload.text,
         voice=payload.voice,
@@ -176,7 +178,8 @@ def tts_endpoint(payload: TTSRequest):
     return Response(content=audio_data, media_type=media_type)
 
 @router.post("/generate-image", summary="Generate Visual Mindmap / Diagram via 9router Image Gen")
-def generate_image_endpoint(payload: ImageGenRequest):
+def generate_image_endpoint(payload: ImageGenRequest, user: User = Depends(current_user)):
+    require_teacher(user)
     result = AIGatewayService.generate_image(
         prompt=payload.prompt,
         size=payload.size or "1024x1024",
@@ -190,7 +193,8 @@ def generate_image_endpoint(payload: ImageGenRequest):
     return result
 
 @router.post("/embeddings", summary="Generate Vector Embeddings via 9router Embeddings")
-def embeddings_endpoint(payload: EmbeddingRequest):
+def embeddings_endpoint(payload: EmbeddingRequest, user: User = Depends(current_user)):
+    require_teacher(user)
     vectors = AIGatewayService.generate_embeddings(
         texts=payload.texts,
         model=payload.model

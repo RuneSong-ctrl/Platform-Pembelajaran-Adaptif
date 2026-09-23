@@ -44,14 +44,21 @@ app = FastAPI(
 # Configure CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In development allow all for seamless frontend binding
-    allow_credentials=True,
+    allow_origins=settings.CORS_ORIGINS,  # production frontend URL must be listed in .env
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 import os
-from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+from fastapi import Depends, HTTPException
+from fastapi.responses import FileResponse
+from sqlalchemy.orm import Session
+from app.core.auth import media_user, require_class_access
+from app.core.database import get_db
+from app.models.classroom import Classroom
+from app.models.document import GroundedDocument
+from app.models.user import User
 
 # Root Health Check Endpoint
 @app.get("/", tags=["Health Check"])
@@ -64,9 +71,22 @@ def root():
         "api_v1": settings.API_V1_STR,
     }
 
-# Mount uploads directory for static files (PDFs, assets, audio)
 os.makedirs(settings.UPLOADS_DIR, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=settings.UPLOADS_DIR), name="uploads")
+
+@app.get("/uploads/{path:path}", include_in_schema=False)
+def serve_upload(path: str, db: Session = Depends(get_db), user: User = Depends(media_user)):
+    """Uploaded/generated files are class material: only that class's teacher and students may open them."""
+    root = Path(settings.UPLOADS_DIR).resolve()
+    file = (root / path).resolve()
+    if not file.is_relative_to(root) or not file.is_file():
+        raise HTTPException(404, "File tidak ditemukan.")
+    # Every stored file is named "<document id>_...", and ids themselves contain "_" (doc_ab12cd34).
+    parts = file.name.split("_")
+    doc = next((d for i in range(1, len(parts)) if (d := db.get(GroundedDocument, "_".join(parts[:i])))), None)
+    if not doc:
+        raise HTTPException(404, "File tidak ditemukan.")
+    require_class_access(db.get(Classroom, doc.classroom_id), user)
+    return FileResponse(file)
 
 # Mount API v1 Router
 app.include_router(api_router, prefix=settings.API_V1_STR)

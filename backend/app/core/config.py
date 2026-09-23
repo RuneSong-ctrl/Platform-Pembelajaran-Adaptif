@@ -2,17 +2,17 @@ import os
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "EduAdapt Platform API"
     API_V1_STR: str = "/api/v1"
-    SECRET_KEY: str = "eduadapt_super_secret_jwt_key_2026"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     
     # Database URL
-    DATABASE_URL: str = "sqlite:///./eduadapt.db"
+    DATABASE_URL: str = "sqlite:///./eduadapt.db"  # relative SQLite paths resolve against backend/, not the cwd
     
     # Uploads Directory (Single source of truth for all modules)
-    UPLOADS_DIR: str = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads"))
+    UPLOADS_DIR: str = os.path.join(BACKEND_DIR, "uploads")
     
     # CORS Origins
     CORS_ORIGINS: List[str] = [
@@ -55,6 +55,12 @@ class Settings(BaseSettings):
     CHAT_MODEL: str = "gemini-2.5-flash"
 
     def model_post_init(self, __context):
+        # "sqlite:///./x.db" would otherwise land wherever the server was started from.
+        prefix = "sqlite:///"
+        path = self.DATABASE_URL[len(prefix):]
+        if self.DATABASE_URL.startswith(prefix) and path != ":memory:" and not os.path.isabs(path):
+            self.DATABASE_URL = prefix + os.path.normpath(os.path.join(BACKEND_DIR, path)).replace("\\", "/")
+
         # Sinkronisasi GEMINI_API_KEY dan AI_API_KEY dari .env
         if not self.GEMINI_API_KEY and self.AI_API_KEY:
             self.GEMINI_API_KEY = self.AI_API_KEY
@@ -111,6 +117,6 @@ class Settings(BaseSettings):
             return raw[len("gemini/"):]
         return raw
 
-    model_config = SettingsConfigDict(case_sensitive=True, env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(case_sensitive=True, env_file=os.path.join(BACKEND_DIR, ".env"), extra="ignore")
 
 settings = Settings()

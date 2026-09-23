@@ -5,7 +5,7 @@ import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
-import { ApiService, normalizeDocument } from "@/services/apiClient";
+import { ApiService, mediaUrl, normalizeDocument } from "@/services/apiClient";
 import type { GroundedDocument } from "@/types";
 import {
   ArrowLeft,
@@ -121,11 +121,8 @@ export default function ClassMaterialReaderPage() {
 
   /** Resolves a fully qualified PDF URL guaranteed to serve the file */
   const resolvePdfUrl = (docObj: GroundedDocument): string => {
-    const backendBase = (import.meta as any).env?.VITE_API_URL || "http://localhost:8000";
-    const origin = backendBase.replace(/\/api\/v1\/?$/, "");
-
     if (docObj.fileUrl && docObj.fileUrl.startsWith("/uploads/")) {
-      return `${origin}${docObj.fileUrl}`;
+      return mediaUrl(docObj.fileUrl);
     }
     if (
       docObj.fileUrl &&
@@ -134,7 +131,7 @@ export default function ClassMaterialReaderPage() {
       return docObj.fileUrl;
     }
     // Guaranteed fallback endpoint with auto-generation on FastAPI backend
-    return `${origin}/api/v1/documents/${docObj.id}/pdf`;
+    return mediaUrl(`/api/v1/documents/${docObj.id}/pdf`);
   };
 
   const pdfUrl = resolvePdfUrl(doc);

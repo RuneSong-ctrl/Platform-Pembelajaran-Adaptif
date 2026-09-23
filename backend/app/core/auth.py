@@ -69,6 +69,15 @@ def current_user(credentials: HTTPAuthorizationCredentials | None = Depends(bear
     return user
 
 
+def media_user(token: str | None = None, credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+               db: Session = Depends(get_db)) -> User:
+    """<audio>, <img> and PDF links cannot send headers, so media GETs also accept ?token=."""
+    # ponytail: the session token then shows up in URLs/logs; switch to short-lived signed URLs if that matters.
+    if not credentials and token:
+        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+    return current_user(credentials, db)
+
+
 def require_class_access(classroom, user: User, *, teacher: bool = False):
     if not classroom:
         raise HTTPException(404, "Kelas tidak ditemukan.")
