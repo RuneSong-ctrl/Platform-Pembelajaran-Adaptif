@@ -24,7 +24,7 @@ class UserBase(BaseModel):
     role: str # "SISWA", "GURU", "ORTU"
     avatar: Optional[str] = None
     grade: Optional[int] = 10
-    learning_style: Optional[str] = "VISUAL"
+    learning_style: Optional[str] = None
     modality_scores: Optional[ModalityScores] = None
     learning_progress: Optional[LearningProgress] = None
     processing_speed: Optional[str] = "MODERATE"
@@ -42,13 +42,13 @@ class UserRegister(BaseModel):
     name: str
     email: EmailStr
     role: str = "SISWA" # "SISWA", "GURU", "ORTU"
-    password: Optional[str] = None
+    password: str
     grade: Optional[int] = 10
     subject_specialization: Optional[str] = None
 
 class UserLogin(BaseModel):
     identifier: str
-    password: Optional[str] = None
+    password: str
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None

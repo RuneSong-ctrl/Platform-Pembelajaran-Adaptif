@@ -53,9 +53,8 @@ lerna-debug.log*
 next-env.d.ts
 
 # IDE & Editor configs
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
+.vscode/
+.claude/
 .idea/
 *.suo
 *.ntvs*
@@ -98,4 +97,17 @@ venv/
 *.sqlite
 *.sqlite3
 *.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
 !*.example.db
+
+# Uploaded / generated media (runtime data, never commit)
+backend/uploads/**
+!backend/uploads/**/
+!backend/uploads/**/.gitkeep
+backend/app/uploads/
+

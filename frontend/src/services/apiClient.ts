@@ -29,7 +29,7 @@ export function normalizeUser(u: any): User {
     role: u.role,
     avatar: u.avatar || u.role?.slice(0, 2) || "ED",
     grade: u.grade ?? 10,
-    learningStyle: u.learning_style || u.learningStyle || "VISUAL",
+    learningStyle: ("learning_style" in u ? u.learning_style : u.learningStyle) || undefined,
     modalityScores: u.modality_scores || u.modalityScores || { visual: 0, audio: 0, practice: 0 },
     learningProgress: u.learning_progress || u.learningProgress || {
       visual: 0,
@@ -184,6 +184,27 @@ export function normalizeNote(n: any): ParentTeacherNote {
 }
 
 export class ApiService {
+  static getToken() { return sessionStorage.getItem("eduadapt_token"); }
+  static setToken(token?: string) {
+    if (token) sessionStorage.setItem("eduadapt_token", token);
+    else sessionStorage.removeItem("eduadapt_token");
+  }
+  static async authenticatedRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.getToken() || ""}`, ...options?.headers },
+      });
+    } catch {
+      throw new Error("Server tidak dapat dihubungi. Pastikan backend berjalan.");
+    }
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(typeof body.detail === "string" ? body.detail : `Permintaan gagal (${response.status}).`);
+    }
+    return response.json();
+  }
   private static async request<T>(endpoint: string, options?: RequestInit): Promise<T | null> {
     try {
       const url = `${API_BASE_URL}${endpoint}`;
@@ -192,6 +213,7 @@ export class ApiService {
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
+          ...(this.getToken() ? { Authorization: `Bearer ${this.getToken()}` } : {}),
           ...(options?.headers || {}),
         },
       });
@@ -242,7 +264,7 @@ export class ApiService {
   }
 
   static async updateUserProfile(userId: string, updates: any) {
-    return this.request<any>(`/users/${userId}`, {
+    return this.authenticatedRequest<any>(`/users/${userId}`, {
       method: "PATCH",
       body: JSON.stringify(updates),
     });
@@ -315,19 +337,21 @@ export class ApiService {
     if (data.summary) formData.append("summary", data.summary);
     formData.append("file", data.file);
 
+    let response: Response;
     try {
-      const response = await fetch(`${API_BASE_URL}/documents/upload-file`, {
+      response = await fetch(`${API_BASE_URL}/documents/upload-file`, {
         method: "POST",
+        headers: { Authorization: `Bearer ${this.getToken() || ""}` },
         body: formData,
       });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return (await response.json()) as any;
-    } catch (err) {
-      console.warn("[API] uploadDocumentFile error", err);
-      return null;
+    } catch {
+      throw new Error("Server tidak dapat dihubungi. Pastikan backend berjalan.");
     }
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(typeof body.detail === "string" ? body.detail : `Unggah gagal (${response.status}).`);
+    }
+    return (await response.json()) as any;
   }
 
   static async uploadDocument(data: {

@@ -93,4 +93,10 @@ export {
   Disc,
   ListMusic,
   Repeat,
+  Cog,
+  Puzzle,
+  Hand,
+  Workflow,
+  Globe,
+  Network,
 } from "lucide-react";

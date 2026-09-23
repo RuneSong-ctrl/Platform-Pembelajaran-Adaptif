@@ -11,6 +11,11 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.models.document import GroundedDocument
 from app.models.classroom import Classroom
+from app.models.user import User
+from app.core.auth import current_user, require_class_access
+from app.core.scope import visible_classroom_ids
+from app.services.learning_unit_service import AdaptiveDocument, extract_segments, make_segments, MAX_FILE_BYTES
+from app.api.v1.endpoints.learning_units import schedule_generation
 from app.schemas.document import DocumentResponse, DocumentCreate
 from app.services.vector_store import index_document, remove_document_from_index
 
@@ -110,11 +115,13 @@ def _build_pdf_from_text(title: str, text: str, doc_id: str) -> str:
         return f"/uploads/{safe_filename}"
 
 @router.get("", response_model=List[DocumentResponse])
-def get_documents(classroom_id: str = None, db: Session = Depends(get_db)):
-    query = db.query(GroundedDocument)
+def get_documents(classroom_id: str = None, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    allowed = visible_classroom_ids(user, db)
     if classroom_id:
-        query = query.filter(GroundedDocument.classroom_id == classroom_id)
-    return query.all()
+        allowed &= {classroom_id}
+    if not allowed:
+        return []
+    return db.query(GroundedDocument).filter(GroundedDocument.classroom_id.in_(allowed)).all()
 
 @router.post("/extract-text")
 async def extract_text(file: UploadFile = File(...)):
@@ -144,9 +151,15 @@ async def upload_document_file(
     summary: Optional[str] = Form(None),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    user: User = Depends(current_user),
 ):
     """Directly uploads a PDF/document file, extracts its text, indexes vectors, and saves to database."""
-    content = await file.read()
+    require_class_access(db.get(Classroom, classroom_id), user, teacher=True)
+    content = await file.read(MAX_FILE_BYTES + 1)
+    try:
+        sources = extract_segments(file.filename or "document.txt", content)
+    except Exception as exc:
+        raise HTTPException(422, "File tidak terbaca atau melebihi batas. Gunakan PDF berteks/TXT, maksimal 20 MB dan 160.000 karakter.") from exc
     raw_text = _extract_text_from_file_bytes(file.filename, content)
     
     if not raw_text.strip():
@@ -190,12 +203,14 @@ async def upload_document_file(
         summary=doc_summary
     )
     db.add(new_doc)
-    
+    # Saved in the same commit as the document, so a failure never leaves a half-created module.
+    db.add(AdaptiveDocument(document_id=doc_id, source_segments=sources))
+
     # Update classroom count
     cls = db.query(Classroom).filter(Classroom.id == classroom_id).first()
     if cls:
         cls.documents_count += 1
-        
+
     db.commit()
     db.refresh(new_doc)
 
@@ -209,12 +224,19 @@ async def upload_document_file(
         except Exception as e:
             print(f"[Documents] Background adaptive assets error: {e}")
 
+    # Background tasks run in order: the quick learning-unit draft first, then the slow podcast/TTS.
+    schedule_generation(new_doc.id, db, background_tasks)
     background_tasks.add_task(_run_adaptive_assets_bg, new_doc.id)
 
     return new_doc
 
 @router.post("/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
-def upload_document(data: DocumentCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def upload_document(data: DocumentCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    require_class_access(db.get(Classroom, data.classroom_id), user, teacher=True)
+    try:
+        sources = make_segments([(None, data.raw_text)])
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
     doc_id = f"doc_{uuid.uuid4().hex[:8]}"
     vector_id = f"vec_{doc_id}_qdrant"
     
@@ -243,12 +265,13 @@ def upload_document(data: DocumentCreate, background_tasks: BackgroundTasks, db:
         summary=data.summary or f"Ringkasan otomatis AI untuk modul: {data.title}"
     )
     db.add(new_doc)
-    
+    db.add(AdaptiveDocument(document_id=doc_id, source_segments=sources))
+
     # Update classroom count
     cls = db.query(Classroom).filter(Classroom.id == data.classroom_id).first()
     if cls:
         cls.documents_count += 1
-        
+
     db.commit()
     db.refresh(new_doc)
 
@@ -262,6 +285,7 @@ def upload_document(data: DocumentCreate, background_tasks: BackgroundTasks, db:
         except Exception as e:
             print(f"[Documents] Background adaptive assets error: {e}")
 
+    schedule_generation(new_doc.id, db, background_tasks)
     background_tasks.add_task(_run_adaptive_assets_bg_upload, new_doc.id)
 
     return new_doc
@@ -292,16 +316,27 @@ def get_document_pdf(document_id: str, db: Session = Depends(get_db)):
     clean_fn = f"{re.sub(r'[^a-zA-Z0-9_-]', '_', doc.title)[:30]}.pdf"
     return FileResponse(full_path, media_type="application/pdf", filename=clean_fn)
 
-@router.post("/{document_id}/generate-assets", response_model=DocumentResponse)
-def generate_assets_endpoint(document_id: str, db: Session = Depends(get_db)):
-    """Menghasilkan atau memperbarui aset materi adaptif kelas (Audio Podcast, Mindmap, Gambar, Flashcard)."""
-    from app.services.gemini_service import generate_document_adaptive_assets
+@router.post("/{document_id}/generate-assets", response_model=DocumentResponse, status_code=status.HTTP_202_ACCEPTED)
+def generate_assets_endpoint(document_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db),
+                             user: User = Depends(current_user)):
+    """Menyiapkan aset yang belum ada (podcast, aktivitas kinestetik) di latar belakang; aset yang sudah ada dilewati."""
     doc = db.query(GroundedDocument).filter(GroundedDocument.id == document_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")
-    
-    generate_document_adaptive_assets(document_id, db)
-    db.refresh(doc)
+
+    require_class_access(db.get(Classroom, doc.classroom_id), user, teacher=True)
+
+    # Runs outside the request so long AI/TTS work never holds this request's connection.
+    def _run(doc_id_param: str):
+        from app.core.database import SessionLocal
+        from app.services.gemini_service import generate_document_adaptive_assets
+        try:
+            with SessionLocal() as bg_db:
+                generate_document_adaptive_assets(doc_id_param, bg_db)
+        except Exception as e:
+            print(f"[Documents] Background adaptive assets error: {e}")
+
+    background_tasks.add_task(_run, document_id)
     return doc
 
 @router.get("/{document_id}/podcast-audio")
@@ -369,93 +404,28 @@ def get_podcast_episodes(document_id: str, db: Session = Depends(get_db)):
     ]
 
 @router.get("/{document_id}/infographic")
-def get_infographic_data(document_id: str, db: Session = Depends(get_db)):
-    """Mengembalikan struktur data JSON 4 Zona Infografis Visual ter-grounding."""
-    doc = db.query(GroundedDocument).filter(GroundedDocument.id == document_id).first()
-    if not doc:
-        raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")
-
-    if not doc.infographic_data_json:
-        from app.services.gemini_service import generate_document_adaptive_assets
-        generate_document_adaptive_assets(document_id, db)
-        db.refresh(doc)
-
-    if doc.infographic_data_json:
-        try:
-            return json.loads(doc.infographic_data_json)
-        except Exception:
-            pass
-
-    return {
-        "doc_title": doc.title,
-        "subtitle": f"Pemetaan Alur Perjalanan & Wawasan Data {doc.title}",
-        "category_badge": "INFOGRAFIS KURIKULUM ADAPTIF",
-        "intro_summary": [
-            (doc.summary or f"Pemahaman dasar materi {doc.title}.")[:120],
-            "Eksplorasi mendalam mengenai mekanisme dan aplikasi nyata konsep pembelajaran."
-        ],
-        "roadmap_journey": [
-            {"step_num": 1, "title": "1. Fondasi Awal", "desc": "Titik tolak dan asumsi dasar materi.", "color": "#06B6D4"},
-            {"step_num": 2, "title": "2. Inisiasi Variabel", "desc": "Interaksi awal antar komponen utama.", "color": "#3B82F6"},
-            {"step_num": 3, "title": "3. Transformasi Proses", "desc": "Perubahan bentuk atau kondisi sistem.", "color": "#10B981"},
-            {"step_num": 4, "title": "4. Regulasi & Batasan", "desc": "Kaidah ilmiah yang mengontrol proses.", "color": "#84CC16"},
-            {"step_num": 5, "title": "5. Hasil & Keseimbangan", "desc": "Keluaran sistem yang terukur.", "color": "#F59E0B"},
-            {"step_num": 6, "title": "6. Dampak Aplikatif", "desc": "Manfaat langsung bagi kehidupan nyata.", "color": "#EC4899"}
-        ],
-        "metrics_breakdown": [
-            {"label": "Tingkat Akurasi Model", "value_pct": 84.5, "explanation": "Kesesuaian teori dengan observasi ilmiah."},
-            {"label": "Efisiensi Siklus Sistem", "value_pct": 72.0, "explanation": "Optimalisasi sumber daya sistemik."},
-            {"label": "Kestabilan Variabel", "value_pct": 58.3, "explanation": "Daya tahan terhadap gangguan eksternal."}
-        ],
-        "donut_charts": [
-            {"label": "Aplikasi Praktis", "value_pct": 76, "color": "#10B981", "subtext": "Sangat Relevan"},
-            {"label": "Kaidah Teoretis", "value_pct": 91, "color": "#6366F1", "subtext": "Prinsip Baku"}
-        ],
-        "big_stats_highlights": [
-            {"number": "100%", "title": "Kaidah Ter-grounding", "desc": "Berdasarkan naskah kurikulum resmi."},
-            {"number": "6 Tahap", "title": "Milestone Utama", "desc": "Alur terstruktur dari awal hingga akhir."},
-            {"number": "88.5%", "title": "Retensi Spasial", "desc": "Memperkuat daya ingat visual jangka panjang."}
-        ],
-        "key_takeaway": f"Penguasaan materi {doc.title} membuka pemahaman kritis terhadap fenomena sains dan penerapannya di dunia nyata."
-    }
-
-
 @router.get("/{document_id}/visual-image")
-def get_visual_image(document_id: str, db: Session = Depends(get_db)):
-    """Mengalirkan poster infografis visual bermutu tinggi (SVG Vektor HD atau PNG Raster AI)."""
-    from fastapi.responses import FileResponse, Response
+def get_unreviewed_visual(document_id: str, db: Session = Depends(get_db)):
+    if not db.get(GroundedDocument, document_id):
+        raise HTTPException(404, "Dokumen tidak ditemukan")
+    raise HTTPException(409, "Visual lama belum terverifikasi. Gunakan unit belajar yang disetujui guru.")
 
-    # 1. Prioritas 1: File PNG Raster AI jika ada
-    png_filepath = os.path.join(settings.UPLOADS_DIR, "images", f"{document_id}_visual.png")
-    if os.path.exists(png_filepath) and os.path.getsize(png_filepath) > 2000:
-        return FileResponse(png_filepath, media_type="image/png")
-
-    # 2. Prioritas 2: File SVG Infografis 4-Zona HD dari backend generator
-    svg_filepath = os.path.join(settings.UPLOADS_DIR, "images", f"{document_id}_infographic.svg")
-    if os.path.exists(svg_filepath) and os.path.getsize(svg_filepath) > 200:
-        return FileResponse(svg_filepath, media_type="image/svg+xml")
-
-    # 3. Jika belum ada di disk, generate otomatis aset adaptifnya
-    from app.services.gemini_service import generate_document_adaptive_assets, _render_rich_infographic_svg, _generate_infographic_data
-    generate_document_adaptive_assets(document_id, db)
-    
-    if os.path.exists(svg_filepath) and os.path.getsize(svg_filepath) > 200:
-        return FileResponse(svg_filepath, media_type="image/svg+xml")
-
-    doc = db.query(GroundedDocument).filter(GroundedDocument.id == document_id).first()
-    title = doc.title if doc else "Modul Pembelajaran Adaptif"
-    raw = doc.raw_text if doc else "Materi kurikulum"
-    
-    info_data = _generate_infographic_data(title, raw)
-    svg_content = _render_rich_infographic_svg(title, info_data)
-    return Response(content=svg_content, media_type="image/svg+xml")
 
 @router.delete("/{document_id}", status_code=status.HTTP_200_OK)
-def delete_document(document_id: str, db: Session = Depends(get_db)):
+def delete_document(document_id: str, db: Session = Depends(get_db), user: User = Depends(current_user)):
     doc = db.query(GroundedDocument).filter(GroundedDocument.id == document_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")
     
+    require_class_access(db.get(Classroom, doc.classroom_id), user, teacher=True)
+    adaptive = db.get(AdaptiveDocument, document_id)
+    if adaptive:
+        from app.services.ai_image_service import remove_files
+        remove_files(adaptive.draft_image)
+        remove_files(adaptive.published_image)
+    from app.services.practice_service import PracticeProgress
+    db.query(PracticeProgress).filter(PracticeProgress.document_id == document_id).delete()
+    db.query(AdaptiveDocument).filter(AdaptiveDocument.document_id == document_id).delete()
     # Remove from vector index
     remove_document_from_index(document_id)
     

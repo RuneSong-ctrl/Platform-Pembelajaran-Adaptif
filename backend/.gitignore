@@ -72,6 +72,12 @@ venv.bak/
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
 eduadapt.db
 
 # Uploaded media and user inputs
@@ -86,6 +92,8 @@ uploads/podcasts/*
 !uploads/generated/
 uploads/generated/*
 !uploads/generated/.gitkeep
+# Old upload location (before UPLOADS_DIR moved to backend/uploads)
+app/uploads/
 
 # MyPy & Type Checking Caches
 .mypy_cache/

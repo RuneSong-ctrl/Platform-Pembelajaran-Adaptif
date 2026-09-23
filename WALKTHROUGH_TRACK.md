@@ -47,10 +47,14 @@ graph TD
 ```
 
 ### 🖼️ Fitur Antarmuka Pengguna (Frontend):
-* **Mode Switcher**: Siswa dapat beralih dengan mulus antara **Poster Vektor HD** dan **Inspektur 4 Zona Interaktif**.
-* **Kontrol Zoom & Navigasi**: Tombol Zoom In (+25%), Zoom Out (-25%), Reset (100%), dan Layar Penuh (Fullscreen Modal).
-* **Hotspot Card Inspector**: Saat siswa mengklik zona tertentu (misal: *Alur Mekanisme* atau *Fakta & Rumus*), muncul modal pop-up yang menyajikan penjelasan mendalam dan analogi visual.
-* **Ekspor Berkas**: Tombol unduh langsung untuk menyimpan berkas SVG Vektor HD atau PNG ke perangkat siswa.
+* **Mode Switcher**: Siswa dapat beralih dengan mulus antara **Tahap Interaktif (Expandable Accordion)** dan **Poster Vektor SVG HD**.
+* **Kartu Alur Tahapan Expandable**:
+  * Setiap tahap (Langkah 1 hingga 4) dilengkapi tombol *expand/collapse* yang menampilkan uraian mendalam, fokus pembelajaran, serta kaidah ilmiah terkait.
+  * Tombol **"Buka Semua"** dan **"Tutup Semua"** untuk kendali navigasi cepat.
+* **Gamified Completion Tracker ("Tandai Paham")**:
+  * Di setiap tahap alur proses, siswa dapat menekan tombol **"Tandai Paham"** yang memicu *audio chime* dan animasi perayaan *confetti*.
+  * Bar indikator progres di bagian atas memantau persentase penguasaan materi siswa secara real-time (`2/4 Tahap Selesai`).
+* **Kontrol Zoom & Poster HD**: Tombol Zoom In (+20%), Zoom Out (-20%), Reset (100%), Layar Penuh (*Fullscreen Modal*), serta tombol Unduh SVG Lossless.
 
 ---
 

@@ -1,9 +1,10 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
 import TeacherSidebar from "@/components/layout/TeacherSidebar";
 import { audioSynth } from "@/services/audioSynth";
 import { ApiService } from "@/services/apiClient";
+import LearningUnits from "@/components/student/LearningUnits";
 import {
   UploadCloud,
   Lock,
@@ -19,11 +20,17 @@ import {
 } from "@/components/ui/icons";
 
 export default function TeacherRAGPage() {
-  const { documents, uploadDocument, uploadDocumentFile, deleteDocument, classrooms } = useApp();
+  const { documents, uploadDocument, uploadDocumentFile, deleteDocument, classrooms, currentUser } = useApp();
+  const [reviewId, setReviewId] = useState<string | null>(null);
 
   const [selectedClassId, setSelectedClassId] = useState<string>(
     classrooms[0]?.id || ""
   );
+  useEffect(() => {
+    if (!classrooms.some(c => c.id === selectedClassId && c.teacherId === currentUser.id)) {
+      setSelectedClassId(classrooms.find(c => c.teacherId === currentUser.id)?.id || "");
+    }
+  }, [classrooms, currentUser.id, selectedClassId]);
   const [strictGrounding, setStrictGrounding] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
@@ -107,6 +114,11 @@ export default function TeacherRAGPage() {
     e.preventDefault();
     if (!customTitle.trim()) return;
     if (!customRawText.trim() && !selectedFile) return;
+    if (!selectedClassId) {
+      setExtractError("Belum ada kelas. Buat kelas dulu di Dashboard Guru, lalu unggah modul ke kelas tersebut.");
+      audioSynth.playErrorSound();
+      return;
+    }
 
     setIsUploading(true);
     audioSynth.playClickSound();
@@ -137,6 +149,7 @@ export default function TeacherRAGPage() {
       setExtractError("");
     } catch (err) {
       console.error("Upload error", err);
+      setExtractError(err instanceof Error ? err.message : "Unggah gagal.");
       audioSynth.playErrorSound();
     } finally {
       setIsUploading(false);
@@ -144,6 +157,7 @@ export default function TeacherRAGPage() {
   };
 
   const handlePresetUpload = async (title: string, rawText: string, summary: string) => {
+    if (!selectedClassId) return;
     setIsUploading(true);
     audioSynth.playClickSound();
 
@@ -176,14 +190,14 @@ export default function TeacherRAGPage() {
                   ChromaDB Vector Store
                 </span>
                 <span className="clay-pill clay-mint px-3 py-0.5 text-xs font-bold text-[#1D5E4D]">
-                  Zero Hallucination Guard
+                  Validasi Sumber & Tinjauan Guru
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">
                 Knowledge Base &amp; RAG Ingestion Center
               </h1>
               <p className="text-xs sm:text-sm text-[#5A5E70] font-medium mt-1">
-                Unggah modul PDF dan silabus ajar. AI hanya menghasilkan materi dan kuis yang ter-grounding 100% dari sumber ini.
+                Unggah modul PDF dan silabus ajar. Tinjau draf unit dan kutipan sumber sebelum dipublikasikan kepada siswa.
               </p>
             </div>
 
@@ -209,12 +223,18 @@ export default function TeacherRAGPage() {
                   onChange={(e) => setSelectedClassId(e.target.value)}
                   className="mt-1.5 p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#F8F9FD] focus:outline-none cursor-pointer"
                 >
-                  {classrooms.map((c) => (
+                  {!selectedClassId && <option value="">Belum ada kelas</option>}
+                  {classrooms.filter(c => c.teacherId === currentUser.id).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name} ({c.joinCode})
                     </option>
                   ))}
                 </select>
+                {!selectedClassId && (
+                  <p role="status" className="mt-2 text-xs font-bold text-[#852C28]">
+                    Buat kelas dulu di Dashboard Guru; modul selalu diunggah ke salah satu kelas Anda.
+                  </p>
+                )}
               </div>
 
               {/* Strict Grounding Switch */}
@@ -303,7 +323,7 @@ export default function TeacherRAGPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {documents.map((doc) => (
+                {documents.filter(doc => classrooms.some(c => c.id === doc.classroomId && c.teacherId === currentUser.id)).map((doc) => (
                   <div
                     key={doc.id}
                     className="clay-card clay-card-hover clay-white p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
@@ -327,6 +347,7 @@ export default function TeacherRAGPage() {
                     </div>
 
                     <div className="flex items-center gap-3 self-end sm:self-center">
+                      <button className="border rounded-xl px-3 py-2 text-sm" onClick={() => setReviewId(reviewId === doc.id ? null : doc.id)}>Tinjau unit belajar</button>
                       <span className="clay-pill bg-[#F8F9FD] px-3 py-1 text-xs font-bold text-[#5A5E70]">
                         {doc.chunksCount} Semantic Chunks
                       </span>
@@ -346,6 +367,10 @@ export default function TeacherRAGPage() {
               </div>
             )}
           </section>
+          {reviewId && <section aria-label="Peninjauan materi">
+            <button className="border rounded-lg px-4 py-2 mb-3" onClick={() => setReviewId(null)}>Tutup peninjauan</button>
+            <LearningUnits key={reviewId} documentId={reviewId} teacher />
+          </section>}
         </main>
       </div>
 

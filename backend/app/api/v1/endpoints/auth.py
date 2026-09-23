@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.user import User
+from app.core.auth import AuthSession, bearer, create_session, current_user, hash_password, token_hash, verify_password
 from app.schemas.user import (
     UserRegister,
     UserLogin,
@@ -48,17 +49,23 @@ def register_new_account(payload: UserRegister, db: Session = Depends(get_db)):
     user_id = f"user_{role.lower()}_{uuid.uuid4().hex[:8]}"
     avatar = _generate_initials(clean_name)
     
+    try:
+        password_hash = hash_password(payload.password or "")
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+
     new_user = User(
+        password_hash=password_hash,
         id=user_id,
         name=clean_name,
         email=clean_email,
         role=role,
         avatar=avatar,
         grade=payload.grade if role == "SISWA" else None,
-        learning_style="VISUAL" if role == "SISWA" else None,
-        modality_scores={"visual": 80, "audio": 45, "practice": 55} if role == "SISWA" else None,
+        learning_style=None,
+        modality_scores=None,
         processing_speed="MODERATE" if role == "SISWA" else None,
-        xp_total=100 if role == "SISWA" else 0,
+        xp_total=0,
         streak_days=1,
         hearts=5,
         current_dda_level="BASIC" if role == "SISWA" else None,
@@ -70,8 +77,8 @@ def register_new_account(payload: UserRegister, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     
-    token = f"eduadapt_jwt_{uuid.uuid4().hex}"
-    
+    token = create_session(new_user, db)
+
     return AuthResponse(
         success=True,
         message="Akun berhasil didaftarkan.",
@@ -100,13 +107,10 @@ def login_account(payload: UserLogin, db: Session = Depends(get_db)):
         .first()
     )
     
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Akun tidak ditemukan. Periksa kembali nama akun atau email Anda."
-        )
-        
-    token = f"eduadapt_jwt_{uuid.uuid4().hex}"
+    if not user or not verify_password(payload.password, user.password_hash):
+        raise HTTPException(401, "Kredensial tidak valid. Akun lama perlu aktivasi oleh pengelola.")
+
+    token = create_session(user, db)
     
     return AuthResponse(
         success=True,
@@ -114,3 +118,16 @@ def login_account(payload: UserLogin, db: Session = Depends(get_db)):
         token=token,
         user=UserResponse.model_validate(user)
     )
+
+
+@router.get("/me", response_model=UserResponse)
+def me(user: User = Depends(current_user)):
+    return user
+
+
+@router.post("/logout")
+def logout(user: User = Depends(current_user), credentials=Depends(bearer), db: Session = Depends(get_db)):
+    db.query(AuthSession).filter(AuthSession.token_hash == token_hash(credentials.credentials)).delete()
+    db.commit()
+    return {"success": True}
+

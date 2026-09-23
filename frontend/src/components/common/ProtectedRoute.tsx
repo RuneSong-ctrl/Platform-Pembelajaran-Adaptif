@@ -13,8 +13,10 @@ export default function ProtectedRoute({
   allowedRoles,
   requireAssessment = true,
 }: ProtectedRouteProps) {
-  const { isAuthenticated, currentUser } = useApp();
+  const { isAuthenticated, isRestoringSession, currentUser } = useApp();
   const location = useLocation();
+
+  if (isRestoringSession) return <p role="status" className="p-6">Memulihkan sesi…</p>;
 
   // 1. If not authenticated, redirect to official auth gate (/)
   if (!isAuthenticated) {

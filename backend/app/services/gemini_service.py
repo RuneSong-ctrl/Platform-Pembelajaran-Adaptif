@@ -57,7 +57,8 @@ def _call_gemini_text(
     prompt: str,
     system_instruction: Optional[str] = None,
     temperature: float = 0.5,
-    json_mode: bool = False
+    json_mode: bool = False,
+    max_output_tokens: int = 4000,
 ) -> Optional[str]:
     """
     Eksekutor inferensi teks terpadu untuk Gemini AI Tutor & Alat Pembelajaran Adaptif:
@@ -87,7 +88,7 @@ def _call_gemini_text(
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
             config_params: Dict[str, Any] = {
                 "temperature": temperature,
-                "max_output_tokens": 4000
+                "max_output_tokens": max_output_tokens
             }
             if system_instruction:
                 config_params["system_instruction"] = system_instruction
@@ -969,122 +970,96 @@ Kembalikan HANYA JSON array murni tanpa format markdown (tanpa ```json ... ```):
     return json.dumps(fallback_items, ensure_ascii=False)
 
 
+import textwrap
+
+def _svg_wrap_text(
+    text: Any,
+    x: int,
+    start_y: int,
+    line_height: int,
+    max_chars: int = 40,
+    font_size: float = 11,
+    fill: str = "#475569",
+    font_weight: str = "400",
+    font_family: str = "Inter, sans-serif",
+    max_lines: int = 3
+) -> str:
+    """Helper untuk memformat teks panjang SVG dengan pemotongan per kata yang rapi (tanpa kata terpotong)."""
+    clean_str = str(text or "").strip()
+    if not clean_str:
+        return ""
+    lines = textwrap.wrap(clean_str, width=max_chars)
+    lines = lines[:max_lines]
+    output = []
+    for idx, l in enumerate(lines):
+        cur_y = start_y + idx * line_height
+        escaped = l.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+        output.append(
+            f'<text x="{x}" y="{cur_y}" fill="{fill}" font-family="{font_family}" font-size="{font_size}" font-weight="{font_weight}">{escaped}</text>'
+        )
+    return "\n".join(output)
+
 def _generate_infographic_data(doc_title: str, raw_text: str) -> Dict[str, Any]:
     """
-    Menghasilkan metadata terstruktur infografis berkualitas tinggi dalam 1 kali pemanggilan LLM hemat token.
-    Mendukung dua gaya visual unggulan:
-    1. Sinuous Journey Roadmap (Peta Alur Berkelok / Winding Journey Map)
-    2. Editorial Data & Concept Insight (Grafik Bar, Donut Ring, dan Statistik Menonjol)
+    Menghasilkan metadata terstruktur 4-Tahap infografis berkualitas tinggi yang merangkum seluruh isi modul:
+    - Tahap 1: Fondasi & Konsep Inti (Definisi & 3 Pilar Utama)
+    - Tahap 2: Alur Mekanisme 4-Tahap Berurutan (Inisiasi -> Interaksi -> Regulasi -> Hasil)
+    - Tahap 3: Parameter Kunci & Kaidah Ilmiah Terukur
+    - Tahap 4: Analogi Nyata & Studi Kasus Terapan
     """
-    context_sample = raw_text[:5000] if len(raw_text) > 5000 else raw_text
+    context_sample = raw_text[:12000] if len(raw_text) > 12000 else raw_text
 
-    prompt = f"""Kamu adalah Pakar Visualisasi Informasi, Lead Infographic Designer, dan Arsitek Kurikulum Sains.
-Analisis materi berikut dan susun data JSON untuk 1 POSTER INFOGRAFIS EDUKATIF EDITORIAL (gaya Winding Journey Map & Data Insight) yang sangat bersih, profesional, dan padat makna.
+    prompt = f"""Kamu adalah Pakar Visualisasi Informasi, Lead Infographic Designer, dan Arsitek Kurikulum K-12.
+Rangkum materi berikut menjadi 1 STRUKTUR POSTER INFOGRAFIS 4-TAHAP PEMBELAJARAN yang sangat komprehensif, padat, dan mencakup semua esensi materi modul.
 
 MATERI PEMBELAJARAN:
 Judul: {doc_title}
-Teks:
+Isi Dokumen:
 {context_sample}
 
-SUSUN DATA DALAM FORMAT JSON BERIKUT (Gunakan Bahasa Indonesia baku, padat, dan jelas):
+SUSUN DATA DALAM FORMAT JSON 4-TAHAP BERIKUT (Gunakan Bahasa Indonesia baku, padat, informatif, dan jelas):
 {{
   "doc_title": "{doc_title}",
-  "subtitle": "Subjudul Ringkas & Menarik yang Merangkum Esensi Materi",
-  "category_badge": "MODUL KURIKULUM ADAPTIF",
-  "intro_summary": [
-    "Paragraf 1: Ringkasan latar belakang / konsep dasar (maksimal 25 kata).",
-    "Paragraf 2: Relevansi, manfaat nyata, atau urgensi pemahaman konsep ini (maksimal 25 kata)."
-  ],
-  "roadmap_journey": [
-    {{
-      "step_num": 1,
-      "title": "Fondasi & Inisiasi",
-      "desc": "Penjelasan langkah awal proses secara konkret dan lugas.",
-      "color": "#06B6D4"
-    }},
-    {{
-      "step_num": 2,
-      "title": "Interaksi & Variabel",
-      "desc": "Dinamika faktor atau reaksi awal yang mulai bekerja dalam sistem.",
-      "color": "#3B82F6"
-    }},
-    {{
-      "step_num": 3,
-      "title": "Mekanisme Inti",
-      "desc": "Proses transformasi utama atau hubungan sebab-akibat pokok.",
-      "color": "#10B981"
-    }},
-    {{
-      "step_num": 4,
-      "title": "Regulasi Sistem",
-      "desc": "Pengendalian keseimbangan dan hukum alam yang membatasi proses.",
-      "color": "#84CC16"
-    }},
-    {{
-      "step_num": 5,
-      "title": "Stabilisasi & Output",
-      "desc": "Hasil akhir yang tercapai dan kondisi seimbang yang terbentuk.",
-      "color": "#F59E0B"
-    }},
-    {{
-      "step_num": 6,
-      "title": "Aplikasi & Dampak",
-      "desc": "Implementasi nyata pada teknologi, fenomena alam, atau masyarakat.",
-      "color": "#EC4899"
-    }}
-  ],
-  "metrics_breakdown": [
-    {{
-      "label": "Tingkat Dominansi Prinsip Utama",
-      "value_pct": 82.5,
-      "explanation": "Pengaruh variabel kunci terhadap kestabilan sistem."
-    }},
-    {{
-      "label": "Efisiensi Reaksi / Dinamika",
-      "value_pct": 68.4,
-      "explanation": "Proporsi energi/proses yang termanfaatkan optimal."
-    }},
-    {{
-      "label": "Faktor Pembatas Eksternal",
-      "value_pct": 42.1,
-      "explanation": "Sensitivitas terhadap gangguan lingkungan luar."
-    }}
-  ],
-  "donut_charts": [
-    {{
-      "label": "Aplikasi Nyata",
-      "value_pct": 78,
-      "color": "#10B981",
-      "subtext": "Sangat Relevan"
-    }},
-    {{
-      "label": "Landasan Teoretis",
-      "value_pct": 88,
-      "color": "#6366F1",
-      "subtext": "Kaidah Baku"
-    }}
-  ],
-  "big_stats_highlights": [
-    {{
-      "number": "100%",
-      "title": "Kaidah Deterministik",
-      "desc": "Mengikuti hukum alam dan prinsip ilmiah terukur."
-    }},
-    {{
-      "number": "6 Tahap",
-      "title": "Alur Siklus Kritis",
-      "desc": "Rangkaian proses berkesinambungan tanpa henti."
-    }},
-    {{
-      "number": "94.8%",
-      "title": "Tingkat Relevansi",
-      "desc": "Terbukti esensial dalam perkembangan sains modern."
-    }}
-  ],
-  "key_takeaway": "Pesan kunci filosofis/aplikatif dalam 1 kalimat tegas untuk diingat siswa selamanya."
+  "subtitle": "Subjudul Ringkas & Menarik yang Merangkum Esensi Seluruh Materi",
+  "category_badge": "INFOGRAFIS 4-TAHAP KURIKULUM ADAPTIF",
+  "tahap_1_fondasi": {{
+    "title": "Tahap 1: Fondasi & Konsep Inti",
+    "definition": "Definisi menyeluruh dan latar belakang mendasar konsep ini secara ilmiah dan gamblang.",
+    "big_idea": "Gagasan pokok atau hukum dasar yang menopang seluruh pemahaman topik.",
+    "key_pillars": [
+      {{"name": "Pilar 1", "desc": "Penjelasan pilar kunci pertama materi."}},
+      {{"name": "Pilar 2", "desc": "Penjelasan pilar kunci kedua materi."}},
+      {{"name": "Pilar 3", "desc": "Penjelasan pilar kunci ketiga materi."}}
+    ]
+  }},
+  "tahap_2_mekanisme": {{
+    "title": "Tahap 2: Alur Mekanisme & Dinamika 4-Langkah",
+    "steps": [
+      {{"step_num": 1, "title": "Inisiasi & Variabel Awal", "desc": "Langkah pertama dimulainya proses atau interaksi komponen dasar.", "badge": "Tahap 1"}},
+      {{"step_num": 2, "title": "Interaksi & Reaksi Sistemik", "desc": "Proses perubahan, dinamika variabel, atau hubungan sebab-akibat.", "badge": "Tahap 2"}},
+      {{"step_num": 3, "title": "Regulasi & Kendali Keseimbangan", "desc": "Faktor pengendali, batasan hukum alam, dan stabilisasi.", "badge": "Tahap 3"}},
+      {{"step_num": 4, "title": "Luaran Akhir & Kondisi Ideal", "desc": "Hasil akhir yang tercapai dan keseimbangan sistem yang terbentuk.", "badge": "Tahap 4"}}
+    ]
+  }},
+  "tahap_3_parameter": {{
+    "title": "Tahap 3: Parameter Kunci & Kaidah Ilmiah",
+    "metrics": [
+      {{"label": "Tingkat Akurasi & Kaidah Utama", "value_pct": 88, "explanation": "Kesesuaian kaidah dasar dengan prinsip kurikulum."}},
+      {{"label": "Efisiensi Siklus & Dinamika", "value_pct": 74, "explanation": "Optimalisasi hubungan fungsi antar komponen materi."}},
+      {{"label": "Sensitivitas & Faktor Pembatas", "value_pct": 62, "explanation": "Pengaruh variabel luar terhadap kestabilan sistem."}}
+    ]
+  }},
+  "tahap_4_aplikasi": {{
+    "title": "Tahap 4: Analogi Nyata & Studi Kasus Terapan",
+    "analogy_title": "Analogi Kehidupan Nyata",
+    "analogy_desc": "Analogi konkret dan mudah dibayangkan siswa untuk menjelaskan cara kerja konsep ini.",
+    "case_study_title": "Studi Kasus & Penerapan Praktis",
+    "case_study_desc": "Contoh implementasi nyata di bidang teknologi, fenomena alam, atau industri modern."
+  }},
+  "key_takeaway": "Pesan kesimpulan kunci dalam 1-2 kalimat tegas untuk memperkuat retensi belajar siswa."
 }}
 
-Output HANYA objek JSON valid tanpa markdown tambahan."""
+Output HANYA objek JSON valid murni tanpa format markdown (tanpa ```json ... ```)."""
 
     try:
         reply = _call_gemini_text(prompt, temperature=0.2, json_mode=True)
@@ -1094,337 +1069,357 @@ Output HANYA objek JSON valid tanpa markdown tambahan."""
             if match:
                 clean_json = match.group(0)
             parsed = json.loads(clean_json)
-            if isinstance(parsed, dict) and "roadmap_journey" in parsed:
-                logger.info(f"[AdaptiveAssets] Sukses mengekstrak Infografis Winding & Data Insight untuk '{doc_title}'.")
+            if isinstance(parsed, dict) and "tahap_1_fondasi" in parsed:
+                logger.info(f"[AdaptiveAssets] Sukses mengekstrak Infografis 4-Tahap untuk '{doc_title}'.")
+                return parsed
+            elif isinstance(parsed, dict) and "roadmap_journey" in parsed:
                 return parsed
     except Exception as e:
-        logger.warning(f"[AdaptiveAssets] Infographic JSON extraction error: {e}")
+        logger.warning(f"[AdaptiveAssets] Infographic 4-Tahap JSON extraction error: {e}")
 
-    # Fallback berkualitas tinggi
+    # Fallback substantif komprehensif 4-Tahap
     paras = [p.strip() for p in raw_text.split("\n\n") if len(p.strip()) > 30]
-    p1 = paras[0] if len(paras) > 0 else f"Pemahaman dasar materi {doc_title}."
-    p2 = paras[1] if len(paras) > 1 else f"Mekanisme dan kaidah kerja {doc_title}."
+    p1 = paras[0] if len(paras) > 0 else f"Pemahaman fundamental mengenai konsep dan prinsip {doc_title}."
+    p2 = paras[1] if len(paras) > 1 else "Mekanisme interaksi komponen dalam dinamika sistem terpadu."
+    p3 = paras[2] if len(paras) > 2 else "Regulasi ilmiah dan kaidah baku yang mengontrol kestabilan proses."
+    p4 = paras[3] if len(paras) > 3 else "Penerapan aplikatif nyata untuk memecahkan persoalan dunia nyata."
 
     return {
         "doc_title": doc_title,
-        "subtitle": f"Pemetaan Alur Berkelok & Wawasan Data {doc_title}",
-        "category_badge": "INFOGRAFIS KURIKULUM TERPADU",
-        "intro_summary": [
-            p1[:130] + ("..." if len(p1) > 130 else ""),
-            p2[:130] + ("..." if len(p2) > 130 else "")
-        ],
-        "roadmap_journey": [
-            {"step_num": 1, "title": "1. Fondasi Awal", "desc": "Titik tolak dan asumsi dasar materi.", "color": "#06B6D4"},
-            {"step_num": 2, "title": "2. Inisiasi Variabel", "desc": "Interaksi awal antar komponen utama.", "color": "#3B82F6"},
-            {"step_num": 3, "title": "3. Transformasi Proses", "desc": "Perubahan bentuk atau kondisi sistem.", "color": "#10B981"},
-            {"step_num": 4, "title": "4. Regulasi & Batasan", "desc": "Kaidah ilmiah yang mengontrol proses.", "color": "#84CC16"},
-            {"step_num": 5, "title": "5. Hasil & Keseimbangan", "desc": "Keluaran sistem yang terukur.", "color": "#F59E0B"},
-            {"step_num": 6, "title": "6. Dampak Aplikatif", "desc": "Manfaat langsung bagi kehidupan nyata.", "color": "#EC4899"}
-        ],
-        "metrics_breakdown": [
-            {"label": "Tingkat Akurasi Model", "value_pct": 84.5, "explanation": "Kesesuaian teori dengan observasi."},
-            {"label": "Efisiensi Siklus Sistem", "value_pct": 72.0, "explanation": "Optimalisasi sumber daya sistem."},
-            {"label": "Kestabilan Variabel", "value_pct": 58.3, "explanation": "Daya tahan terhadap perturbasi luar."}
-        ],
-        "donut_charts": [
-            {"label": "Aplikasi Praktis", "value_pct": 76, "color": "#10B981", "subtext": "Sangat Relevan"},
-            {"label": "Kaidah Teoretis", "value_pct": 91, "color": "#6366F1", "subtext": "Prinsip Baku"}
-        ],
-        "big_stats_highlights": [
-            {"number": "100%", "title": "Kaidah Ter-grounding", "desc": "Berdasarkan naskah kurikulum resmi."},
-            {"number": "6 Tahap", "title": "Milestone Utama", "desc": "Alur terstruktur dari awal hingga akhir."},
-            {"number": "88.5%", "title": "Retensi Konsep", "desc": "Memperkuat daya ingat spasial siswa."}
-        ],
-        "key_takeaway": f"Penguasaan materi {doc_title} membuka pemahaman kritis terhadap fenomena sains dan teknologi masa depan."
+        "subtitle": f"Pemetaan 4-Tahap Alur Konseptual & Analisis Wawasan {doc_title}",
+        "category_badge": "INFOGRAFIS 4-TAHAP KURIKULUM ADAPTIF",
+        "tahap_1_fondasi": {
+            "title": "Tahap 1: Fondasi & Konsep Inti",
+            "definition": p1[:180],
+            "big_idea": f"Prinsip fundamental {doc_title} yang menopang pemahaman ilmiah terstruktur.",
+            "key_pillars": [
+                {"name": "Terminologi Ilmiah", "desc": "Karakteristik variabel pokok dan definisi dasar konsep."},
+                {"name": "Dinamika Sistemik", "desc": "Hubungan fungsional antara unsur-unsur pembangun materi."},
+                {"name": "Hukum Keseimbangan", "desc": "Kaidah baku yang mempertahankan kestabilan proses."}
+            ]
+        },
+        "tahap_2_mekanisme": {
+            "title": "Tahap 2: Alur Mekanisme & Dinamika 4-Langkah",
+            "steps": [
+                {"step_num": 1, "title": "1. Inisiasi & Variabel Awal", "desc": p1[:100], "badge": "Langkah 1"},
+                {"step_num": 2, "title": "2. Interaksi Antar-Komponen", "desc": p2[:100], "badge": "Langkah 2"},
+                {"step_num": 3, "title": "3. Transformasi & Regulasi", "desc": p3[:100], "badge": "Langkah 3"},
+                {"step_num": 4, "title": "4. Luaran & Keseimbangan", "desc": p4[:100], "badge": "Langkah 4"}
+            ]
+        },
+        "tahap_3_parameter": {
+            "title": "Tahap 3: Parameter Kunci & Kaidah Ilmiah",
+            "metrics": [
+                {"label": "Tingkat Akurasi Model Teori", "value_pct": 86.5, "explanation": "Kesesuaian kaidah baku dengan observasi ilmiah."},
+                {"label": "Efisiensi Siklus & Reaksi", "value_pct": 74.0, "explanation": "Optimalisasi sumber daya dan dinamika sistem."},
+                {"label": "Daya Tahan & Toleransi Variabel", "value_pct": 61.5, "explanation": "Kemampuan sistem mempertahankan kesetimbangan."}
+            ]
+        },
+        "tahap_4_aplikasi": {
+            "title": "Tahap 4: Analogi Nyata & Studi Kasus Terapan",
+            "analogy_title": "Analogi Cara Kerja",
+            "analogy_desc": f"Bagaikan sistem presisi di mana setiap komponen bekerja selaras untuk menghasilkan luaran terencana pada modul {doc_title}.",
+            "case_study_title": "Penerapan Sains & Teknologi",
+            "case_study_desc": "Implementasi nyata konsep dalam pemecahan masalah teknologi modern dan fenomena alam sehari-hari."
+        },
+        "key_takeaway": f"Penguasaan materi {doc_title} memberikan landasan berpikir kritis dalam menganalisis fenomena sains dan penerapannya di dunia nyata."
     }
 
 
 def _render_rich_infographic_svg(doc_title: str, data: Dict[str, Any]) -> str:
     """
-    Merender poster infografis vektor SVG resolusi tinggi (1200 x 1700 px)
-    terinspirasi langsung dari gaya referensi:
-    - Bagian Atas: Winding Journey Map (Peta Berkelok dengan 6 Milestone Berwarna-warni)
-    - Bagian Bawah: Editorial Data Insight (Bar Charts, Donut Percentage Rings, dan Big Numeric Stats)
-    - Latar Belakang Bersih / Light Editorial (#F8FAFC) dengan tipografi modern.
+    Merender poster infografis vektor SVG 4-Tahap resolusi tinggi (1200 x 1400 px)
+    dengan koordinat absolut terhitung presisi tanpa tabrakan teks:
+    - Header: Judul & Subjudul Modul
+    - Tahap 1: Fondasi & Konsep Inti (Definisi & 3 Pilar Utama)
+    - Tahap 2: Alur Mekanisme 4-Langkah (4 Kartu Berurutan dengan Panah Koneksi)
+    - Tahap 3: Parameter Kunci & Kaidah Ilmiah (Progress Bar Metrik)
+    - Tahap 4: Analogi Nyata & Studi Kasus Terapan
+    - Kesimpulan Kunci (Key Takeaway Banner)
     """
     def esc(text: Any) -> str:
         s = str(text or "")
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
-    clean_title = esc(data.get("doc_title", doc_title))[:44]
-    subtitle = esc(data.get("subtitle", f"Pemetaan Alur dan Analisis Konseptual {doc_title}"))[:68]
-    badge = esc(data.get("category_badge", "EDUADAPT DATA & JOURNEY INSIGHT"))[:36]
-    intros = data.get("intro_summary", [])
-    intro_1 = esc(intros[0] if len(intros) > 0 else "")[:140]
-    intro_2 = esc(intros[1] if len(intros) > 1 else "")[:140]
+    clean_title = esc(data.get("doc_title", doc_title))[:60]
+    subtitle = esc(data.get("subtitle", f"Pemetaan 4-Tahap Alur Konseptual & Analisis Wawasan {doc_title}"))[:95]
+    badge = esc(data.get("category_badge", "INFOGRAFIS 4-TAHAP KURIKULUM ADAPTIF"))[:50]
 
-    roadmap = data.get("roadmap_journey", [])
-    if not roadmap:
-        roadmap = [
-            {"step_num": 1, "title": "Inisiasi", "desc": "Tahap awal proses", "color": "#06B6D4"},
-            {"step_num": 2, "title": "Interaksi", "desc": "Dinamika variabel", "color": "#3B82F6"},
-            {"step_num": 3, "title": "Transformasi", "desc": "Proses inti", "color": "#10B981"},
-            {"step_num": 4, "title": "Regulasi", "desc": "Aturan keseimbangan", "color": "#84CC16"},
-            {"step_num": 5, "title": "Output", "desc": "Hasil akhir", "color": "#F59E0B"},
-            {"step_num": 6, "title": "Aplikasi", "desc": "Manfaat nyata", "color": "#EC4899"}
-        ]
+    # --- TAHAP 1: FONDASI ---
+    t1 = data.get("tahap_1_fondasi", {})
+    t1_title = esc(t1.get("title", "Tahap 1: Fondasi & Konsep Inti"))[:50]
+    t1_def = t1.get("definition", f"Definisi dan konsep dasar {doc_title}.")
+    t1_pillars = t1.get("key_pillars", [
+        {"name": "Pilar Teoretis", "desc": "Landasan terminologi dan kaidah baku materi."},
+        {"name": "Dinamika Proses", "desc": "Interaksi terstruktur antar variabel pokok."},
+        {"name": "Keseimbangan", "desc": "Kaidah ilmiah pengontrol stabilitas sistem."}
+    ])[:3]
 
-    metrics = data.get("metrics_breakdown", [])[:3]
-    donuts = data.get("donut_charts", [])[:2]
-    big_stats = data.get("big_stats_highlights", [])[:3]
-    takeaway = esc(data.get("key_takeaway", "Konsep ini melatih logika analisis multidimensi untuk memecahkan persoalan dunia nyata."))[:160]
+    # --- TAHAP 2: ALUR MEKANISME ---
+    t2 = data.get("tahap_2_mekanisme", {})
+    t2_title = esc(t2.get("title", "Tahap 2: Alur Mekanisme & Dinamika 4-Langkah"))[:65]
+    t2_steps = t2.get("steps", [])
+    if not t2_steps:
+        old_steps = data.get("roadmap_journey", [])
+        if old_steps:
+            t2_steps = [
+                {"step_num": s.get("step_num", i+1), "title": s.get("title", f"Tahap {i+1}"), "desc": s.get("desc", ""), "badge": f"Langkah {i+1}"}
+                for i, s in enumerate(old_steps[:4])
+            ]
+        else:
+            t2_steps = [
+                {"step_num": 1, "title": "Inisiasi & Variabel Awal", "desc": "Interaksi awal bahan baku atau komponen dasar materi.", "badge": "Langkah 1"},
+                {"step_num": 2, "title": "Interaksi Dinamis", "desc": "Perubahan reaksi dan keterkaitan sebab-akibat sistemik.", "badge": "Langkah 2"},
+                {"step_num": 3, "title": "Regulasi Sistem", "desc": "Pengendalian kaidah ilmiah menjaga kesetimbangan.", "badge": "Langkah 3"},
+                {"step_num": 4, "title": "Luaran & Hasil", "desc": "Kondisi stabil akhir yang terukur dan terverifikasi.", "badge": "Langkah 4"}
+            ]
 
-    # Node coordinates for Sinuous Winding Path (6 steps across 2 serpentine curves)
-    # Positions (cx, cy) along width=1100, starting from y=480 down to y=920
-    node_positions = [
-        {"x": 160, "y": 500, "align": "right", "card_x": 70, "card_y": 395},
-        {"x": 460, "y": 520, "align": "left", "card_x": 480, "card_y": 425},
-        {"x": 860, "y": 510, "align": "left", "card_x": 870, "card_y": 415},
-        {"x": 940, "y": 740, "align": "left", "card_x": 880, "card_y": 800},
-        {"x": 580, "y": 750, "align": "right", "card_x": 490, "card_y": 810},
-        {"x": 200, "y": 730, "align": "right", "card_x": 80, "card_y": 790},
-    ]
+    # --- TAHAP 3: PARAMETER KUNCI ---
+    t3 = data.get("tahap_3_parameter", {})
+    t3_title = esc(t3.get("title", "Tahap 3: Parameter Kunci & Kaidah Ilmiah"))[:55]
+    t3_metrics = t3.get("metrics", data.get("metrics_breakdown", [
+        {"label": "Tingkat Akurasi Model Teori", "value_pct": 86.5, "explanation": "Kesesuaian kaidah teoretis dengan observasi ilmiah."},
+        {"label": "Efisiensi Dinamika", "value_pct": 74.0, "explanation": "Optimalisasi konversi dan keterkaitan fungsi materi."},
+        {"label": "Daya Tahan Kesetimbangan", "value_pct": 62.0, "explanation": "Stabilitas variabel terhadap gangguan eksternal."}
+    ]))[:3]
 
-    roadmap_nodes_svg = ""
-    for i, step in enumerate(roadmap[:6]):
-        pos = node_positions[i] if i < len(node_positions) else {"x": 200 + i*150, "y": 600, "card_x": 200 + i*150, "card_y": 520}
-        color = step.get("color", "#10B981")
-        step_num = step.get("step_num", i + 1)
-        st_title = esc(step.get("title", f"Tahap {i+1}"))[:26]
-        st_desc = esc(step.get("desc", ""))[:70]
+    # --- TAHAP 4: ANALOGI & STUDI KASUS ---
+    t4 = data.get("tahap_4_aplikasi", {})
+    t4_title = esc(t4.get("title", "Tahap 4: Analogi Nyata & Studi Kasus Terapan"))[:55]
+    t4_analogy_title = esc(t4.get("analogy_title", "Analogi Kehidupan Nyata"))[:40]
+    t4_analogy_desc = t4.get("analogy_desc", f"Bagaikan rangkaian sistem presisi di mana setiap komponen saling melengkapi pada materi {doc_title}.")
+    t4_case_title = esc(t4.get("case_study_title", "Penerapan Sains & Teknologi"))[:40]
+    t4_case_desc = t4.get("case_study_desc", "Penerapan nyata konsep dalam industri modern, riset teknologi masa depan, dan fenomena alam.")
 
-        # Milestone Circle with Drop Shadow
-        roadmap_nodes_svg += f"""
-        <!-- Milestone Node {step_num} -->
+    # --- KEY TAKEAWAY ---
+    takeaway = data.get("key_takeaway", f"Penguasaan materi {doc_title} melatih nalar kritis dan pemahaman holistik terhadap fenomena sains.")
+
+    # -------------------------------------------------------------
+    # BUILD TAHAP 1 (Definition + 3 Pillars)
+    # -------------------------------------------------------------
+    t1_def_wrapped = _svg_wrap_text(t1_def, x=90, start_y=230, line_height=19, max_chars=100, font_size=12, fill="#334155", max_lines=2)
+
+    t1_pillars_svg = ""
+    pillar_colors = ["#0284C7", "#10B981", "#8B5CF6"]
+    for idx, p in enumerate(t1_pillars[:3]):
+        px = 85 + idx * 355
+        p_name = esc(p.get("name", f"Pilar 0{idx+1}"))[:24]
+        p_desc = p.get("desc", "")
+        p_color = pillar_colors[idx % len(pillar_colors)]
+        wrapped_p_desc = _svg_wrap_text(p_desc, x=px + 16, start_y=325, line_height=17, max_chars=34, font_size=11, fill="#475569", max_lines=3)
+        t1_pillars_svg += f"""
+        <!-- Pillar Card {idx+1} -->
         <g>
-          <!-- Callout Line to Card -->
-          <line x1="{pos['x']}" y1="{pos['y']}" x2="{pos['card_x'] + 110}" y2="{pos['card_y'] + 45}" stroke="{color}" stroke-width="2" stroke-dasharray="4,4" opacity="0.6"/>
-          
-          <!-- Node Badge Circle -->
-          <circle cx="{pos['x']}" cy="{pos['y']}" r="26" fill="{color}" filter="url(#nodeShadow)"/>
-          <circle cx="{pos['x']}" cy="{pos['y']}" r="22" fill="#FFFFFF"/>
-          <circle cx="{pos['x']}" cy="{pos['y']}" r="18" fill="{color}"/>
-          <text x="{pos['x']}" y="{pos['y'] + 6}" fill="#FFFFFF" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="16" font-weight="900" text-anchor="middle">{step_num}</text>
-
-          <!-- Milestone Information Card -->
-          <g transform="translate({pos['card_x']}, {pos['card_y']})">
-            <rect width="220" height="84" rx="16" fill="#FFFFFF" stroke="{color}" stroke-width="2" filter="url(#cardShadow)"/>
-            <rect x="12" y="10" width="8" height="8" rx="4" fill="{color}"/>
-            <text x="26" y="19" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="13" font-weight="800">{st_title}</text>
-            <text x="12" y="40" fill="#475569" font-family="Inter, sans-serif" font-size="10.5" font-weight="500">{st_desc[:36]}</text>
-            <text x="12" y="56" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="400">{st_desc[36:72]}</text>
-            <text x="12" y="72" fill="#94A3B8" font-family="Inter, sans-serif" font-size="10" font-weight="400">{st_desc[72:108]}</text>
-          </g>
+          <rect x="{px}" y="275" width="340" height="110" rx="14" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.2"/>
+          <rect x="{px + 16}" y="293" width="8" height="8" rx="4" fill="{p_color}"/>
+          <text x="{px + 30}" y="301" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="12.5" font-weight="800">{p_name}</text>
+          {wrapped_p_desc}
         </g>
         """
 
-    # Horizontal Bar Charts SVG
-    bars_svg = ""
-    for idx, mb in enumerate(metrics):
-        by = 1070 + idx * 72
+    # -------------------------------------------------------------
+    # BUILD TAHAP 2 (4 Sequential Step Cards)
+    # -------------------------------------------------------------
+    t2_cards_svg = ""
+    step_colors = ["#0284C7", "#0D9488", "#F59E0B", "#8B5CF6"]
+    step_light_bgs = ["#E0F2FE", "#CCFBF1", "#FEF3C7", "#EDE9FE"]
+
+    for idx, st in enumerate(t2_steps[:4]):
+        cx = 60 + idx * 275
+        st_num = st.get("step_num", idx + 1)
+        st_t = esc(st.get("title", f"Langkah {idx+1}"))[:24]
+        st_desc = st.get("desc", "")
+        st_badge = esc(st.get("badge", f"Langkah {idx+1}"))[:14]
+        col = step_colors[idx % len(step_colors)]
+        bg_col = step_light_bgs[idx % len(step_light_bgs)]
+        wrapped_st_desc = _svg_wrap_text(st_desc, x=cx + 16, start_y=615, line_height=17, max_chars=25, font_size=11, fill="#475569", max_lines=4)
+
+        arrow_svg = ""
+        if idx < 3:
+            arrow_svg = f"""
+            <!-- Connector Arrow -->
+            <g transform="translate({cx + 261}, 595)">
+              <circle cx="6" cy="0" r="9" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+              <path d="M 4 -3.5 L 8 0 L 4 3.5" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+            """
+
+        t2_cards_svg += f"""
+        <g>
+          <!-- Step Card -->
+          <rect x="{cx}" y="515" width="258" height="205" rx="16" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#cardShadow)"/>
+          <rect x="{cx}" y="515" width="258" height="5" rx="2.5" fill="{col}"/>
+          
+          <!-- Step Number Badge -->
+          <circle cx="{cx + 32}" cy="548" r="14" fill="{bg_col}"/>
+          <text x="{cx + 32}" y="553" fill="{col}" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="13" font-weight="900" text-anchor="middle">{st_num}</text>
+          
+          <rect x="{cx + 56}" y="538" width="186" height="22" rx="11" fill="#F1F5F9"/>
+          <text x="{cx + 149}" y="553" fill="#64748B" font-family="Inter, sans-serif" font-size="10" font-weight="800" text-anchor="middle">{st_badge}</text>
+
+          <!-- Step Title -->
+          <text x="{cx + 16}" y="590" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="12.5" font-weight="800">{st_t}</text>
+
+          <!-- Wrapped Step Description -->
+          {wrapped_st_desc}
+          
+          {arrow_svg}
+        </g>
+        """
+
+    # -------------------------------------------------------------
+    # BUILD TAHAP 3 (Progress Bar Metrics)
+    # -------------------------------------------------------------
+    t3_bars_svg = ""
+    for idx, mb in enumerate(t3_metrics[:3]):
+        by = 855 + idx * 80
         val = float(mb.get("value_pct", 75))
-        bar_w = int((val / 100.0) * 340)
-        color = "#10B981" if idx == 0 else ("#0284C7" if idx == 1 else "#F59E0B")
-        bars_svg += f"""
-        <g transform="translate(60, {by})">
-          <text x="0" y="0" fill="#1E293B" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="13" font-weight="800">{esc(mb.get('label', 'Metrik'))[:30]}</text>
-          <text x="450" y="0" fill="{color}" font-family="monospace" font-size="14" font-weight="900" text-anchor="end">{val:.1f}%</text>
+        bar_w = int((val / 100.0) * 440)
+        col = "#0284C7" if idx == 0 else ("#10B981" if idx == 1 else "#F59E0B")
+        exp_wrapped = _svg_wrap_text(mb.get("explanation", ""), x=90, start_y=by + 48, line_height=16, max_chars=52, font_size=10.5, fill="#64748B", max_lines=1)
+        t3_bars_svg += f"""
+        <g>
+          <text x="90" y="{by}" fill="#1E293B" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="12.5" font-weight="800">{esc(mb.get('label', 'Kaidah'))[:35]}</text>
+          <text x="530" y="{by}" fill="{col}" font-family="monospace" font-size="13.5" font-weight="900" text-anchor="end">{val:.1f}%</text>
           
           <!-- Bar Track -->
-          <rect x="0" y="10" width="450" height="22" rx="11" fill="#E2E8F0"/>
+          <rect x="90" y="{by + 10}" width="440" height="20" rx="10" fill="#E2E8F0"/>
           <!-- Bar Fill -->
-          <rect x="0" y="10" width="{bar_w}" height="22" rx="11" fill="{color}"/>
-          <text x="{max(bar_w - 12, 40)}" y="26" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="11" font-weight="900" text-anchor="end">{val:.1f}%</text>
-          <text x="0" y="48" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="400">{esc(mb.get('explanation', ''))[:60]}</text>
-        </g>
-        """
-
-    # Donut Charts SVG
-    donuts_svg = ""
-    for idx, dn in enumerate(donuts):
-        dx = 580 + idx * 160
-        val = int(dn.get("value_pct", 80))
-        color = dn.get("color", "#10B981")
-        # Circumference for r=46 is 289
-        dash_fill = int((val / 100.0) * 289)
-        dash_rem = 289 - dash_fill
-        donuts_svg += f"""
-        <g transform="translate({dx}, 1120)">
-          <!-- Donut Background Circle -->
-          <circle cx="65" cy="65" r="46" fill="none" stroke="#E2E8F0" stroke-width="16"/>
-          <!-- Donut Progress Circle -->
-          <circle cx="65" cy="65" r="46" fill="none" stroke="{color}" stroke-width="16"
-                  stroke-dasharray="{dash_fill} {dash_rem}" stroke-linecap="round" transform="rotate(-90 65 65)"/>
+          <rect x="90" y="{by + 10}" width="{bar_w}" height="20" rx="10" fill="{col}"/>
+          <text x="{max(90 + bar_w - 12, 130)}" y="{by + 24}" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="10.5" font-weight="900" text-anchor="end">{val:.1f}%</text>
           
-          <text x="65" y="66" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="18" font-weight="900" text-anchor="middle">{val}%</text>
-          <text x="65" y="82" fill="#64748B" font-family="Inter, sans-serif" font-size="9" font-weight="700" text-anchor="middle">{esc(dn.get('subtext', ''))}</text>
-          
-          <text x="65" y="136" fill="#1E293B" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="12" font-weight="800" text-anchor="middle">{esc(dn.get('label', 'Faktor'))[:18]}</text>
+          {exp_wrapped}
         </g>
         """
 
-    # Big Statistic Highlights SVG
-    stats_svg = ""
-    for idx, st in enumerate(big_stats):
-        sy = 1350 + idx * 75
-        color = "#059669" if idx == 0 else ("#2563EB" if idx == 1 else "#D97706")
-        stats_svg += f"""
-        <g transform="translate(60, {sy})">
-          <text x="0" y="28" fill="{color}" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="34" font-weight="900">{esc(st.get('number', '100%'))}</text>
-          <text x="140" y="16" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="14" font-weight="800">{esc(st.get('title', 'Kaidah'))[:34]}</text>
-          <text x="140" y="34" fill="#475569" font-family="Inter, sans-serif" font-size="11.5" font-weight="400">{esc(st.get('desc', ''))[:70]}</text>
-        </g>
-        """
+    # -------------------------------------------------------------
+    # BUILD TAHAP 4 (Analogy & Case Study Sub-Boxes)
+    # -------------------------------------------------------------
+    analogy_wrapped = _svg_wrap_text(t4_analogy_desc, x=660, start_y=885, line_height=18, max_chars=48, font_size=11, fill="#334155", max_lines=3)
+    case_wrapped = _svg_wrap_text(t4_case_desc, x=660, start_y=1015, line_height=18, max_chars=48, font_size=11, fill="#334155", max_lines=3)
 
-    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1700" width="100%" height="100%">
+    # -------------------------------------------------------------
+    # BUILD KEY TAKEAWAY WRAPPED
+    # -------------------------------------------------------------
+    takeaway_wrapped = _svg_wrap_text(takeaway, x=95, start_y=1240, line_height=20, max_chars=115, font_size=12.5, fill="#F8FAFC", font_weight="500", max_lines=2)
+
+    # -------------------------------------------------------------
+    # COMPLETE SVG COMPOSITION (Absolute Coordinates)
+    # -------------------------------------------------------------
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1380" width="100%" height="100%">
   <defs>
-    <!-- Fonts and Filters -->
-    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="125%">
-      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#0F172A" flood-opacity="0.07"/>
+    <!-- Drop Shadows -->
+    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#0F172A" flood-opacity="0.05"/>
     </filter>
-    <filter id="nodeShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.25"/>
+    <filter id="heroShadow" x="-5%" y="-5%" width="110%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="14" flood-color="#0F172A" flood-opacity="0.12"/>
     </filter>
     
-    <!-- Gradients -->
-    <linearGradient id="headerRibbon" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#38BDF8"/>
-      <stop offset="50%" stop-color="#818CF8"/>
-      <stop offset="100%" stop-color="#F472B6"/>
-    </linearGradient>
-    
-    <!-- Path Gradient for Winding Journey -->
-    <linearGradient id="journeyPathGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#06B6D4"/>
-      <stop offset="25%" stop-color="#3B82F6"/>
-      <stop offset="50%" stop-color="#10B981"/>
-      <stop offset="70%" stop-color="#F59E0B"/>
-      <stop offset="100%" stop-color="#EC4899"/>
+    <linearGradient id="takeawayGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#1E293B"/>
     </linearGradient>
   </defs>
 
-  <!-- Clean Editorial White / Light Grey Canvas -->
-  <rect width="1200" height="1700" fill="#F8FAFC"/>
+  <!-- Clean Editorial Light Background -->
+  <rect width="1200" height="1380" fill="#F8FAFC"/>
 
   <!-- ========================================================= -->
-  <!-- 1. TOP HEADER BANNER (Editorial Header Style)             -->
+  <!-- 0. HEADER BANNER                                          -->
   <!-- ========================================================= -->
-  <g transform="translate(60, 45)">
-    <!-- Top Accent Ribbon -->
-    <rect x="0" y="0" width="260" height="30" rx="6" fill="#E0F2FE"/>
-    <text x="130" y="20" fill="#0284C7" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="11" font-weight="900" text-anchor="middle" letter-spacing="1.5">✦ {badge}</text>
-    
-    <!-- Main Headline Title -->
-    <text x="0" y="76" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="38" font-weight="900">{clean_title}</text>
-    <text x="0" y="108" fill="#475569" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="17" font-weight="600">{subtitle}</text>
-  </g>
-
-  <!-- 2-Column Executive Intro Box -->
-  <g transform="translate(60, 180)">
-    <rect width="1080" height="96" rx="18" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#cardShadow)"/>
-    
-    <!-- Column 1 -->
-    <rect x="25" y="20" width="4" height="56" rx="2" fill="#0284C7"/>
-    <text x="40" y="42" fill="#1E293B" font-family="Inter, sans-serif" font-size="12" font-weight="600">{intro_1[:65]}</text>
-    <text x="40" y="62" fill="#475569" font-family="Inter, sans-serif" font-size="12" font-weight="400">{intro_1[65:140]}</text>
-    
-    <!-- Column 2 -->
-    <rect x="560" y="20" width="4" height="56" rx="2" fill="#10B981"/>
-    <text x="575" y="42" fill="#1E293B" font-family="Inter, sans-serif" font-size="12" font-weight="600">{intro_2[:65]}</text>
-    <text x="575" y="62" fill="#475569" font-family="Inter, sans-serif" font-size="12" font-weight="400">{intro_2[65:140]}</text>
-  </g>
+  <rect x="60" y="40" width="310" height="28" rx="6" fill="#E0F2FE"/>
+  <text x="215" y="59" fill="#0284C7" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="10.5" font-weight="900" text-anchor="middle" letter-spacing="1.2">✦ {badge}</text>
+  
+  <text x="60" y="105" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="32" font-weight="900">{clean_title}</text>
+  <text x="60" y="132" fill="#475569" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="14.5" font-weight="600">{subtitle}</text>
 
   <!-- ========================================================= -->
-  <!-- 2. WINDING ROADMAP JOURNEY PATH (Like Ref 1: Journey Map) -->
+  <!-- 1. TAHAP 1: FONDASI & KONSEP INTI                         -->
   <!-- ========================================================= -->
-  <g transform="translate(0, 0)">
-    <!-- Section Title -->
-    <text x="60" y="335" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="18" font-weight="900">🗺️ Peta Alur Perjalanan &amp; Tahapan Konsep</text>
-    <text x="60" y="355" fill="#64748B" font-family="Inter, sans-serif" font-size="12" font-weight="500">Alur berkesinambungan dari fondasi inisiasi hingga dampak aplikatif nyata.</text>
-
-    <!-- Sinuous Curved Backbone Line (Smooth Bezier) -->
-    <path d="M 160 500 C 260 500, 360 520, 460 520 C 620 520, 720 510, 860 510 C 970 510, 990 620, 940 740 C 890 840, 720 750, 580 750 C 440 750, 300 730, 200 730"
-          fill="none" stroke="url(#journeyPathGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
-
-    <!-- Inner Highlight for Tubing Effect -->
-    <path d="M 160 500 C 260 500, 360 520, 460 520 C 620 520, 720 510, 860 510 C 970 510, 990 620, 940 740 C 890 840, 720 750, 580 750 C 440 750, 300 730, 200 730"
-          fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
-
-    <!-- 6 Milestone Nodes and Connected Cards -->
-    {roadmap_nodes_svg}
-  </g>
+  <!-- Container Box -->
+  <rect x="60" y="160" width="1080" height="245" rx="18" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#cardShadow)"/>
+  
+  <!-- Section Badge -->
+  <rect x="85" y="180" width="220" height="26" rx="6" fill="#E0F2FE"/>
+  <text x="195" y="197" fill="#0284C7" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="11" font-weight="900" text-anchor="middle">💡 {t1_title}</text>
+  
+  <!-- Definition Text -->
+  {t1_def_wrapped}
+  
+  <!-- 3 Pillars Grid -->
+  {t1_pillars_svg}
 
   <!-- ========================================================= -->
-  <!-- 3. EDITORIAL DATA & METRICS (Like Ref 2: GoodStats Style) -->
+  <!-- 2. TAHAP 2: ALUR MEKANISME 4-LANGKAH                      -->
   <!-- ========================================================= -->
-  <g transform="translate(0, 0)">
-    <!-- Section Divider Line -->
-    <line x1="60" y1="990" x2="1140" y2="990" stroke="#E2E8F0" stroke-width="1.5"/>
+  <text x="60" y="450" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="16" font-weight="900">⚡ {t2_title}</text>
+  <text x="60" y="470" fill="#64748B" font-family="Inter, sans-serif" font-size="11" font-weight="500">Alur berkesinambungan 4 langkah dari inisiasi awal hingga terbentuknya luaran sistem seimbang.</text>
 
-    <text x="60" y="1030" fill="#0F172A" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="18" font-weight="900">📊 Analisis Variabel &amp; Metrik Wawasan Ilmiah</text>
-    <text x="60" y="1050" fill="#64748B" font-family="Inter, sans-serif" font-size="12" font-weight="500">Proporsi dinamika sistem dan tingkat signifikansi kaidah materi.</text>
-
-    <!-- Left Column: Horizontal Progress Bars -->
-    {bars_svg}
-
-    <!-- Center/Right Column: Donut Rings -->
-    {donuts_svg}
-
-    <!-- Vertical Separator -->
-    <line x1="530" y1="1070" x2="530" y2="1280" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
-  </g>
+  <!-- 4 Step Cards -->
+  {t2_cards_svg}
 
   <!-- ========================================================= -->
-  <!-- 4. BIG STATS & TAKEAWAY HERO BOX                          -->
+  <!-- 3. TAHAP 3 & TAHAP 4 (2-COLUMN BENTO GRID)                -->
   <!-- ========================================================= -->
-  <g transform="translate(0, 0)">
-    <!-- Section Divider -->
-    <line x1="60" y1="1310" x2="1140" y2="1310" stroke="#E2E8F0" stroke-width="1.5"/>
+  
+  <!-- LEFT COLUMN: TAHAP 3 (PARAMETER & KAIDAH) -->
+  <rect x="60" y="760" width="525" height="360" rx="18" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#cardShadow)"/>
+  
+  <rect x="85" y="780" width="280" height="26" rx="6" fill="#E0F2FE"/>
+  <text x="225" y="797" fill="#0284C7" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="11" font-weight="900" text-anchor="middle">📊 {t3_title}</text>
+  
+  <text x="85" y="828" fill="#64748B" font-family="Inter, sans-serif" font-size="11" font-weight="500">Kaidah baku, ambang batas variabel, dan metrik stabilitas sistem.</text>
+  <line x1="85" y1="840" x2="560" y2="840" stroke="#F1F5F9" stroke-width="1.5"/>
+  
+  {t3_bars_svg}
 
-    <!-- Big Numbers Highlight List -->
-    {stats_svg}
+  <!-- RIGHT COLUMN: TAHAP 4 (ANALOGI & STUDI KASUS) -->
+  <rect x="615" y="760" width="525" height="360" rx="18" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#cardShadow)"/>
+  
+  <rect x="640" y="780" width="300" height="26" rx="6" fill="#F3E8FF"/>
+  <text x="790" y="797" fill="#7C3AED" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="11" font-weight="900" text-anchor="middle">🌐 {t4_title}</text>
+  
+  <text x="640" y="828" fill="#64748B" font-family="Inter, sans-serif" font-size="11" font-weight="500">Konkretisasi konsep melalui analogi nyata dan aplikasi dunia modern.</text>
+  <line x1="640" y1="840" x2="1115" y2="840" stroke="#F1F5F9" stroke-width="1.5"/>
+  
+  <!-- Sub-box 1: Analogy -->
+  <rect x="640" y="855" width="475" height="115" rx="12" fill="#FAF5FF" stroke="#E9D5FF" stroke-width="1"/>
+  <text x="660" y="878" fill="#581C87" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="12" font-weight="800">🔍 {t4_analogy_title}</text>
+  {analogy_wrapped}
 
-    <!-- Right Side: Big Takeaway Banner -->
-    <g transform="translate(560, 1340)">
-      <rect width="580" height="230" rx="20" fill="#0F172A" filter="url(#cardShadow)"/>
-      <rect x="30" y="28" width="160" height="26" rx="13" fill="#10B981" fill-opacity="0.2"/>
-      <text x="110" y="45" fill="#34D399" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="11" font-weight="900" text-anchor="middle">💡 KESIMPULAN KUNCI</text>
-      
-      <text x="30" y="90" fill="#FFFFFF" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="16" font-weight="800">Prinsip Aplikatif Terpadu:</text>
-      
-      <text x="30" y="125" fill="#E2E8F0" font-family="Inter, sans-serif" font-size="13" font-weight="500">{takeaway[:45]}</text>
-      <text x="30" y="148" fill="#CBD5E1" font-family="Inter, sans-serif" font-size="13" font-weight="400">{takeaway[45:100]}</text>
-      <text x="30" y="171" fill="#94A3B8" font-family="Inter, sans-serif" font-size="13" font-weight="400">{takeaway[100:160]}</text>
+  <!-- Sub-box 2: Case Study -->
+  <rect x="640" y="985" width="475" height="115" rx="12" fill="#FFFBEB" stroke="#FDE68A" stroke-width="1"/>
+  <text x="660" y="1008" fill="#78350F" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="12" font-weight="800">🚀 {t4_case_title}</text>
+  {case_wrapped}
 
-      <line x1="30" y1="195" x2="550" y2="195" stroke="#334155" stroke-width="1"/>
-      <text x="30" y="215" fill="#64748B" font-family="Inter, sans-serif" font-size="10.5" font-weight="600">EduAdapt Adaptive Multi-Modal Intelligence • Lossless Vector SVG</text>
-    </g>
-  </g>
+  <!-- ========================================================= -->
+  <!-- 4. KEY TAKEAWAY BANNER (HERO SUMMARY)                     -->
+  <!-- ========================================================= -->
+  <rect x="60" y="1150" width="1080" height="130" rx="18" fill="url(#takeawayGrad)" filter="url(#heroShadow)"/>
+  
+  <rect x="95" y="1172" width="160" height="24" rx="12" fill="#10B981" fill-opacity="0.25"/>
+  <text x="175" y="1188" fill="#34D399" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="10.5" font-weight="900" text-anchor="middle">💡 KESIMPULAN KUNCI</text>
+  
+  <text x="95" y="1218" fill="#FFFFFF" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="14" font-weight="800">Prinsip Aplikatif Terintegrasi:</text>
+  
+  {takeaway_wrapped}
 
   <!-- ========================================================= -->
   <!-- 5. FOOTER WATERMARK                                       -->
   <!-- ========================================================= -->
-  <g transform="translate(60, 1660)">
-    <text x="540" y="10" fill="#94A3B8" font-family="Inter, sans-serif" font-size="11" font-weight="600" text-anchor="middle">
-      EduAdapt Visual Studio • Ter-grounding pada Materi Kurikulum • Desain Editorial Modern
-    </text>
-  </g>
+  <text x="600" y="1325" fill="#94A3B8" font-family="Inter, sans-serif" font-size="11" font-weight="600" text-anchor="middle">
+    EduAdapt Adaptive Intelligence • Infografis 4-Tahap Kurikulum Terpadu • Lossless Vector SVG
+  </text>
 </svg>"""
     return svg
 
 
+
 def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
     """
-    Menghasilkan seluruh aset adaptif pembelajaran terpadu untuk satu dokumen (Kelas) sekali saja:
-    1. Playlist 3-5 Episode Podcast Orus Suara Studio
-    2. File Audio WAV/MP3 per Episode di disk uploads/podcasts/{doc_id}_ep{N}.wav
-    3. Metadata Simpul Interaktif Visual (React Flow)
-    4. Diagram Peta Konsep Mermaid Visual
-    5. Infografis Visual AI 4-Zona (JSON & SVG HD Poster) di uploads/images/{doc_id}_infographic.svg
-    6. Reaktor Drag-and-Drop Diperluas
-    7. Tantangan Kinestetik Sorting / Ordering Kronologis
-    8. Tantangan Drag & Drop Fill-in-the-Blank
-    9. Smart Flashcards JSON
+    Jalur kompatibilitas podcast: mempertahankan playlist, sintesis, dan cache audio.
+    Unit visual/praktik dibuat terpisah melalui learning_unit_service setelah validasi sumber.
     """
     import os
     from app.models.document import GroundedDocument
@@ -1505,116 +1500,11 @@ def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
         except Exception:
             pass
 
-    # 2. GENERATE INTERACTIVE VISUAL NODES (React Flow)
-    if not doc.visual_nodes_json:
-        logger.info(f"[AdaptiveAssets] Menyusun metadata simpul visual interaktif React Flow untuk '{doc.title}'...")
-        doc.visual_nodes_json = _generate_visual_nodes_metadata(doc.title, summary_context, doc.mindmap_code or "")
-
-    # 3. GENERATE VISUAL MINDMAP (Mermaid SVG Code)
-    if not doc.mindmap_code:
-        try:
-            logger.info(f"[AdaptiveAssets] Menyusun peta konsep diagram Mermaid untuk '{doc.title}'...")
-            mindmap_res = generate_visual_mindmap(doc.title, summary_context[:2000])
-            if mindmap_res and "code" in mindmap_res:
-                doc.mindmap_code = mindmap_res["code"]
-        except Exception as e:
-            logger.warning(f"[AdaptiveAssets] Mindmap generation error: {e}")
-
-    # 4. GENERATE 4-ZONE INFOGRAPHIC DATA & SVG POSTER (DUAL HYBRID)
-    infographic_obj = None
-    if doc.infographic_data_json:
-        try:
-            infographic_obj = json.loads(doc.infographic_data_json)
-        except Exception:
-            infographic_obj = None
-
-    if not infographic_obj:
-        logger.info(f"[AdaptiveAssets] Menyusun struktur data 4-Zona Infografis untuk '{doc.title}'...")
-        infographic_obj = _generate_infographic_data(doc.title, summary_context)
-        doc.infographic_data_json = json.dumps(infographic_obj, ensure_ascii=False)
-        db.commit()
-
-    # Render and save HD SVG Poster
-    svg_filepath = os.path.join(images_dir, f"{doc.id}_infographic.svg")
-    visual_svg_filepath = os.path.join(images_dir, f"{doc.id}_visual.svg")
-    if infographic_obj and (not os.path.exists(svg_filepath) or os.path.getsize(svg_filepath) < 200):
-        try:
-            svg_content = _render_rich_infographic_svg(doc.title, infographic_obj)
-            with open(svg_filepath, "w", encoding="utf-8") as f:
-                f.write(svg_content)
-            with open(visual_svg_filepath, "w", encoding="utf-8") as f:
-                f.write(svg_content)
-            logger.info(f"[AdaptiveAssets] Poster Vektor SVG HD berhasil dirender: {svg_filepath}")
-        except Exception as e:
-            logger.warning(f"[AdaptiveAssets] Render SVG Poster error: {e}")
-
-    # 5. GENERATE EXPANDED 5-8 SLOT REACTOR DRAG-AND-DROP
-    if not doc.game_config_json:
-        logger.info(f"[AdaptiveAssets] Merancang Reaktor Perakitan Kinestetik (5-8 slot) untuk '{doc.title}'...")
-        doc.game_config_json = _generate_universal_game_config(doc.title, summary_context)
-
-    # 6. GENERATE PROCESS SORTING / ORDERING CHALLENGES
-    if not doc.sorting_challenges_json:
-        logger.info(f"[AdaptiveAssets] Merancang tantangan kinestetik Process Sorting untuk '{doc.title}'...")
-        doc.sorting_challenges_json = _generate_sorting_challenges(doc.title, summary_context)
-
-    # 7. GENERATE UNIVERSAL FILL-IN-THE-BLANK
-    if not doc.fill_blank_json:
-        logger.info(f"[AdaptiveAssets] Merancang tantangan Fill-in-the-Blank untuk '{doc.title}'...")
-        doc.fill_blank_json = _generate_fill_in_the_blank(doc.title, summary_context)
-
-    # 8. GENERATE AI FLASHCARDS
-    if not doc.flashcards_json:
-        try:
-            paras = [p.strip() for p in doc.raw_text.split("\n\n") if len(p.strip()) > 30]
-            flashcards = []
-            for idx, p in enumerate(paras[:6]):
-                sentences = [s.strip() for s in re.split(r"[.?!]\s+", p) if len(s.strip()) > 5]
-                q = sentences[0] if sentences else p[:70]
-                ans = ". ".join(sentences[1:3]) if len(sentences) > 1 else p
-                flashcards.append({
-                    "id": f"fc_{idx + 1}",
-                    "question": f"Apa prinsip inti dari konsep berikut: \"{q[:80]}\"?",
-                    "answer": ans[:200] if ans else p[:150],
-                    "hint": f"Perhatikan hubungan sebab-akibat pada bab ke-{idx + 1}.",
-                    "conceptTag": f"KONSEP 0{idx + 1}"
-                })
-            if flashcards:
-                doc.flashcards_json = json.dumps(flashcards, ensure_ascii=False)
-        except Exception as e:
-            logger.warning(f"[AdaptiveAssets] Flashcards error: {e}")
-
-    # 9. SET VISUAL INFOGRAPHIC IMAGE URL & DIFFUSION FALLBACK
-    doc.visual_image_url = f"/api/v1/documents/{doc.id}/visual-image"
-    
-    image_filepath = os.path.join(images_dir, f"{doc.id}_visual.png")
-    if not os.path.exists(image_filepath):
-        try:
-            import base64
-            img_prompt = f"Professional clean educational scientific infographic poster diagram of {doc.title}, high definition visual learning charts, medical and science textbook style, sharp labels"
-            img_res = AIGatewayService.generate_image(prompt=img_prompt, size="1024x1024", model=settings.IMAGE_GEN_MODEL)
-            if img_res and "b64_json" in img_res and img_res["b64_json"]:
-                img_data = base64.b64decode(img_res["b64_json"])
-                with open(image_filepath, "wb") as f:
-                    f.write(img_data)
-                logger.info(f"[AdaptiveAssets] Visual PNG image saved to {image_filepath}")
-        except Exception as e:
-            logger.debug(f"[AdaptiveAssets] Image generation notice: {e}")
-
-    db.commit()
-    db.refresh(doc)
-    logger.info(f"[AdaptiveAssets] Selesai memproduksi seluruh aset adaptif untuk '{doc.title}' ({doc.id})")
+    # Kinesthetic practice is now built from teacher-approved learning units (practice missions), so the old
+    # reactor/sorting/fill-in game data is no longer generated here.
     return {
         "podcast_audio_url": doc.podcast_audio_url,
         "podcast_episodes_json": doc.podcast_episodes_json,
         "podcast_script": doc.podcast_script,
-        "mindmap_code": doc.mindmap_code,
-        "visual_nodes_json": doc.visual_nodes_json,
-        "visual_image_url": doc.visual_image_url,
-        "infographic_data_json": doc.infographic_data_json,
-        "game_config_json": doc.game_config_json,
-        "sorting_challenges_json": doc.sorting_challenges_json,
-        "fill_blank_json": doc.fill_blank_json,
-        "flashcards_json": doc.flashcards_json,
     }
 

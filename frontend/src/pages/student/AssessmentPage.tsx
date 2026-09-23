@@ -134,6 +134,8 @@ export default function AssessmentPage() {
   const [practiceTotal, setPracticeTotal] = useState(10);
 
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [startTime, setStartTime] = useState<number>(Date.now());
   const responseTimesRef = useRef<number[]>([]);
 
@@ -143,8 +145,8 @@ export default function AssessmentPage() {
 
   const currentQ = ASSESSMENT_QUESTIONS[currentIndex];
 
-  const handleNext = () => {
-    if (selectedOption === null) return;
+  const handleNext = async () => {
+    if (selectedOption === null || isSaving) return;
 
     audioSynth.playClickSound();
 
@@ -156,11 +158,10 @@ export default function AssessmentPage() {
     const newA = audioTotal + chosen.audioScore;
     const newP = practiceTotal + chosen.practiceScore;
 
-    setVisualTotal(newV);
-    setAudioTotal(newA);
-    setPracticeTotal(newP);
-
     if (currentIndex < ASSESSMENT_QUESTIONS.length - 1) {
+      setVisualTotal(newV);
+      setAudioTotal(newA);
+      setPracticeTotal(newP);
       setCurrentIndex(currentIndex + 1);
       setSelectedOption(null);
     } else {
@@ -173,18 +174,19 @@ export default function AssessmentPage() {
       if (newA > newV && newA > newP) dominant = "AUDITORI";
       else if (newP > newV && newP > newA) dominant = "KINESTETIK";
 
-      updateCurrentUserProfile({
-        learningStyle: dominant,
-        modalityScores: {
-          visual: vPct,
-          audio: aPct,
-          practice: pPct,
-        },
-      });
-
-      audioSynth.playLevelUpSound();
-      confetti({ particleCount: 80, spread: 70 });
-      setIsCompleted(true);
+      setIsSaving(true);
+      setSaveError("");
+      try {
+        await updateCurrentUserProfile({
+          learningStyle: dominant,
+          modalityScores: { visual: vPct, audio: aPct, practice: pPct },
+        });
+        setIsCompleted(true);
+        audioSynth.playLevelUpSound();
+        confetti({ particleCount: 80, spread: 70 });
+      } catch (error) {
+        setSaveError(error instanceof Error ? error.message : "Hasil belum tersimpan. Silakan coba lagi.");
+      } finally { setIsSaving(false); }
     }
   };
 
@@ -197,6 +199,7 @@ export default function AssessmentPage() {
     setPracticeTotal(10);
     setIsCompleted(false);
     setHasStarted(false);
+    setSaveError("");
   };
 
   return (
@@ -363,25 +366,33 @@ export default function AssessmentPage() {
               </div>
             </div>
 
+            {saveError && (
+              <p role="alert" className="text-xs font-bold text-[#852C28] bg-[#FCD9D7] rounded-xl px-3 py-2">
+                {saveError} Tekan tombol di bawah untuk mencoba lagi.
+              </p>
+            )}
+
             {/* Action Buttons */}
             <div className="pt-2 flex items-center gap-2">
               <button
                 type="button"
-                onClick={handleNext}
-                disabled={selectedOption === null}
+                onClick={() => void handleNext()}
+                disabled={selectedOption === null || isSaving}
                 aria-label={
                   currentIndex < ASSESSMENT_QUESTIONS.length - 1
                     ? "Lanjut ke Soal Berikutnya"
                     : "Selesaikan dan Lihat Profil Kognitif AI"
                 }
                 className={`clay-btn flex-1 py-3.5 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all focus-visible:ring-2 focus-visible:ring-[#1C1E26] ${
-                  selectedOption !== null
+                  selectedOption !== null && !isSaving
                     ? "clay-btn-dark text-white shadow-md active:scale-98 cursor-pointer"
                     : "bg-[#E4E2DD] text-[#9195A8] cursor-not-allowed"
                 }`}
               >
                 <span>
-                  {currentIndex < ASSESSMENT_QUESTIONS.length - 1
+                  {isSaving
+                    ? "Menyimpan profil…"
+                    : currentIndex < ASSESSMENT_QUESTIONS.length - 1
                     ? "Soal Berikutnya"
                     : "Lihat Profil Kognitif"}
                 </span>

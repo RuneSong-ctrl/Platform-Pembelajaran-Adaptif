@@ -2,15 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.user import User
+from app.core.auth import current_user
 from app.schemas.assessment import AssessmentSubmitRequest, AssessmentResultResponse
 
 router = APIRouter(prefix="/assessment", tags=["Initial Assessment"])
 
 @router.post("/submit", response_model=AssessmentResultResponse)
-def submit_initial_assessment(data: AssessmentSubmitRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == data.student_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Siswa tidak ditemukan")
+def submit_initial_assessment(data: AssessmentSubmitRequest, db: Session = Depends(get_db),
+                              user: User = Depends(current_user)):
+    if user.role != "SISWA" or data.student_id != user.id:
+        raise HTTPException(status_code=403, detail="Asesmen hanya untuk akun siswa yang sedang masuk.")
         
     v_total = sum(a.visual_score for a in data.answers) or 10
     a_total = sum(a.audio_score for a in data.answers) or 10

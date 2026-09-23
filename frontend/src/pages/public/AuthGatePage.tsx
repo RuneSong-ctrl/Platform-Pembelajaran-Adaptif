@@ -70,12 +70,12 @@ export default function AuthGatePage() {
   }, [isAuthenticated, currentUser, navigate]);
 
   // Handle Login Submit
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
     setIsLoggingIn(true);
 
-    const res = login(loginIdentifier, loginPassword);
+    const res = await login(loginIdentifier, loginPassword);
     setIsLoggingIn(false);
 
     if (!res.success || !res.user) {
@@ -85,26 +85,15 @@ export default function AuthGatePage() {
     }
 
     audioSynth.playSuccessSound();
-    if (res.user.role === "GURU") {
-      navigate("/teacher");
-    } else if (res.user.role === "ORTU") {
-      navigate("/parent");
-    } else {
-      if (!res.user.learningStyle) {
-        navigate("/assessment");
-      } else {
-        navigate("/student");
-      }
-    }
   };
 
   // Handle Register Submit
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError("");
     setIsRegistering(true);
 
-    const res = registerUser({
+    const res = await registerUser({
       name: regName,
       email: regEmail,
       role: regRole,
@@ -120,13 +109,6 @@ export default function AuthGatePage() {
     }
 
     audioSynth.playSuccessSound();
-    if (res.user.role === "GURU") {
-      navigate("/teacher");
-    } else if (res.user.role === "ORTU") {
-      navigate("/parent");
-    } else {
-      navigate("/assessment");
-    }
   };
 
   // Handle Class Code Submit
