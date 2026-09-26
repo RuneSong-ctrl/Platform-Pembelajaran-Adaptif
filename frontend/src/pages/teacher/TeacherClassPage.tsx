@@ -152,14 +152,14 @@ export default function TeacherClassPage() {
       </section>
 
       {/* Tabs */}
-      <nav className="flex gap-1 border-b border-[rgba(28,30,38,0.08)]" role="tablist">
+      <nav className="flex gap-1 border-b border-[rgba(28,30,38,0.08)] overflow-x-auto" role="tablist">
         {tabs.map((t) => (
           <button
             key={t.id}
             role="tab"
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
-            className={`px-4 py-2.5 text-sm font-black -mb-px border-b-2 cursor-pointer transition-colors ${
+            className={`flex-1 sm:flex-none px-2 sm:px-4 py-2.5 text-xs sm:text-sm font-black whitespace-nowrap -mb-px border-b-2 cursor-pointer transition-colors ${
               tab === t.id ? "border-[#010105] text-[#010105]" : "border-transparent text-[#9195A8] hover:text-[#5A5E70]"
             }`}
           >
@@ -366,7 +366,7 @@ function Shell({ children }: { children: React.ReactNode }) {
       <Navbar />
       <div className="flex flex-1 overflow-hidden w-full">
         <TeacherSidebar />
-        <main className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <main className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-6 space-y-6">
           <div className="max-w-5xl mx-auto space-y-6">{children}</div>
         </main>
       </div>

@@ -1,3 +1,4 @@
+import hashlib
 import re
 import math
 import logging
@@ -54,7 +55,8 @@ def _compute_fallback_embedding(text: str, dim: int = 128) -> List[float]:
         return vec.tolist()
     
     for word in words:
-        h = hash(word) % dim
+        # hashlib, not hash(): Python's hash() changes on every restart, which would scramble stored vectors.
+        h = int(hashlib.md5(word.encode()).hexdigest(), 16) % dim
         vec[h] += 1.0
         
     norm = np.linalg.norm(vec)
@@ -218,61 +220,69 @@ def ensure_vector_index_loaded():
     except Exception as e:
         logger.warning(f"[VectorStore] Auto-load vector index error: {e}")
 
+# Common Indonesian words that say nothing about the topic; they must not count as a match.
+STOPWORDS = set("""
+yang dan di ke dari ini itu untuk dengan pada adalah atau juga akan tidak bisa ada saya aku kamu kami kita mereka
+dia apa apakah bagaimana gimana kenapa mengapa siapa kapan dimana mana berapa tolong mohon buat buatkan bikin kasih
+kasi beri berikan jelaskan jelasin ajarin ajari ajar tentang soal sih dong ya yuk nya lah kah pun saja aja sudah udah
+belum lagi masih boleh mau ingin pengen harus seperti sangat lebih paling agar supaya karena jadi jika kalau enak
+the a an of to and is in what how why please
+""".split())
+
+
+def content_words(text: str) -> set:
+    return {w for w in re.findall(r"\w+", text.lower()) if len(w) > 2 and w not in STOPWORDS}
+
+
 def search_relevant_chunks(
     query: str,
     classroom_id: Optional[str] = None,
     document_id: Optional[str] = None,
     top_k: int = 3,
-    min_similarity: float = 0.10
+    min_semantic: float = 0.55,
+    min_lexical: float = 0.25,
 ) -> List[Dict[str, Any]]:
-    """
-    Melakukan hybrid semantic & keyword similarity search untuk menemukan top-k chunk yang paling relevan.
-    """
+    """Top-k chunks of the class/document that actually match the question (semantic or keyword)."""
     if not classroom_id and not document_id:
         return []  # unscoped search would leak other classes' material
     ensure_vector_index_loaded()
 
     query_vec = np.array(get_text_embedding(query), dtype=np.float32)
     q_norm = np.linalg.norm(query_vec)
-    query_words = set(re.findall(r"\w+", query.lower()))
-    
-    all_chunks = []
-    for doc_id, chunks in _VECTOR_INDEX.items():
-        if document_id and doc_id != document_id:
-            continue
-        for chk in chunks:
-            if classroom_id and chk.get("classroom_id") != classroom_id:
-                continue
-            all_chunks.append(chk)
-    
+    query_words = content_words(query)
+
+    all_chunks = [
+        chk for doc_id, chunks in _VECTOR_INDEX.items() if not document_id or doc_id == document_id
+        for chk in chunks if not classroom_id or chk.get("classroom_id") == classroom_id
+    ]
     if not all_chunks:
         return []
-    
+
     scored_chunks = []
     for chk in all_chunks:
         vec = np.array(chk["vector"], dtype=np.float32)
         v_norm = np.linalg.norm(vec)
         cos_sim = 0.0
-        if q_norm > 0 and v_norm > 0:
+        # Vectors from different embedders (API vs offline fallback) have different sizes: not comparable.
+        if vec.shape == query_vec.shape and q_norm > 0 and v_norm > 0:
             cos_sim = float(np.dot(query_vec, vec) / (q_norm * v_norm))
+        overlap = len(query_words & content_words(chk["text"]))
+        lex_sim = (overlap / len(query_words)) if query_words else 0.0
 
-        # Lexical keyword overlap score
-        chunk_words = set(re.findall(r"\w+", chk["text"].lower()))
-        overlap = len(query_words.intersection(chunk_words))
-        lex_sim = (overlap / max(1, len(query_words))) if query_words else 0.0
-        
-        # Hybrid combined similarity score
-        final_sim = max(cos_sim, lex_sim * 0.85)
-        
-        if final_sim >= min_similarity or len(all_chunks) <= top_k:
+        # Only chunks that actually match the question; no "return everything when the class is small".
+        if cos_sim >= min_semantic or lex_sim >= min_lexical:
             scored_chunks.append({
                 "chunk_id": chk["chunk_id"],
                 "text": chk["text"],
                 "document_id": chk["document_id"],
                 "document_title": chk["document_title"],
-                "similarity_score": round(final_sim, 4),
+                "similarity_score": round(max(cos_sim, lex_sim * 0.85), 4),
             })
-    
-    # Sort descending by similarity
+
     scored_chunks.sort(key=lambda x: x["similarity_score"], reverse=True)
+    if not scored_chunks and document_id:
+        # The student is reading this exact material ("jelaskan bagian ini"): give the model its opening
+        # so it can answer or refuse; the prompt still forbids anything outside it.
+        return [{"chunk_id": c["chunk_id"], "text": c["text"], "document_id": c["document_id"],
+                 "document_title": c["document_title"], "similarity_score": 0.0} for c in all_chunks[:top_k]]
     return scored_chunks[:top_k]

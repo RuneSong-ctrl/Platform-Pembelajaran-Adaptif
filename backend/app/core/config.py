@@ -38,8 +38,8 @@ class Settings(BaseSettings):
     AI_GATEWAY_BASE_URL: str = ""
     GEMINI_API_KEY: str = ""
     AI_API_KEY: Optional[str] = None
-    GEMINI_CHAT_MODEL: str = "gemini-2.5-flash"
-    GEMINI_EMBEDDING_MODEL: str = "text-embedding-004"
+    GEMINI_CHAT_MODEL: str = "gemini-3.8-flash"
+    GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
     AI_RATE_LIMIT_PER_MINUTE: int = 20
     AI_CACHE_TTL_SECONDS: int = 86400
 
@@ -57,12 +57,12 @@ class Settings(BaseSettings):
     # 3. Embedding Gateway Config
     EMBEDDING_ENDPOINT: str = ""
     EMBEDDING_API_KEY: str = ""
-    EMBEDDING_MODEL: str = "text-embedding-004"
+    EMBEDDING_MODEL: str = "gemini-embedding-001"
 
     # 4. Chat & LLM Gateway Config
     CHAT_ENDPOINT: str = ""
     CHAT_API_KEY: str = ""
-    CHAT_MODEL: str = "gemini-2.5-flash"
+    CHAT_MODEL: str = "gemini-3.8-flash"
 
     def model_post_init(self, __context):
         if not self.SECRET_KEY:
@@ -117,7 +117,7 @@ class Settings(BaseSettings):
     @property
     def clean_chat_model(self) -> str:
         """Mengembalikan nama model chat bersih tanpa prefix gateway (cocok untuk SDK Gemini resmi)."""
-        raw = self.GEMINI_CHAT_MODEL or self.CHAT_MODEL or "gemini-2.5-flash"
+        raw = self.GEMINI_CHAT_MODEL or self.CHAT_MODEL or "gemini-3.8-flash"
         if raw.startswith("gemini/"):
             return raw[len("gemini/"):]
         return raw

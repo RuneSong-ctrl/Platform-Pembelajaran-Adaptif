@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
+import LogoutConfirmDialog from "@/components/common/LogoutConfirmDialog";
 import { audioSynth } from "@/services/audioSynth";
 import {
   Flame,
@@ -10,8 +11,8 @@ import {
 } from "@/components/ui/icons";
 
 export default function Navbar() {
-  const navigate = useNavigate();
-  const { currentUser, logout, triggerSync, isSyncing } = useApp();
+  const { currentUser, triggerSync, isSyncing } = useApp();
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   const [mounted, setMounted] = useState(false);
 
@@ -21,8 +22,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     audioSynth.playClickSound();
-    logout();
-    navigate("/");
+    setConfirmLogout(true);
   };
 
   const isStudent = currentUser?.role === "SISWA";
@@ -128,6 +128,7 @@ export default function Navbar() {
           )}
         </div>
       </div>
+      <LogoutConfirmDialog open={confirmLogout} onOpenChange={setConfirmLogout} />
     </header>
   );
 }

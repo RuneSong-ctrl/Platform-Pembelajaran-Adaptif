@@ -94,7 +94,7 @@ export default function TeacherRAGPage() {
       <div className="flex flex-1 overflow-hidden w-full">
         <TeacherSidebar />
 
-        <main className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 py-6">
+        <main className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-6">
           <div className="max-w-5xl mx-auto space-y-6">
             {/* Header */}
             <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">

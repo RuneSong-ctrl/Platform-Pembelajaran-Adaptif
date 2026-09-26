@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import ParentCodeCard from "@/components/student/ParentCodeCard";
+import LogoutConfirmDialog from "@/components/common/LogoutConfirmDialog";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import StudentSidebar from "@/components/layout/StudentSidebar";
@@ -36,7 +37,8 @@ import {
 
 export default function StudentProfilePage() {
   const navigate = useNavigate();
-  const { currentUser, updateCurrentUserProfile, logout, credentials } = useApp();
+  const { currentUser, updateCurrentUserProfile, credentials } = useApp();
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const certCount = credentials.filter((c) => c.studentId === currentUser.id).length;
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -166,8 +168,7 @@ export default function StudentProfilePage() {
 
   const handleLogout = () => {
     audioSynth.playClickSound();
-    logout();
-    navigate("/", { replace: true });
+    setConfirmLogout(true);
   };
 
   return (
@@ -640,6 +641,7 @@ export default function StudentProfilePage() {
       )}
 
       <BottomNav />
+      <LogoutConfirmDialog open={confirmLogout} onOpenChange={setConfirmLogout} />
     </div>
   );
 }

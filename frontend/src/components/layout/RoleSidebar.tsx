@@ -1,11 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  MoreVertical,
-  X,
-  PanelLeftClose,
-  PanelLeftOpen,
-} from "@/components/ui/icons";
+import { PanelLeftClose, PanelLeftOpen } from "@/components/ui/icons";
 import { audioSynth } from "@/services/audioSynth";
 
 export interface SidebarLink {
@@ -15,10 +10,8 @@ export interface SidebarLink {
   active: boolean;
 }
 
-/** Shared collapsible sidebar (desktop) + floating menu (mobile) used by the teacher and parent areas. */
+/** Shared collapsible sidebar (desktop) + bottom tab bar (mobile) used by the teacher and parent areas. */
 export default function RoleSidebar({ title, storageKey, links }: { title: string; storageKey: string; links: SidebarLink[] }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   // Remembered per browser so it stays collapsed across page navigation.
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -38,17 +31,6 @@ export default function RoleSidebar({ title, storageKey, links }: { title: strin
       return !v;
     });
   };
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMobileMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   return (
     <>
@@ -98,61 +80,31 @@ export default function RoleSidebar({ title, storageKey, links }: { title: strin
         </nav>
       </aside>
 
-      {/* 2. MOBILE RESPONSIVE 3-DOTS ACTION BUTTON (Strictly md:hidden, does NOT take screen space) */}
-      <div className="md:hidden fixed bottom-5 right-5 z-50" ref={menuRef}>
-        <button
-          onClick={() => {
-            audioSynth.playClickSound();
-            setMobileMenuOpen(!mobileMenuOpen);
-          }}
-          className="clay-btn clay-btn-dark w-12 h-12 rounded-full flex items-center justify-center text-white shadow-xl cursor-pointer"
-          title={title}
-          aria-label={mobileMenuOpen ? "Tutup menu" : "Buka menu"}
-          aria-expanded={mobileMenuOpen}
-        >
-          {mobileMenuOpen ? (
-            <X className="w-5 h-5" />
-          ) : (
-            <MoreVertical className="w-5 h-5" />
-          )}
-        </button>
-
-        {/* Mobile Popup Sheet */}
-        {mobileMenuOpen && (
-          <div className="absolute bottom-14 right-0 w-64 bg-white rounded-3xl p-3.5 shadow-2xl border-2 border-white space-y-2 animate-in fade-in slide-in-from-bottom-3 z-50">
-            <div className="px-2 py-1 border-b border-black/5">
-              <span className="text-mini font-black uppercase tracking-wider text-[#9195A8]">
-                {title}
+      {/* 2. MOBILE BOTTOM TAB BAR: always visible, never covers page content (pages reserve pb-24). */}
+      <nav
+        aria-label={title}
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-[rgba(28,30,38,0.08)] shadow-[0_-8px_24px_rgba(28,30,38,0.06)] flex pb-[env(safe-area-inset-bottom)]"
+      >
+        {links.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              to={item.href}
+              onClick={() => audioSynth.playClickSound()}
+              aria-current={item.active ? "page" : undefined}
+              className={`flex-1 min-w-0 flex flex-col items-center gap-0.5 pt-2 pb-1.5 text-mini font-bold ${
+                item.active ? "text-[#1C1E26]" : "text-[#9195A8]"
+              }`}
+            >
+              <span className={`px-3 py-1 rounded-full ${item.active ? "bg-[#E3DBF8] text-[#4B3B7A]" : ""}`}>
+                <Icon className="w-5 h-5" />
               </span>
-            </div>
-
-            <nav className="space-y-1">
-              {links.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    onClick={() => {
-                      audioSynth.playClickSound();
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all ${
-                      item.active
-                        ? "clay-btn clay-btn-dark text-white font-black"
-                        : "text-[#1C1E26] hover:bg-[#F8F9FD]"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-
-          </div>
-        )}
-      </div>
+              <span className="truncate max-w-full px-1">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </>
   );
 }

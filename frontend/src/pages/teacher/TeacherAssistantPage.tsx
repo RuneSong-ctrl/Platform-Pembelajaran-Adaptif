@@ -44,7 +44,9 @@ export default function TeacherAssistantPage() {
   useEffect(() => {
     if (!classId && myClasses[0]) setClassId(myClasses[0].id);
   }, [myClasses, classId]);
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [messages, sending]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, sending]);
 
   const newChat = () => {
     setConvId(null);
@@ -137,7 +139,7 @@ export default function TeacherAssistantPage() {
           </div>
         </aside>
 
-        <main className="flex-1 flex flex-col min-w-0 min-h-0">
+        <main className="flex-1 flex flex-col min-w-0 min-h-0 pb-16 md:pb-0">
           {/* Context bar */}
           <div className="shrink-0 px-4 sm:px-6 py-3 border-b border-[rgba(28,30,38,0.06)] flex flex-wrap items-center gap-2">
             <h1 className="text-base font-black text-[#010105] mr-auto">Asisten Mengajar</h1>

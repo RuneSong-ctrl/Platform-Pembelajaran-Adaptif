@@ -131,7 +131,7 @@ def ai_chat_endpoint(payload: ChatRequest, db: Session = Depends(get_db), user: 
 
     # 1. Semantic Response Cache Check (only for context-free first questions)
     cache_key = get_cache_key(
-        "chat",
+        "chat_v3",  # v2: grounded-only answers in plain text; older cached replies are not reused
         payload.message.strip().lower(),
         payload.classroom_id,
         payload.document_id,

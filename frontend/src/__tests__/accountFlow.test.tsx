@@ -112,6 +112,10 @@ describe("Student account flow", () => {
     renderApp("/student/profile");
 
     fireEvent.click(await screen.findByRole("button", { name: /Keluar dari Akun Siswa/ }));
+    // Nothing happens until the confirmation is accepted.
+    expect(await screen.findByText("Keluar dari akun?")).toBeTruthy();
+    expect(sessionStorage.getItem("eduadapt_token")).toBe("t1");
+    fireEvent.click(screen.getByRole("button", { name: "Ya, keluar" }));
     expect(await screen.findByPlaceholderText("Masukkan nama akun atau email Anda")).toBeTruthy();
     expect(sessionStorage.getItem("eduadapt_token")).toBeNull();
     await waitFor(() => expect(backend.sessions.has("t1")).toBe(false));

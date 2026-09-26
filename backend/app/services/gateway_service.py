@@ -287,7 +287,7 @@ class AIGatewayService:
         try:
             from google import genai
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
-            target_model = model or settings.clean_embedding_model or "text-embedding-004"
+            target_model = model or settings.clean_embedding_model or "gemini-embedding-001"
             if "/" in target_model:
                 target_model = target_model.split("/")[-1]
 
@@ -313,7 +313,7 @@ class AIGatewayService:
         """
         endpoint = AIGatewayService._normalize_endpoint(settings.CHAT_ENDPOINT, "chat/completions") if settings.CHAT_ENDPOINT else ""
         api_key = settings.CHAT_API_KEY or settings.GEMINI_API_KEY or settings.AI_API_KEY or ""
-        selected_model = model or settings.CHAT_MODEL or settings.GEMINI_CHAT_MODEL or "gemini-2.5-flash"
+        selected_model = model or settings.CHAT_MODEL or settings.GEMINI_CHAT_MODEL or "gemini-3.8-flash"
 
         if endpoint and api_key and selected_model:
             headers = {
@@ -378,7 +378,7 @@ class AIGatewayService:
             from google.genai import types
 
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
-            target_model = model or settings.GEMINI_CHAT_MODEL or "gemini-2.5-flash"
+            target_model = model or settings.GEMINI_CHAT_MODEL or "gemini-3.8-flash"
             if "/" in target_model:
                 target_model = target_model.split("/")[-1]
 

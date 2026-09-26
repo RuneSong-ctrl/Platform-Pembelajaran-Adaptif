@@ -109,3 +109,16 @@ def test_teacher_chat_sees_only_own_class_data():
         assert client.post("/api/v1/ai/chat", json={"message": "x", "classroom_id": cls["id"]}, headers=other).status_code == 403
         client.post("/api/v1/ai/chat", json={"message": "x", "classroom_id": cls["id"]}, headers=student)
         assert chat.call_args.kwargs["teacher_context"] is None
+
+
+def test_student_tutor_retrieval_and_plain_text():
+    from app.services.gemini_service import to_plain_text
+    index_document("doc_bio_gate", "class_gate", "Sistem Ekskresi",
+                   "Ginjal menyaring darah dan membentuk urin. Nefron adalah unit fungsional ginjal.")
+
+    # A real question about the material finds it (keyword match, stopwords ignored); filler words match nothing.
+    hits = search_relevant_chunks("apa fungsi nefron pada ginjal?", classroom_id="class_gate")
+    assert hits and hits[0]["document_id"] == "doc_bio_gate"
+    assert search_relevant_chunks("tolong buatkan saya resep", classroom_id="class_gate") == []
+
+    assert to_plain_text("### Judul\n**Tebal** dan `kode`\n---\n- poin") == "Judul\nTebal dan kode\n• poin"

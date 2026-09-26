@@ -463,7 +463,7 @@ export default function StudentAIPage() {
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   aria-label="Tulis pertanyaan untuk AI Tutor"
-                  placeholder={primaryDoc ? "Tanyakan sesuatu tentang materi ini…" : "Tanyakan konsep yang ingin kamu pelajari…"}
+                  placeholder={primaryDoc ? "Tanya tentang materi ini…" : "Tanya konsep pelajaran…"}
                   className="flex-1 bg-transparent border-0 outline-none text-sm text-[#1C1E26] placeholder-[#9195A8] px-3 py-2.5 resize-none max-h-40 leading-relaxed min-w-0"
                 />
                 <button

@@ -231,7 +231,7 @@ export default function StudentClassPage() {
               <X className="h-4 w-4" />
             </button>
 
-            <div>
+            <div className="pr-10">
               <h3 className="text-base font-black text-[#1C1E26]">
                 Gabung Kelas Baru
               </h3>

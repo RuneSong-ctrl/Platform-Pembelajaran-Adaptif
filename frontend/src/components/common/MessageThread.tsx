@@ -59,7 +59,9 @@ export default function MessageThread({
     // (the server only sends events for threads this user belongs to; refetching is cheap and access-checked)
   });
 
-  useEffect(() => endRef.current?.scrollIntoView({ block: "end" }), [messages?.length]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: "end" });
+  }, [messages?.length]);
 
   const send = async () => {
     if (!text.trim() || sending) return;

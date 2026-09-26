@@ -150,7 +150,7 @@ export default function QuizStudioPage() {
       <div className="flex flex-1 overflow-hidden w-full">
         <TeacherSidebar />
 
-        <main className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 py-6">
+        <main className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-6">
           <div className="max-w-5xl mx-auto space-y-6">
             <header>
               <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">Buat Kuis</h1>
@@ -214,13 +214,15 @@ export default function QuizStudioPage() {
                   </div>
 
                   {classDocs.length === 0 ? (
-                    <p className="text-xs text-[#5A5E70] flex items-center gap-1.5">
-                      <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                      Unggah materi untuk kelas ini dulu di{" "}
-                      <Link to={`/teacher/rag?kelas=${cls?.id}`} className="font-bold underline">
-                        Materi Ajar
-                      </Link>
-                      .
+                    <p className="text-xs text-[#5A5E70] flex items-start gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5 shrink-0 mt-px" />
+                      <span>
+                        Unggah materi untuk kelas ini dulu di{" "}
+                        <Link to={`/teacher/rag?kelas=${cls?.id}`} className="font-bold underline">
+                          Materi Ajar
+                        </Link>
+                        .
+                      </span>
                     </p>
                   ) : (
                     <>
