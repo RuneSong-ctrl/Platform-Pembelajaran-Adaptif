@@ -90,7 +90,7 @@ export default function UnitVisual({ visual, sources, onChange, disabled }: Prop
     {onChange && <details className="border-t border-[#E6E4EE] pt-3">
       <summary className="cursor-pointer font-semibold py-2">Edit visual</summary>
       <div className="space-y-4 mt-3">
-        <p className="text-sm text-[#475569]">Perubahan harus tetap didukung kutipan yang tercantum. Simpan sebelum menyetujui. Buat ulang draf jika struktur atau sumbernya tidak sesuai.</p>
+        <p className="text-sm text-[#475569]">Perubahan harus tetap didukung kutipan yang tercantum. Simpan sebelum menyetujui. Klik "Susun ulang" jika susunan atau sumbernya tidak sesuai.</p>
         {field("Judul visual", visual.title, 200, title => onChange({ ...visual, title }))}
         {nodes.map((node, i) => <fieldset key={node.id} className="border rounded-lg p-3 space-y-2"><legend>Konsep / langkah {i + 1}</legend>
           {field("Label", node.label, 120, label => updateNode(i, { label }))}

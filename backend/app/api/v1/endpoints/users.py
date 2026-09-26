@@ -6,6 +6,7 @@ from typing import List, Dict, Any
 from app.core.database import get_db
 from app.models.user import User
 from app.core.auth import current_user
+from app.services.cache_service import check_rate_limit
 from app.core.scope import visible_classrooms, visible_classroom_ids, visible_student_ids
 from app.models.submission import AssignmentSubmission
 from app.models.schedule import LearningSchedule
@@ -61,8 +62,8 @@ def update_user_profile(user_id: str, updates: UserUpdate, db: Session = Depends
     update_data = updates.model_dump(exclude_unset=True)
     if "name" in update_data:
         update_data["name"] = (update_data["name"] or "").strip()
-        if not update_data["name"]:
-            raise HTTPException(422, "Nama tidak boleh kosong.")
+        if not update_data["name"] or len(update_data["name"]) > 100:
+            raise HTTPException(422, "Nama wajib diisi, maksimal 100 karakter.")
     if "email" in update_data:
         update_data["email"] = str(update_data["email"]).strip().lower()
         taken = db.query(User).filter(User.email == update_data["email"], User.id != user.id).first()
@@ -183,7 +184,10 @@ def track_student_learning_activity(
     if m_type not in ["visual", "audio", "practice"]:
         raise HTTPException(status_code=400, detail="Tipe modalitas harus 'visual', 'audio', atau 'practice'")
 
-    amount = max(1, min(1000, payload.increment_amount or 1))
+    # Progress is reported by the page, so keep each report realistic and the report rate low.
+    check_rate_limit(f"progress_{actor.id}", limit_per_minute=20,
+                     detail="Terlalu banyak laporan progres. Tunggu sebentar.")
+    amount = max(1, min(60 if m_type == "audio" else 5, payload.increment_amount or 1))
 
     current_prog = dict(user.learning_progress or {})
     class_ids = visible_classroom_ids(user, db)

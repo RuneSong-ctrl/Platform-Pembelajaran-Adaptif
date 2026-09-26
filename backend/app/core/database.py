@@ -32,7 +32,7 @@ def check_and_migrate_db():
                     if name not in columns:
                         conn.execute(text(f"ALTER TABLE documents ADD COLUMN {name} TEXT"))
             # create_all never adds columns to an existing table, so newer model columns are added here.
-            for table_name in ["adaptive_documents", "auth_sessions", "credentials"]:
+            for table_name in ["adaptive_documents", "auth_sessions", "credentials", "quiz_attempts", "direct_messages"]:
                 table = Base.metadata.tables.get(table_name)
                 if table is None or not inspector.has_table(table_name):
                     continue

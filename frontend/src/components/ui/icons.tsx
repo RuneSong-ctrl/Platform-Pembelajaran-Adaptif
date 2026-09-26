@@ -35,6 +35,7 @@ export {
   UploadCloud,
   Plus,
   Copy,
+  Link2,
   ExternalLink,
   Lock,
   MoreVertical,

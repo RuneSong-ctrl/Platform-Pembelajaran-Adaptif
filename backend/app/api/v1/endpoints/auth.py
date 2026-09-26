@@ -1,9 +1,13 @@
+import hmac
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from app.core.config import settings
+from sqlalchemy import func
 from sqlalchemy.orm import Session
+from app.services.cache_service import check_rate_limit
 from app.core.database import get_db
 from app.models.user import User
-from app.core.auth import AuthSession, bearer, create_session, current_user, hash_password, token_hash, verify_password
+from app.core.auth import AuthSession, bearer, create_session, current_user, hash_password, make_media_ticket, token_hash, verify_password, MEDIA_TICKET_TTL
 from app.schemas.user import (
     UserRegister,
     UserLogin,
@@ -22,14 +26,14 @@ def _generate_initials(name: str) -> str:
     return (parts[0][0] + parts[-1][0]).upper()
 
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-def register_new_account(payload: UserRegister, db: Session = Depends(get_db)):
+def register_new_account(payload: UserRegister, request: Request, db: Session = Depends(get_db)):
     clean_email = payload.email.strip().lower()
     clean_name = payload.name.strip()
     
-    if not clean_name:
+    if not clean_name or len(clean_name) > 100:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nama lengkap tidak boleh kosong"
+            detail="Nama lengkap wajib diisi, maksimal 100 karakter"
         )
     
     # 1. Check if email already exists
@@ -44,6 +48,12 @@ def register_new_account(payload: UserRegister, db: Session = Depends(get_db)):
     role = payload.role.upper() if payload.role else "SISWA"
     if role not in ["SISWA", "GURU", "ORTU"]:
         role = "SISWA"
+    if role == "GURU" and settings.TEACHER_INVITE_CODE:
+        # Per-address cap so the invite code cannot be guessed by trying many sign-ups.
+        check_rate_limit(f"register_guru_{request.client.host if request.client else 'x'}", limit_per_minute=5,
+                         detail="Terlalu banyak percobaan. Tunggu satu menit lalu coba lagi.")
+        if not hmac.compare_digest((payload.invite_code or "").strip().encode(), settings.TEACHER_INVITE_CODE.encode()):
+            raise HTTPException(403, "Kode undangan guru salah. Minta kode ke admin sekolah.")
         
     # 3. Create user entity
     user_id = f"user_{role.lower()}_{uuid.uuid4().hex[:8]}"
@@ -96,13 +106,15 @@ def login_account(payload: UserLogin, db: Session = Depends(get_db)):
             detail="Harap masukkan nama akun, email, atau ID Anda."
         )
     
-    # Look up by email (exact), ID (exact), or name (case-insensitive)
+    check_rate_limit(f"login_{clean_id}", limit_per_minute=10,
+                     detail="Terlalu banyak percobaan masuk. Tunggu satu menit lalu coba lagi.")
+    # Exact, case-insensitive match on email, ID or name ("%" and "_" are plain characters here).
     user = (
         db.query(User)
         .filter(
-            (User.email.ilike(clean_id))
-            | (User.id.ilike(clean_id))
-            | (User.name.ilike(clean_id))
+            (func.lower(User.email) == clean_id)
+            | (func.lower(User.id) == clean_id)
+            | (func.lower(User.name) == clean_id)
         )
         .first()
     )
@@ -118,6 +130,11 @@ def login_account(payload: UserLogin, db: Session = Depends(get_db)):
         token=token,
         user=UserResponse.model_validate(user)
     )
+
+
+@router.get("/media-ticket")
+def media_ticket(user: User = Depends(current_user)):
+    return {"ticket": make_media_ticket(user), "expires_in": MEDIA_TICKET_TTL}
 
 
 @router.get("/me", response_model=UserResponse)

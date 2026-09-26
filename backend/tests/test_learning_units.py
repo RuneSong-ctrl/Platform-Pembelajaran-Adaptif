@@ -400,6 +400,19 @@ class LearningUnitTests(unittest.TestCase):
         self.assertIn(pupil["id"], joined.json()["classroom"]["student_ids"])
         self.assertEqual([d["id"] for d in self.client.get("/documents", headers=pupil_h).json()], ["doc"])
 
+        # Roster is for the class teacher only; removing a student cuts off their material.
+        roster = self.client.get("/classrooms/class/students", headers=self.teacher).json()
+        self.assertIn(pupil["id"], [r["id"] for r in roster])
+        self.assertEqual(self.client.get("/classrooms/class/students", headers=sujana_h).status_code, 403)
+        self.assertEqual(self.client.get("/classrooms/class/students", headers=pupil_h).status_code, 403)
+        self.assertEqual(self.client.delete(f"/classrooms/class/students/{pupil['id']}", headers=pupil_h).status_code, 403)
+        self.assertEqual(self.client.delete(f"/classrooms/class/students/{pupil['id']}", headers=self.teacher).status_code, 200)
+        self.assertEqual(self.client.get("/documents", headers=pupil_h).json(), [])
+        self.assertEqual(self.client.get("/documents/doc/learning-units", headers=pupil_h).status_code, 403)
+
+        _, parent_h = register("ortu", "ORTU")
+        self.assertEqual(self.client.get("/documents", headers=parent_h).json(), [])
+
     def test_sources_cover_tail_and_validate_quotes(self):
         sources = make_segments([(1, "A" * 9000), (2, ""), (3, "Konsep penting pada halaman terakhir.")])
         # The long page is split; the empty page is skipped; the short tail page joins the previous part.
@@ -545,8 +558,8 @@ class LearningUnitTests(unittest.TestCase):
             self.assertEqual(tts.call_count, 1)
             self.assertEqual(text_ai.call_count, 0)  # the podcast pipeline makes no extra AI calls
         self.assertEqual(self.client.get("/documents/doc/podcast-audio").status_code, 401)
-        token = self.student["Authorization"].split()[1]
-        self.assertEqual(self.client.get(f"/documents/doc/podcast-audio?token={token}").status_code, 200)
+        ticket = self.client.get("/auth/media-ticket", headers=self.student).json()["ticket"]
+        self.assertEqual(self.client.get(f"/documents/doc/podcast-audio?t={ticket}").status_code, 200)
         self.assertEqual(self.client.get("/documents/doc/visual-image", headers=self.student).status_code, 409)
 
     def test_media_needs_login_and_class_access(self):
@@ -554,9 +567,16 @@ class LearningUnitTests(unittest.TestCase):
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "doc_modul.pdf").write_bytes(b"%PDF-1.4 test")
         token = self.student["Authorization"].split()[1]
+        ticket = self.client.get("/auth/media-ticket", headers=self.student).json()["ticket"]
         self.assertEqual(self.client.get("/uploads/doc_modul.pdf").status_code, 401)
         self.assertEqual(self.client.get("/uploads/doc_modul.pdf", headers=self.other).status_code, 403)
-        self.assertEqual(self.client.get(f"/uploads/doc_modul.pdf?token={token}").content, b"%PDF-1.4 test")
+        self.assertEqual(self.client.get(f"/uploads/doc_modul.pdf?t={ticket}").content, b"%PDF-1.4 test")
+        # A session token in the URL is no longer accepted, and a ticket cannot be used as a login.
+        self.assertEqual(self.client.get(f"/uploads/doc_modul.pdf?token={token}").status_code, 401)
+        self.assertEqual(self.client.get(f"/uploads/doc_modul.pdf?t={token}").status_code, 401)
+        self.assertEqual(self.client.get("/auth/me", headers={"Authorization": f"Bearer {ticket}"}).status_code, 401)
+        forged = ticket.rsplit(".", 1)[0] + ".0000"
+        self.assertEqual(self.client.get(f"/uploads/doc_modul.pdf?t={forged}").status_code, 401)
         self.assertEqual(self.client.get("/uploads/..%2F..%2Feduadapt.db", headers=self.teacher).status_code, 404)
         self.assertEqual(self.client.get("/documents/doc/pdf", headers=self.other).status_code, 403)
         self.assertEqual(self.client.post("/documents/extract-text", headers=self.student,

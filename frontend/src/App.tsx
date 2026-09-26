@@ -1,5 +1,7 @@
-import React from "react";
-import { Routes, Route } from "react-router-dom";
+import React, { useEffect } from "react";
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { useApp } from "@/contexts/AppContext";
+import JoinClassPage, { PENDING_JOIN_KEY } from "@/pages/public/JoinClassPage";
 
 // Modular Pages by Role
 import {
@@ -19,6 +21,8 @@ import {
   AdaptiveQuizPage,
   StudentPassportPage,
   TeacherDashboardPage,
+  TeacherClassPage,
+  TeacherAssistantPage,
   GradebookPage,
   QuizStudioPage,
   TeacherRAGPage,
@@ -28,13 +32,34 @@ import {
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import PWAInstallPrompt from "./components/common/PWAInstallPrompt";
 
+// A student who opened a class link before signing in is taken back to it right after login or sign-up.
+function ResumePendingJoin() {
+  const { isAuthenticated, currentUser } = useApp();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (!isAuthenticated || pathname.startsWith("/join/")) return;
+    let code: string | null = null;
+    try {
+      code = sessionStorage.getItem(PENDING_JOIN_KEY);
+      if (code && currentUser.role !== "SISWA") sessionStorage.removeItem(PENDING_JOIN_KEY);
+    } catch {
+      return;
+    }
+    if (code && currentUser.role === "SISWA") navigate(`/join/${code}`, { replace: true });
+  }, [isAuthenticated, currentUser.role, pathname, navigate]);
+  return null;
+}
+
 export default function App() {
   return (
     <>
+      <ResumePendingJoin />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<AuthGatePage />} />
         <Route path="/verify" element={<PublicVerifyPage />} />
+        <Route path="/join/:code" element={<JoinClassPage />} />
 
         {/* Protected Student Routes */}
         <Route
@@ -140,6 +165,22 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={["GURU"]}>
               <TeacherDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/class/:classId"
+          element={
+            <ProtectedRoute allowedRoles={["GURU"]}>
+              <TeacherClassPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/asisten"
+          element={
+            <ProtectedRoute allowedRoles={["GURU"]}>
+              <TeacherAssistantPage />
             </ProtectedRoute>
           }
         />

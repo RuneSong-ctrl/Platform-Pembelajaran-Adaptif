@@ -2,7 +2,7 @@ import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { AppProvider } from "../contexts/AppContext";
+import { AppProvider } from "@/contexts/AppContext";
 import App from "../App";
 
 vi.mock("canvas-confetti", () => ({ default: vi.fn() }));

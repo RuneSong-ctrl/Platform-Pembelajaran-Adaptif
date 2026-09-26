@@ -5,7 +5,8 @@ import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
-import { MOCK_CLASS_ANNOUNCEMENTS } from "@/services/mockData";
+import AnnouncementFeed from "@/components/common/AnnouncementFeed";
+import MessageThread from "@/components/common/MessageThread";
 import {
   ArrowLeft,
   School,
@@ -18,9 +19,6 @@ import {
   Bell,
   UploadCloud,
   X,
-  Layers,
-  CheckCircle2,
-  Clock,
   Loader2,
 } from "@/components/ui/icons";
 
@@ -64,14 +62,6 @@ export default function ClassDetailPage() {
     (t) =>
       String(t.classroomId) === String(classId) ||
       (classroom && String(t.classroomId) === String(classroom.id))
-  );
-
-  // Filter announcements for this classroom (from mock data)
-  const classAnnouncements = MOCK_CLASS_ANNOUNCEMENTS.filter(
-    (a) =>
-      String(a.classroomId) === String(classId) ||
-      (classroom && String(a.classroomId) === String(classroom.id)) ||
-      a.classroomId === "class-bio-10" // fallback for rich demo preview
   );
 
   // Class students
@@ -243,65 +233,23 @@ export default function ClassDetailPage() {
           {/* TAB CONTENT: 1. BERANDA (Feed / Pengumuman)              */}
           {/* ========================================================= */}
           {activeTab === "beranda" && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between px-1">
-                <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#9195A8]">
-                  Aktivitas &amp; Pengumuman Kelas
-                </h2>
+            <div className="space-y-5">
+              <div className="space-y-3">
+                <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#9195A8] px-1">Pengumuman</h2>
+                <AnnouncementFeed classroomId={classroom.id} />
               </div>
 
-              {classAnnouncements.length === 0 ? (
-                <div className="clay-card bg-white p-8 rounded-3xl border border-black/5 text-center space-y-2 shadow-xs">
-                  <div className="w-12 h-12 rounded-2xl bg-[#F0EEF6] text-[#5A5E70] flex items-center justify-center mx-auto">
-                    <Bell className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-sm font-black text-[#1C1E26]">Belum Ada Pengumuman</h3>
-                  <p className="text-xs text-[#5A5E70] max-w-xs mx-auto">
-                    Guru belum memposting pengumuman terbaru di kelas ini.
-                  </p>
+              <div className="space-y-3">
+                <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#9195A8] px-1">
+                  Tanya {classroom.teacherName}
+                </h2>
+                <div className="clay-card bg-white p-4 sm:p-5 rounded-3xl border border-black/5 shadow-2xs">
+                  <MessageThread
+                    classroomId={classroom.id}
+                    emptyHint="Ada yang belum jelas? Kirim pesan ke guru. Hanya kamu dan guru yang bisa membaca percakapan ini."
+                  />
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {classAnnouncements.map((ann) => (
-                    <div
-                      key={ann.id}
-                      className="clay-card bg-white p-4 sm:p-5 rounded-3xl border border-black/5 space-y-3 shadow-2xs hover:shadow-xs transition-shadow"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-[#E3DBF8] text-[#4B3B7A] flex items-center justify-center text-sm font-black shadow-2xs shrink-0">
-                          {ann.authorName?.charAt(0) || "G"}
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-xs sm:text-sm font-black text-[#1C1E26] block truncate">
-                            {ann.authorName}
-                          </span>
-                          <span className="text-mini text-[#5A5E70] font-medium flex items-center gap-1 mt-0.5">
-                            <Clock className="w-3 h-3 text-[#9195A8]" />
-                            {new Date(ann.createdAt).toLocaleDateString("id-ID", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                          </span>
-                        </div>
-                      </div>
-
-                      <p className="text-xs sm:text-sm leading-relaxed text-[#1C1E26] font-normal">
-                        {ann.content}
-                      </p>
-
-                      {ann.referenceTitle && (
-                        <div className="pt-2 border-t border-black/5">
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#F0EEF6] text-mini font-bold text-[#4B3B7A]">
-                            <Layers className="w-3.5 h-3.5" />
-                            <span>Terkait: {ann.referenceTitle}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+              </div>
             </div>
           )}
 

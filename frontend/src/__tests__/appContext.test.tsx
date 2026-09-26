@@ -25,7 +25,7 @@ beforeEach(() => {
 });
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 import { render, screen, act } from "@testing-library/react";
-import { AppProvider, useApp } from "../contexts/AppContext";
+import { AppProvider, useApp } from "@/contexts/AppContext";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "../components/common/ProtectedRoute";
 

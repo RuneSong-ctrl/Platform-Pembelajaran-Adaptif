@@ -121,6 +121,7 @@ export function normalizeCredential(c: any): BlockchainCredential {
     id: c.id,
     certificateId: c.certificate_id || c.certificateId || "",
     studentId: c.student_id || c.studentId || "",
+    taskId: c.task_id ?? c.taskId ?? null,
     studentName: c.student_name || c.studentName || "Siswa",
     classroomId: c.classroom_id || c.classroomId || "",
     className: c.classroom_name || c.className || "Kelas Sains",
@@ -184,21 +185,89 @@ export function normalizeNote(n: any): ParentTeacherNote {
 }
 
 /** <audio>, <img> and <iframe> cannot send the Authorization header, so backend media links carry the token. */
+// Short-lived, read-only pass for URLs that cannot carry an Authorization header (<img>, <audio>, PDF, EventSource).
+// The login token itself never goes into a URL.
+let mediaTicket = "";
+let ticketTimer: ReturnType<typeof setInterval> | undefined;
+export const getMediaTicket = () => mediaTicket;
+
 export function mediaUrl(url: string): string {
   if (!url || /^(blob:|data:)/.test(url)) return url;
   const origin = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
   const full = /^https?:\/\//.test(url) ? url : `${origin}${url.startsWith("/") ? "" : "/"}${url}`;
-  const token = ApiService.getToken();
-  if (!token || !full.startsWith(origin)) return full; // never hand the token to another host
+  if (!mediaTicket || !full.startsWith(origin)) return full; // never hand the ticket to another host
   const [base, hash] = full.split("#");
-  return `${base}${base.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}${hash ? `#${hash}` : ""}`;
+  return `${base}${base.includes("?") ? "&" : "?"}t=${encodeURIComponent(mediaTicket)}${hash ? `#${hash}` : ""}`;
 }
+
+export interface RosterStudent {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string | null;
+  learning_style?: string | null;
+  level?: string | null;
+  xp_total: number;
+  streak_days: number;
+  progress: number;
+  tasks_total: number;
+  tasks_submitted: number;
+  average_grade: number | null;
+  last_active: string;
+  alerts: string[];
+}
+
+export interface Announcement {
+  id: string;
+  classroom_id: string;
+  author_name: string;
+  text: string;
+  created_at: string;
+}
+export interface DirectMessage {
+  id: string;
+  sender_name: string;
+  text: string;
+  created_at: string;
+  mine: boolean;
+  read: boolean;
+}
+export interface MessageThreadSummary {
+  classroom_id: string;
+  classroom_name: string;
+  student_id: string;
+  student_name: string;
+  teacher_name: string;
+  parent_id: string | null;
+  parent_name: string | null;
+  unread: number;
+  last_text: string;
+  last_at: string;
+}
+
+/** Backend timestamps are naive UTC; mark them as UTC before parsing. */
+export const utcDate = (iso: string) => new Date(/Z|[+-]\d\d:?\d\d$/.test(iso) ? iso : iso + "Z");
 
 export class ApiService {
   static getToken() { return sessionStorage.getItem("eduadapt_token"); }
   static setToken(token?: string) {
     if (token) sessionStorage.setItem("eduadapt_token", token);
     else sessionStorage.removeItem("eduadapt_token");
+    if (!token) {
+      mediaTicket = "";
+      clearInterval(ticketTimer);
+    }
+  }
+
+  /** Fetches a media ticket (valid 2 h) and keeps it fresh every 60 min while signed in. */
+  static async refreshMediaTicket() {
+    try {
+      mediaTicket = (await this.authenticatedRequest<{ ticket: string }>("/auth/media-ticket")).ticket;
+    } catch {
+      return; // media links fall back to failing closed; the next refresh retries
+    }
+    clearInterval(ticketTimer);
+    ticketTimer = setInterval(() => void this.refreshMediaTicket(), 60 * 60 * 1000);
   }
   static async authenticatedRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
     let response: Response;
@@ -307,6 +376,73 @@ export class ApiService {
   }
 
   // --- DOCUMENTS & RAG ---
+  /** Server-side check of one quiz answer; the first answer to a question is final for this attempt. */
+  static async answerQuiz(taskId: string, questionId: string, selectedIndex: number | null) {
+    return this.authenticatedRequest<{ correct: boolean; correct_index: number; selected_index: number | null; langkah?: string }>(
+      `/tasks/${encodeURIComponent(taskId)}/answer`,
+      { method: "POST", body: JSON.stringify({ question_id: questionId, selected_index: selectedIndex }) },
+    );
+  }
+
+  static async createParentCode() {
+    return this.authenticatedRequest<{ code: string; expires_at: string }>("/family/parent-code", { method: "POST" });
+  }
+
+  static async linkChild(code: string) {
+    return this.authenticatedRequest<{ id: string; name: string }>("/family/children", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    });
+  }
+
+  static async getAnnouncements(classroomId?: string) {
+    const q = classroomId ? `?classroom_id=${encodeURIComponent(classroomId)}` : "";
+    return this.authenticatedRequest<Announcement[]>(`/announcements${q}`);
+  }
+
+  static async postAnnouncement(classroomId: string, text: string) {
+    return this.authenticatedRequest<Announcement>("/announcements", {
+      method: "POST",
+      body: JSON.stringify({ classroom_id: classroomId, text }),
+    });
+  }
+
+  static async deleteAnnouncement(id: string) {
+    return this.authenticatedRequest<{ deleted: boolean }>(`/announcements/${encodeURIComponent(id)}`, { method: "DELETE" });
+  }
+
+  static async getMessageThreads() {
+    return this.authenticatedRequest<MessageThreadSummary[]>("/messages/threads");
+  }
+
+  static async getMessages(classroomId: string, studentId?: string, parentId?: string) {
+    const q = new URLSearchParams({
+      classroom_id: classroomId,
+      ...(studentId ? { student_id: studentId } : {}),
+      ...(parentId ? { parent_id: parentId } : {}),
+    });
+    return this.authenticatedRequest<DirectMessage[]>(`/messages?${q}`);
+  }
+
+  static async sendMessage(classroomId: string, text: string, studentId?: string, parentId?: string) {
+    return this.authenticatedRequest<DirectMessage>("/messages", {
+      method: "POST",
+      body: JSON.stringify({ classroom_id: classroomId, student_id: studentId, parent_id: parentId, text }),
+    });
+  }
+
+  static async getClassRoster(classroomId: string) {
+    return this.authenticatedRequest<RosterStudent[]>(`/classrooms/${classroomId}/students`);
+  }
+
+  static async resetClassCode(classroomId: string) {
+    return this.authenticatedRequest<{ join_code: string }>(`/classrooms/${classroomId}/reset-code`, { method: "POST" });
+  }
+
+  static async removeStudent(classroomId: string, studentId: string) {
+    return this.authenticatedRequest<{ success: boolean }>(`/classrooms/${classroomId}/students/${studentId}`, { method: "DELETE" });
+  }
+
   static async getDocuments(classroomId?: string) {
     const query = classroomId ? `?classroom_id=${classroomId}` : "";
     return this.request<any[]>(`/documents${query}`);
@@ -417,7 +553,7 @@ export class ApiService {
     due_date?: string;
     content_json?: any;
   }) {
-    return this.request<any>("/tasks", {
+    return this.authenticatedRequest<any>("/tasks", {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -540,7 +676,7 @@ export class ApiService {
   }
 
   static async gradeSubmission(submissionId: string, grade: number, feedback: string) {
-    return this.request<any>(`/submissions/${submissionId}/grade`, {
+    return this.authenticatedRequest<any>(`/submissions/${submissionId}/grade`, {
       method: "PATCH",
       body: JSON.stringify({ grade, feedback }),
     });
@@ -624,7 +760,7 @@ export class ApiService {
     difficulty?: string;
     num_questions?: number;
   }) {
-    return this.request<{ questions: any[]; cached: boolean }>("/ai/generate-quiz", {
+    return this.authenticatedRequest<{ questions: any[]; cached: boolean }>("/ai/generate-quiz", {
       method: "POST",
       body: JSON.stringify(data),
     });

@@ -4,6 +4,8 @@ import logging
 from typing import Dict, Any, Optional
 from fastapi import HTTPException, status
 from app.core.config import settings
+from app.core.database import Base
+from sqlalchemy import Column, Float, Integer, String
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +13,6 @@ logger = logging.getLogger(__name__)
 _RESPONSE_CACHE: Dict[str, Dict[str, Any]] = {}
 
 # Rate Limiter Tracker: { client_key: [timestamp1, timestamp2, ...] }
-_RATE_LIMIT_BUCKET: Dict[str, list] = {}
 
 def get_cache_key(*args) -> str:
     """
@@ -44,23 +45,30 @@ def set_cached_response(cache_key: str, data: Any, ttl_seconds: int = 86400):
         "expires_at": time.time() + ttl_seconds
     }
 
-def check_rate_limit(client_id: str, limit_per_minute: int = 20):
-    """
-    Rate limiter sliding window per IP atau User ID untuk mencegah flooding API.
-    """
+class RateHit(Base):
+    """One counted request. Kept in the database so limits hold across restarts and worker processes."""
+    __tablename__ = "rate_hits"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    key = Column(String(160), nullable=False, index=True)
+    ts = Column(Float, nullable=False, index=True)
+
+
+def check_rate_limit(client_id: str, limit_per_minute: int = 20, detail: str | None = None):
+    """Sliding one-minute window per key (user, account or address)."""
+    from app.core.database import SessionLocal
+
     now = time.time()
-    one_minute_ago = now - 60.0
-    
-    timestamps = _RATE_LIMIT_BUCKET.get(client_id, [])
-    # Hapus timestamp yang lebih tua dari 1 menit
-    valid_timestamps = [t for t in timestamps if t > one_minute_ago]
-    
-    if len(valid_timestamps) >= limit_per_minute:
-        logger.warning(f"[Security] Rate limit exceeded for client '{client_id}': {len(valid_timestamps)} reqs/min")
+    with SessionLocal() as db:
+        db.query(RateHit).filter(RateHit.ts < now - 60).delete()  # old hits are never needed again
+        used = db.query(RateHit).filter(RateHit.key == client_id).count()
+        if used < limit_per_minute:
+            db.add(RateHit(key=client_id, ts=now))
+        db.commit()
+
+    if used >= limit_per_minute:
+        logger.warning(f"[Security] Rate limit exceeded for client '{client_id}': {used} reqs/min")
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Batas kuota interaksi AI terlampaui (Maksimal 20 request/menit). Harap tunggu 1 menit sebelum mengirim pesan kembali."
+            detail=detail or "Batas kuota interaksi AI terlampaui (Maksimal 20 request/menit). Harap tunggu 1 menit sebelum mengirim pesan kembali."
         )
-    
-    valid_timestamps.append(now)
-    _RATE_LIMIT_BUCKET[client_id] = valid_timestamps

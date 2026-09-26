@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
 import TeacherSidebar from "@/components/layout/TeacherSidebar";
@@ -11,27 +11,22 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { audioSynth } from "@/services/audioSynth";
-import {
-  Users,
-  Database,
-  CheckCircle2,
-  TrendingUp,
-  Plus,
-  School,
-  Sparkles,
-  BookOpen,
-  ArrowRight,
-  ShieldCheck,
-  Award,
-} from "@/components/ui/icons";
+import { Users, CheckCircle2, Plus, School, ArrowRight, MessageSquare } from "@/components/ui/icons";
+import { Link } from "react-router-dom";
+import { classTone } from "./TeacherClassPage";
+import GradeDialog from "@/components/teacher/GradeDialog";
+import MessageThread from "@/components/common/MessageThread";
+import { useLiveEvents } from "@/services/liveEvents";
+import { ApiService, MessageThreadSummary, utcDate } from "@/services/apiClient";
+import type { AssignmentSubmission } from "@/types";
 
 export default function TeacherDashboardPage() {
   const {
+    currentUser,
     classrooms,
     createClassroom,
     documents,
     submissions,
-    gradeAssignmentSubmission,
   } = useApp();
 
   const [createClassModalOpen, setCreateClassModalOpen] = useState(false);
@@ -39,10 +34,14 @@ export default function TeacherDashboardPage() {
   const [subjectInput, setSubjectInput] = useState("Biologi");
   const [gradeInput, setGradeInput] = useState(10);
 
-  const [gradingModalOpen, setGradingModalOpen] = useState(false);
-  const [activeSubmission, setActiveSubmission] = useState<any | null>(null);
-  const [gradeScore, setGradeScore] = useState(90);
-  const [gradeFeedback, setGradeFeedback] = useState("");
+  const [grading, setGrading] = useState<AssignmentSubmission | null>(null);
+  const [threads, setThreads] = useState<MessageThreadSummary[]>([]);
+  const [openThread, setOpenThread] = useState<MessageThreadSummary | null>(null);
+  const loadThreads = () => ApiService.getMessageThreads().then(setThreads).catch(() => {});
+  useEffect(() => {
+    loadThreads();
+  }, []);
+  useLiveEvents((e) => e.type === "message" && loadThreads());
 
   const handleCreateClass = () => {
     if (!classNameInput) return;
@@ -52,243 +51,175 @@ export default function TeacherDashboardPage() {
     setClassNameInput("");
   };
 
-  const handleOpenGrade = (sub: any) => {
-    setActiveSubmission(sub);
-    setGradeScore(sub.grade || 85);
-    setGradeFeedback(sub.feedback || "Analisis konsep sangat mendalam dan akurat.");
-    setGradingModalOpen(true);
-  };
-
-  const handleSaveGrade = () => {
-    if (!activeSubmission) return;
-    audioSynth.playSuccessSound();
-    gradeAssignmentSubmission(activeSubmission.id, Number(gradeScore), gradeFeedback);
-    setGradingModalOpen(false);
-  };
-
   const totalStudents = classrooms.reduce((acc, c) => acc + c.studentIds.length, 0);
+  const toGrade = submissions.filter((s) => s.grade == null);
+  const firstName = (currentUser?.name || "").split(" ")[0];
 
   return (
     <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden w-full">
-        {/* Responsive Desktop Sidebar for Teacher */}
         <TeacherSidebar />
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 py-6 space-y-6 sm:space-y-8">
-          {/* Header & Quick Action */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="clay-pill clay-mint px-3 py-0.5 text-xs font-extrabold text-[#1D5E4D]">
-                  Command Center Pengajar
-                </span>
-                <span className="clay-pill clay-lavender px-3 py-0.5 text-xs font-bold text-[#4B3B7A]">
-                  Tahun Ajaran 2026/2027
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">
-                Ringkasan Kelas &amp; Analitik Pembelajaran
-              </h1>
-              <p className="text-xs sm:text-sm text-[#5A5E70] font-medium mt-1">
-                Kelola rombongan belajar, ekstraksi materi buku ajar guru, dan evaluasi hasil belajar siswa secara adaptif.
-              </p>
-            </div>
-
-            <button
-              onClick={() => {
-                audioSynth.playClickSound();
-                setCreateClassModalOpen(true);
-              }}
-              className="clay-btn clay-btn-dark px-5 py-2.5 text-xs font-black flex items-center gap-2 shadow-sm self-start sm:self-auto cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Buat Rombel Baru</span>
-            </button>
-          </div>
-
-          {/* 4 KPI METRIC CARDS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="clay-card clay-card-hover clay-white p-5 space-y-2">
-              <div className="flex justify-between items-center text-[#5A5E70]">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#9195A8]">
-                  Total Siswa Aktif
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-[#D1EBE1] text-[#1D5E4D] flex items-center justify-center">
-                  <Users className="w-4 h-4" />
-                </div>
-              </div>
-              <p className="text-3xl font-black text-[#010105]">{totalStudents}</p>
-              <span className="clay-pill clay-mint text-mini font-extrabold px-2.5 py-0.5 text-[#1D5E4D] inline-block">
-                {classrooms.length} Rombel Terhubung
-              </span>
-            </div>
-
-            <div className="clay-card clay-card-hover clay-white p-5 space-y-2">
-              <div className="flex justify-between items-center text-[#5A5E70]">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#9195A8]">
-                  Dokumen RAG Terindeks
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-[#E0DAF5] text-[#4B3B7A] flex items-center justify-center">
-                  <Database className="w-4 h-4" />
-                </div>
-              </div>
-              <p className="text-3xl font-black text-[#010105]">{documents.length}</p>
-              <span className="clay-pill clay-lavender text-mini font-extrabold px-2.5 py-0.5 text-[#4B3B7A] inline-block">
-                {documents.reduce((acc, d) => acc + (d.chunksCount || 1), 0)} Vektor Tersemat
-              </span>
-            </div>
-
-            <div className="clay-card clay-card-hover clay-white p-5 space-y-2">
-              <div className="flex justify-between items-center text-[#5A5E70]">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#9195A8]">
-                  Tugas Perlu Dinilai
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-[#FEE7B3] text-[#785308] flex items-center justify-center">
-                  <CheckCircle2 className="w-4 h-4" />
-                </div>
-              </div>
-              <p className="text-3xl font-black text-[#010105]">{submissions.length}</p>
-              <span className="clay-pill clay-butter text-mini font-extrabold px-2.5 py-0.5 text-[#785308] inline-block">
-                {submissions.filter((s) => !s.grade).length} Menunggu Review
-              </span>
-            </div>
-
-            <div className="clay-card clay-card-hover clay-white p-5 space-y-2">
-              <div className="flex justify-between items-center text-[#5A5E70]">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#9195A8]">
-                  Total Tugas &amp; Kuis
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-[#D4E8FC] text-[#21518A] flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-              </div>
-              <p className="text-3xl font-black text-[#010105]">
-                {classrooms.reduce((acc, c) => acc + (c.tasksCount || 0), 0)}
-              </p>
-              <span className="clay-pill clay-sky text-mini font-extrabold px-2.5 py-0.5 text-[#21518A] inline-block">
-                Diterbitkan Guru
-              </span>
-            </div>
-          </div>
-
-          {/* CLASSROOMS LIST */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
+        <main className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 py-6">
+          <div className="max-w-5xl mx-auto space-y-8">
+            {/* Greeting */}
+            <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div>
-                <h2 className="text-lg font-black text-[#010105]">
-                  Daftar Rombel &amp; Kode Akses Siswa
-                </h2>
-                <p className="text-xs text-[#5A5E70]">
-                  Gunakan kode gabung untuk menambahkan siswa ke rombel yang sesuai.
+                <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">
+                  Halo{firstName ? `, ${firstName}` : ""}
+                </h1>
+                <p className="text-sm text-[#5A5E70] mt-1">
+                  {toGrade.length > 0
+                    ? `Ada ${toGrade.length} tugas siswa yang menunggu nilai dari Anda.`
+                    : "Semua tugas siswa sudah Anda nilai."}
                 </p>
               </div>
-              <span className="clay-pill clay-white text-xs font-bold text-[#5A5E70] px-3 py-1">
-                {classrooms.length} Rombel Aktif
-              </span>
-            </div>
+              <button
+                onClick={() => {
+                  audioSynth.playClickSound();
+                  setCreateClassModalOpen(true);
+                }}
+                className="clay-btn clay-btn-dark px-5 py-2.5 text-xs font-black flex items-center gap-2 self-start sm:self-auto cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Buat kelas</span>
+              </button>
+            </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {classrooms.map((cls) => (
-                <div
-                  key={cls.id}
-                  className="clay-card clay-card-hover clay-white p-6 space-y-4"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-3.5">
-                      <div className="clay-card clay-lavender w-12 h-12 rounded-2xl flex items-center justify-center text-[#4B3B7A] shrink-0">
-                        <School className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-black text-[#010105]">{cls.name}</h3>
-                        <p className="text-xs text-[#5A5E70] font-medium">
-                          Mata Pelajaran: {cls.subject} (Kelas {cls.grade})
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <span className="text-mini text-[#9195A8] font-bold block uppercase">
-                        Kode Gabung
-                      </span>
-                      <span className="clay-pill clay-dark px-3 py-1 font-mono text-xs font-black tracking-widest inline-block mt-0.5">
-                        {cls.joinCode}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2.5 pt-2 text-xs font-bold text-[#5A5E70]">
-                    <div className="clay-pill bg-[#F8F9FD] p-2.5 flex items-center gap-2">
-                      <Users className="w-3.5 h-3.5 text-[#1D5E4D]" />
-                      <span>{cls.studentIds.length} Siswa Terdaftar</span>
-                    </div>
-                    <div className="clay-pill bg-[#F8F9FD] p-2.5 flex items-center gap-2">
-                      <BookOpen className="w-3.5 h-3.5 text-[#4B3B7A]" />
-                      <span>{cls.documentsCount || 0} Modul Terindeks</span>
-                    </div>
-                  </div>
+            {/* Quick numbers */}
+            <dl className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Siswa", value: totalStudents },
+                { label: "Menunggu nilai", value: toGrade.length },
+                { label: "Materi", value: documents.length },
+              ].map((m) => (
+                <div key={m.label} className="clay-card clay-white px-4 py-3">
+                  <dt className="text-xs font-bold text-[#9195A8]">{m.label}</dt>
+                  <dd className="text-2xl font-black text-[#010105]">{m.value}</dd>
                 </div>
               ))}
-            </div>
-          </section>
+            </dl>
 
-          {/* RECENT SUBMISSIONS & LIVE GRADING TABLE */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-black text-[#010105]">
-                  Pengumpulan Tugas &amp; Penilaian Siswa
-                </h2>
-                <p className="text-xs text-[#5A5E70]">
-                  Verifikasi jawaban uraian dan berikan umpan balik adaptif langsung ke siswa.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {submissions.map((sub) => (
-                <div
-                  key={sub.id}
-                  className="clay-card clay-card-hover clay-white p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`clay-pill text-mini font-extrabold px-2.5 py-0.5 ${
-                          sub.status === "Graded"
-                            ? "clay-mint text-[#1D5E4D]"
-                            : "clay-butter text-[#785308]"
-                        }`}
+            {/* Classes */}
+            <section className="space-y-3">
+              <h2 className="text-lg font-black text-[#010105]">Kelas saya</h2>
+              {classrooms.length === 0 ? (
+                <div className="clay-card clay-white p-8 text-center space-y-2">
+                  <School className="w-8 h-8 text-[#9195A8] mx-auto" />
+                  <p className="text-sm font-black text-[#010105]">Belum ada kelas</p>
+                  <p className="text-xs text-[#5A5E70]">Buat kelas pertama, lalu bagikan kodenya ke siswa.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {classrooms.map((cls, i) => {
+                    const tone = classTone(i);
+                    return (
+                      <Link
+                        key={cls.id}
+                        to={`/teacher/class/${cls.id}`}
+                        onClick={() => audioSynth.playClickSound()}
+                        className="clay-card clay-card-hover clay-white overflow-hidden flex flex-col"
                       >
-                        {sub.status === "Graded"
-                          ? `Sudah Dinilai (${sub.grade}/100)`
-                          : "Menunggu Penilaian"}
-                      </span>
-                      <span className="text-xs font-extrabold text-[#010105]">
-                        {sub.studentName}
-                      </span>
-                    </div>
-                    <h4 className="text-sm font-black text-[#010105]">
-                      {sub.taskTitle}
-                    </h4>
-                    <p className="text-xs text-[#5A5E70]">
-                      Lampiran: <span className="font-semibold text-[#1C1E26]">{sub.attachmentName}</span>
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => handleOpenGrade(sub)}
-                    className="clay-btn clay-btn-white px-4 py-2 text-xs font-black text-[#1C1E26] shrink-0 self-start sm:self-auto flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <span>{sub.status === "Graded" ? "Edit Nilai & Catatan" : "Beri Nilai & Feedback"}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
+                        <div className={`${tone.card} px-5 py-4 rounded-none`}>
+                          <h3 className="text-base font-black text-[#010105] truncate">{cls.name}</h3>
+                          <p className={`text-xs font-bold ${tone.text}`}>
+                            {cls.subject} · Kelas {cls.grade}
+                          </p>
+                        </div>
+                        <div className="px-5 py-4 flex items-center justify-between text-xs text-[#5A5E70]">
+                          <span className="flex items-center gap-1.5 font-bold">
+                            <Users className="w-3.5 h-3.5" /> {cls.studentIds.length} siswa
+                          </span>
+                          <span>
+                            Kode <b className="font-mono text-[#010105] tracking-wider">{cls.joinCode}</b>
+                          </span>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
-          </section>
+              )}
+            </section>
+
+            {/* Work to grade */}
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-black text-[#010105]">Perlu dinilai</h2>
+                {submissions.length > 0 && (
+                  <Link to="/teacher/gradebook" className="text-xs font-bold text-[#5A5E70] hover:text-[#010105] flex items-center gap-1">
+                    Buku nilai <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+              </div>
+              {toGrade.length === 0 ? (
+                <p className="clay-card clay-white px-5 py-4 text-xs text-[#5A5E70] flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-[#1D5E4D]" /> Tidak ada tugas yang menunggu. Tugas baru dari siswa akan muncul di sini.
+                </p>
+              ) : (
+                <ul className="clay-card clay-white divide-y divide-[rgba(28,30,38,0.06)]">
+                  {toGrade.slice(0, 5).map((sub) => (
+                    <li key={sub.id} className="px-5 py-3.5 flex items-center gap-3">
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-black text-[#010105] truncate">{sub.studentName}</span>
+                        <span className="block text-xs text-[#5A5E70] truncate">{sub.taskTitle}</span>
+                      </span>
+                      <button
+                        onClick={() => setGrading(sub)}
+                        className="clay-btn clay-btn-white px-4 py-1.5 text-xs font-black text-[#1C1E26] cursor-pointer"
+                      >
+                        Beri nilai
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {toGrade.length > 5 && (
+                <p className="text-xs text-[#9195A8]">dan {toGrade.length - 5} tugas lainnya di Buku Nilai.</p>
+              )}
+            </section>
+
+            {/* Student messages */}
+            <section className="space-y-3">
+              <h2 className="text-lg font-black text-[#010105]">Pesan masuk</h2>
+              {threads.length === 0 ? (
+                <p className="clay-card clay-white px-5 py-4 text-xs text-[#5A5E70] flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-[#9195A8]" /> Belum ada pesan. Siswa dan orang tua bisa menghubungi Anda dari akun mereka.
+                </p>
+              ) : (
+                <ul className="clay-card clay-white divide-y divide-[rgba(28,30,38,0.06)]">
+                  {threads.slice(0, 6).map((t) => (
+                    <li key={`${t.classroom_id}:${t.student_id}:${t.parent_id || ""}`}>
+                      <button
+                        onClick={() => setOpenThread(t)}
+                        className="w-full text-left px-5 py-3.5 flex items-center gap-3 hover:bg-[#F8F9FD] cursor-pointer"
+                      >
+                        <span className="w-9 h-9 rounded-full bg-[#E0DAF5] text-[#4B3B7A] font-black text-sm flex items-center justify-center shrink-0">
+                          {(t.parent_name || t.student_name).charAt(0).toUpperCase()}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm font-black text-[#010105] truncate">
+                            {t.parent_name ? `${t.parent_name} (orang tua ${t.student_name})` : t.student_name}{" "}
+                            <span className="font-bold text-xs text-[#9195A8]">· {t.classroom_name}</span>
+                          </span>
+                          <span className={`block text-xs truncate ${t.unread ? "text-[#010105] font-bold" : "text-[#5A5E70]"}`}>{t.last_text}</span>
+                        </span>
+                        <span className="text-mini text-[#9195A8] shrink-0">
+                          {utcDate(t.last_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                        </span>
+                        {t.unread > 0 && (
+                          <span className="min-w-5 h-5 px-1.5 rounded-full bg-[#1C1E26] text-white text-mini font-black flex items-center justify-center shrink-0">
+                            {t.unread}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </div>
         </main>
       </div>
 
@@ -297,17 +228,17 @@ export default function TeacherDashboardPage() {
         <DialogContent className="max-w-md p-6 bg-white rounded-3xl border-2 border-white shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-base font-black text-[#010105]">
-              Buat Rombel Kelas Baru
+              Buat kelas baru
             </DialogTitle>
             <DialogDescription className="text-xs text-[#5A5E70]">
-              Tambahkan rombongan belajar baru untuk mengelola materi dan penugasan siswa.
+              Setelah dibuat, Anda akan mendapat kode untuk dibagikan ke siswa.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3.5 my-3">
             <div>
               <label className="block text-xs font-bold text-[#010105] mb-1">
-                Nama Rombel
+                Nama kelas
               </label>
               <Input
                 value={classNameInput}
@@ -319,7 +250,7 @@ export default function TeacherDashboardPage() {
 
             <div>
               <label className="block text-xs font-bold text-[#010105] mb-1">
-                Mata Pelajaran
+                Mata pelajaran
               </label>
               <Input
                 value={subjectInput}
@@ -331,7 +262,7 @@ export default function TeacherDashboardPage() {
 
             <div>
               <label className="block text-xs font-bold text-[#010105] mb-1">
-                Tingkat Kelas
+                Kelas (angka)
               </label>
               <Input
                 type="number"
@@ -354,67 +285,34 @@ export default function TeacherDashboardPage() {
               disabled={!classNameInput.trim()}
               className="clay-btn clay-btn-dark px-4 py-2 text-xs font-black text-white cursor-pointer"
             >
-              Simpan Rombel
+              Buat kelas
             </button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* GRADING MODAL */}
-      <Dialog open={gradingModalOpen} onOpenChange={setGradingModalOpen}>
+      <GradeDialog submission={grading} onClose={() => setGrading(null)} />
+
+      <Dialog open={!!openThread} onOpenChange={(o) => !o && setOpenThread(null)}>
         <DialogContent className="max-w-md p-6 bg-white rounded-3xl border-2 border-white shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-black text-[#010105]">
-              Penilaian &amp; Umpan Balik Guru
-            </DialogTitle>
-            <DialogDescription className="text-xs text-[#5A5E70]">
-              Siswa: {activeSubmission?.studentName} • Tugas: {activeSubmission?.taskTitle}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3.5 my-3">
-            <div>
-              <label className="block text-xs font-bold text-[#010105] mb-1">
-                Nilai Angka (Skala 0 - 100)
-              </label>
-              <Input
-                type="number"
-                value={gradeScore}
-                onChange={(e) => setGradeScore(Number(e.target.value))}
-                className="rounded-xl text-xs font-medium bg-[#F8F9FD]"
-                min={0}
-                max={100}
+          {openThread && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-base font-black text-[#010105]">{openThread.parent_name || openThread.student_name}</DialogTitle>
+                <DialogDescription className="text-xs text-[#5A5E70]">
+                  {openThread.parent_name ? `Orang tua ${openThread.student_name} · ` : ""}
+                  {openThread.classroom_name} · pesan pribadi
+                </DialogDescription>
+              </DialogHeader>
+              <MessageThread
+                classroomId={openThread.classroom_id}
+                studentId={openThread.student_id}
+                parentId={openThread.parent_id}
+                emptyHint="Belum ada pesan."
+                onRead={loadThreads}
               />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-[#010105] mb-1">
-                Umpan Balik &amp; Saran Pengayaan
-              </label>
-              <textarea
-                value={gradeFeedback}
-                onChange={(e) => setGradeFeedback(e.target.value)}
-                rows={3}
-                className="w-full p-3 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-medium bg-[#F8F9FD] focus:outline-none"
-                placeholder="Tuliskan apresiasi dan bagian materi yang perlu diperdalam siswa..."
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-1">
-            <button
-              onClick={() => setGradingModalOpen(false)}
-              className="clay-btn clay-btn-white px-4 py-2 text-xs font-bold text-[#5A5E70] cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleSaveGrade}
-              className="clay-btn clay-btn-dark px-4 py-2 text-xs font-black text-white cursor-pointer"
-            >
-              Simpan &amp; Rilis Nilai
-            </button>
-          </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

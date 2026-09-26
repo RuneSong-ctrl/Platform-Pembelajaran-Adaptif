@@ -14,6 +14,13 @@ class Settings(BaseSettings):
     # Uploads Directory (Single source of truth for all modules)
     UPLOADS_DIR: str = os.path.join(BACKEND_DIR, "uploads")
     
+    # School-wide code a teacher must enter to register as GURU. Empty = anyone may register as a teacher.
+    TEACHER_INVITE_CODE: str = ""
+
+    # Signs short-lived media tickets. Set a long random value in .env; if empty, a random one is made at startup
+    # (tickets then stop working after a restart and the app simply fetches new ones).
+    SECRET_KEY: str = ""
+
     # CORS Origins
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
@@ -58,6 +65,9 @@ class Settings(BaseSettings):
     CHAT_MODEL: str = "gemini-2.5-flash"
 
     def model_post_init(self, __context):
+        if not self.SECRET_KEY:
+            import secrets
+            self.SECRET_KEY = secrets.token_hex(32)
         # "sqlite:///./x.db" would otherwise land wherever the server was started from.
         prefix = "sqlite:///"
         path = self.DATABASE_URL[len(prefix):]

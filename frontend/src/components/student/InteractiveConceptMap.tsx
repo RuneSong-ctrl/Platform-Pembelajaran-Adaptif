@@ -66,7 +66,7 @@ function ConceptNodeCard({ data, selected }: { data: any; selected?: boolean }) 
       <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-[#1D5E4D] !border-2 !border-white" />
       <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-[#4B3B7A] !border-2 !border-white" />
       <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-[#1D5E4D] !border-2 !border-white" />
-      <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-[#4B3B7A] !border-2 !border-white" />
+      <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 bg-[#4B3B7A]! !border-2 !border-white" />
 
       {/* Node Header */}
       <div className="flex items-center justify-between mb-2">

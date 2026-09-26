@@ -457,6 +457,7 @@ export interface BlockchainCredential {
   id: string;
   certificateId: string; // "KOG-2026-X7A9"
   studentId: string;
+  taskId?: string | null; // set when earned by passing a quiz; null for teacher-issued
   studentName: string;
   classroomId: string;
   className: string;

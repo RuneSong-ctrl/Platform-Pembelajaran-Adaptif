@@ -248,7 +248,7 @@ export default function StudentSchedulePage() {
                   }`}
                   title={sch.completed ? "Tandai Belum Selesai" : "Tandai Selesai"}
                 >
-                  {sch.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                  {sch.completed && <Check className="w-3.5 h-3.5 stroke-3" />}
                 </button>
 
                 <div className="min-w-0">

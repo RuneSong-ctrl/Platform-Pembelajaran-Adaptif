@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -10,12 +10,15 @@ class SubmissionBase(BaseModel):
     content: str
     attachment_name: Optional[str] = None
 
-class SubmissionCreate(SubmissionBase):
-    pass
+class SubmissionCreate(BaseModel):
+    # Student and task title come from the server; client copies of them are ignored.
+    task_id: str
+    content: str = Field(min_length=1, max_length=20000)
+    attachment_name: Optional[str] = Field(default=None, max_length=255)
 
 class SubmissionGrade(BaseModel):
-    grade: float
-    feedback: str
+    grade: float = Field(ge=0, le=100)
+    feedback: str = Field(default="", max_length=2000)
 
 class SubmissionResponse(SubmissionBase):
     id: str

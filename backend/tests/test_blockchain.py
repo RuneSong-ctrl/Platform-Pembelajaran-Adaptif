@@ -65,10 +65,13 @@ def _answers(correct_count):
 
 def test_student_claims_credential_graded_on_server():
     with TestClient(app) as client:
-        _, student, task = _quiz_setup(client)
+        teacher, student, task = _quiz_setup(client)
 
         failed = client.post("/api/v1/credentials/claim", json={"task_id": task["id"], "answers": _answers(1)}, headers=student)
         assert failed.status_code == 400
+        # A failed attempt still shows up as a graded submission for the teacher.
+        subs = client.get("/api/v1/submissions", headers=teacher).json()
+        assert [(x["task_id"], x["grade"], x["status"]) for x in subs] == [(task["id"], 25.0, "GRADED")]
 
         resp = client.post("/api/v1/credentials/claim", json={"task_id": task["id"], "answers": _answers(3)}, headers=student)
         assert resp.status_code == 201, resp.text
@@ -79,6 +82,7 @@ def test_student_claims_credential_graded_on_server():
 
         again = client.post("/api/v1/credentials/claim", json={"task_id": task["id"], "answers": _answers(4)}, headers=student).json()
         assert again["certificate_id"] == cred["certificate_id"]  # one credential per quiz
+        assert [x["grade"] for x in client.get("/api/v1/submissions", headers=teacher).json()] == [100.0]  # best score kept
 
         # Public verify works without logging in
         check = client.get(f"/api/v1/credentials/verify/{cred['certificate_id']}").json()
@@ -155,3 +159,61 @@ def test_v2_hash_seals_certificate_text_and_v1_still_verifies():
             db.commit()
         finally:
             db.close()
+
+
+def test_students_never_get_the_answer_key():
+    with TestClient(app) as client:
+        teacher, student, task = _quiz_setup(client)
+        q_student = client.get("/api/v1/tasks", headers=student).json()[0]["content_json"]["questions"]
+        assert all("correctIndex" not in q for q in q_student)
+        assert "correctIndex" in client.get(f"/api/v1/tasks/{task['id']}", headers=teacher).json()["content_json"]["questions"][0]
+        assert "correctIndex" not in client.get(f"/api/v1/tasks/{task['id']}", headers=student).json()["content_json"]["questions"][0]
+
+        # Feedback comes from the server, and the first answer is final: no probing for the right option.
+        wrong = client.post(f"/api/v1/tasks/{task['id']}/answer", json={"question_id": "q0", "selected_index": 1}, headers=student).json()
+        assert wrong["correct"] is False and wrong["correct_index"] == 0
+        again = client.post(f"/api/v1/tasks/{task['id']}/answer", json={"question_id": "q0", "selected_index": 0}, headers=student).json()
+        assert again["correct"] is False and again["selected_index"] == 1
+
+        # The claim uses the locked answer for q0, and repeating one correct answer does not inflate the score.
+        dupes = [{"question_id": "q1", "selected_index": 1}] * 4
+        assert client.post("/api/v1/credentials/claim", json={"task_id": task["id"], "answers": dupes}, headers=student).status_code == 400
+        swapped = _answers(4)  # claims q0 correct, but q0 was locked in wrong
+        cred = client.post("/api/v1/credentials/claim", json={"task_id": task["id"], "answers": swapped}, headers=student).json()
+        assert cred["score"] == 75.0
+
+
+def test_students_cannot_edit_earned_stats_or_spoof_submissions():
+    with TestClient(app) as client:
+        _, student, task = _quiz_setup(client)
+        me = client.get("/api/v1/auth/me", headers=student).json()
+        client.patch(f"/api/v1/users/{me['id']}", json={"xp_total": 99999, "current_dda_level": "MASTERY"}, headers=student)
+        after = client.get("/api/v1/auth/me", headers=student).json()
+        assert (after["xp_total"], after["current_dda_level"]) == (me["xp_total"], me["current_dda_level"])
+
+        sub = client.post("/api/v1/submissions", json={"task_id": task["id"], "task_title": "PALSU", "student_id": "x",
+                                                       "student_name": "x", "content": "jawaban"}, headers=student).json()
+        assert sub["task_title"] == "Kuis Sel" and sub["student_id"] == me["id"]
+
+
+def test_quiz_attempts_are_capped():
+    with TestClient(app) as client:
+        _, student, task = _quiz_setup(client)
+        for _ in range(3):
+            client.post("/api/v1/credentials/claim", json={"task_id": task["id"], "answers": _answers(1)}, headers=student)
+        assert client.post("/api/v1/credentials/claim", json={"task_id": task["id"], "answers": _answers(4)}, headers=student).status_code == 409
+        assert client.post(f"/api/v1/tasks/{task['id']}/answer", json={"question_id": "q0", "selected_index": 0}, headers=student).status_code == 409
+
+
+def test_rate_limit_is_stored_in_the_database():
+    import pytest
+    from fastapi import HTTPException
+    from app.services.cache_service import check_rate_limit, RateHit
+    from app.core.database import SessionLocal
+    key = f"rl_{uuid.uuid4().hex}"
+    for _ in range(3):
+        check_rate_limit(key, limit_per_minute=3)
+    with pytest.raises(HTTPException):
+        check_rate_limit(key, limit_per_minute=3)
+    with SessionLocal() as db:
+        assert db.query(RateHit).filter(RateHit.key == key).count() == 3

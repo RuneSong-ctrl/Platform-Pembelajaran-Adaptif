@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from typing import Optional, Dict, List, Any
 from datetime import datetime
 
@@ -45,6 +45,7 @@ class UserRegister(BaseModel):
     password: str
     grade: Optional[int] = 10
     subject_specialization: Optional[str] = None
+    invite_code: Optional[str] = Field(default=None, max_length=64)  # required for GURU when the school sets one
 
 class UserLogin(BaseModel):
     identifier: str
@@ -57,12 +58,7 @@ class UserUpdate(BaseModel):
     grade: Optional[int] = None
     learning_style: Optional[str] = None
     modality_scores: Optional[Dict[str, int]] = None
-    learning_progress: Optional[Dict[str, Any]] = None
-    processing_speed: Optional[str] = None
-    xp_total: Optional[int] = None
-    streak_days: Optional[int] = None
-    hearts: Optional[int] = None
-    current_dda_level: Optional[str] = None
+    # xp_total, streak_days, hearts, current_dda_level and learning_progress are earned, never self-set.
 
 class LearningActivityTrackRequest(BaseModel):
     modality_type: str # "visual", "audio", "practice"

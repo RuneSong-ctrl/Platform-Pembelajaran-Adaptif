@@ -1,535 +1,375 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
 import TeacherSidebar from "@/components/layout/TeacherSidebar";
 import { audioSynth } from "@/services/audioSynth";
-import { ApiService } from "@/services/apiClient";
 import LearningUnits from "@/components/student/LearningUnits";
-import {
-  UploadCloud,
-  Lock,
-  FileText,
-  Trash2,
-  Database,
-  Plus,
-  X,
-  BookOpen,
-  CheckCircle2,
-  AlertCircle,
-  RefreshCw,
-} from "@/components/ui/icons";
+import { UploadCloud, Lock, FileText, Trash2, Plus, X, BookOpen, AlertCircle, ChevronDown } from "@/components/ui/icons";
+
+const STATUS: Record<string, { label: string; tone: string }> = {
+  READY: { label: "Siap", tone: "clay-mint text-[#1D5E4D]" },
+  PROCESSING: { label: "Sedang diproses", tone: "clay-butter text-[#785308]" },
+  ERROR: { label: "Gagal diproses", tone: "clay-coral text-[#852C28]" },
+};
 
 export default function TeacherRAGPage() {
   const { documents, uploadDocument, uploadDocumentFile, deleteDocument, classrooms, currentUser } = useApp();
+  const myClasses = classrooms.filter((c) => c.teacherId === currentUser.id);
+  const [params, setParams] = useSearchParams();
+  const filter = params.get("kelas") || "";
+  const setFilter = (id: string) => setParams(id ? { kelas: id } : {}, { replace: true });
+
   const [reviewId, setReviewId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const [selectedClassId, setSelectedClassId] = useState<string>(
-    classrooms[0]?.id || ""
-  );
-  useEffect(() => {
-    if (!classrooms.some(c => c.id === selectedClassId && c.teacherId === currentUser.id)) {
-      setSelectedClassId(classrooms.find(c => c.teacherId === currentUser.id)?.id || "");
-    }
-  }, [classrooms, currentUser.id, selectedClassId]);
-  const [strictGrounding, setStrictGrounding] = useState(true);
+  // Upload form
+  const [modalOpen, setModalOpen] = useState(false);
+  const [mode, setMode] = useState<"file" | "teks">("file");
+  const [targetClassId, setTargetClassId] = useState("");
+  const [title, setTitle] = useState("");
+  const [summary, setSummary] = useState("");
+  const [rawText, setRawText] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [error, setError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
-
-  // Custom upload form state
-  const [customTitle, setCustomTitle] = useState("");
-  const [customSummary, setCustomSummary] = useState("");
-  const [customRawText, setCustomRawText] = useState("");
-
-  // File upload state
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [extractMsg, setExtractMsg] = useState("");
-  const [extractError, setExtractError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const myDocs = documents.filter((d) => myClasses.some((c) => c.id === d.classroomId));
+  const shown = filter ? myDocs.filter((d) => d.classroomId === filter) : myDocs;
+  const className = (id: string) => myClasses.find((c) => c.id === id)?.name || "";
 
-    setSelectedFile(file);
-    setIsExtracting(true);
-    setExtractMsg("");
-    setExtractError("");
+  const openUpload = () => {
     audioSynth.playClickSound();
-
-    if (file.name.toLowerCase().endsWith(".pdf")) {
-      try {
-        const res = await ApiService.extractDocumentText(file);
-        if (res && res.text && res.text.trim()) {
-          if (!customTitle.trim()) {
-            setCustomTitle(res.title);
-          }
-          setCustomRawText(res.text);
-          setExtractMsg(`Teks PDF (${res.text.length} karakter) berhasil diekstrak!`);
-          audioSynth.playSuccessSound();
-        } else {
-          setExtractError("File PDF tidak memuat teks digital yang dapat dibaca.");
-          audioSynth.playErrorSound();
-        }
-      } catch (err) {
-        setExtractError("Gagal mengekstrak file PDF.");
-        audioSynth.playErrorSound();
-      } finally {
-        setIsExtracting(false);
-      }
-    } else {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const text = event.target?.result as string;
-        if (text) {
-          if (!customTitle.trim()) {
-            setCustomTitle(
-              file.name.replace(/\.[^/.]+$/, "").replace(/[_\-]+/g, " ")
-            );
-          }
-          setCustomRawText(text);
-          setExtractMsg(`File ${file.name} (${text.length} karakter) siap disimpan.`);
-          audioSynth.playSuccessSound();
-        }
-        setIsExtracting(false);
-      };
-      reader.onerror = () => {
-        setExtractError("Gagal membaca file dokumen.");
-        setIsExtracting(false);
-      };
-      reader.readAsText(file);
-    }
+    setTargetClassId(filter || myClasses[0]?.id || "");
+    setError("");
+    setModalOpen(true);
   };
 
-  const handleClearFile = () => {
-    setSelectedFile(null);
-    setExtractMsg("");
-    setExtractError("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+  const resetForm = () => {
+    setModalOpen(false);
+    setFile(null);
+    setTitle("");
+    setSummary("");
+    setRawText("");
+    setError("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleCustomUpload = async (e: React.FormEvent) => {
+  const pickFile = (f: File | undefined) => {
+    if (!f) return;
+    setFile(f);
+    setError("");
+    if (!title.trim()) setTitle(f.name.replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " "));
+  };
+
+  const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customTitle.trim()) return;
-    if (!customRawText.trim() && !selectedFile) return;
-    if (!selectedClassId) {
-      setExtractError("Belum ada kelas. Buat kelas dulu di Dashboard Guru, lalu unggah modul ke kelas tersebut.");
-      audioSynth.playErrorSound();
-      return;
-    }
-
+    if (!targetClassId || !title.trim()) return;
+    if (mode === "file" ? !file : !rawText.trim()) return;
     setIsUploading(true);
-    audioSynth.playClickSound();
-
+    setError("");
     try {
-      if (selectedFile) {
-        await uploadDocumentFile(
-          selectedClassId,
-          selectedFile,
-          customTitle.trim(),
-          customSummary.trim() || customRawText.slice(0, 120) + "..."
-        );
+      if (mode === "file" && file) {
+        await uploadDocumentFile(targetClassId, file, title.trim(), summary.trim() || undefined);
       } else {
-        await uploadDocument(
-          selectedClassId,
-          customTitle.trim(),
-          customRawText.trim(),
-          customSummary.trim() || customRawText.slice(0, 120) + "..."
-        );
+        await uploadDocument(targetClassId, title.trim(), rawText.trim(), summary.trim() || rawText.trim().slice(0, 120));
       }
       audioSynth.playSuccessSound();
-      setIsCustomModalOpen(false);
-      setSelectedFile(null);
-      setCustomTitle("");
-      setCustomSummary("");
-      setCustomRawText("");
-      setExtractMsg("");
-      setExtractError("");
+      resetForm();
     } catch (err) {
-      console.error("Upload error", err);
-      setExtractError(err instanceof Error ? err.message : "Unggah gagal.");
+      setError(err instanceof Error ? err.message : "Unggah gagal. Coba lagi.");
       audioSynth.playErrorSound();
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handlePresetUpload = async (title: string, rawText: string, summary: string) => {
-    if (!selectedClassId) return;
-    setIsUploading(true);
-    audioSynth.playClickSound();
-
-    try {
-      await uploadDocument(selectedClassId, title, rawText, summary);
-      audioSynth.playSuccessSound();
-    } catch (err) {
-      console.error("Preset upload error", err);
-      audioSynth.playErrorSound();
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  const canSubmit = !!targetClassId && !!title.trim() && (mode === "file" ? !!file : !!rawText.trim()) && !isUploading;
 
   return (
     <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden w-full">
-        {/* Responsive Desktop Sidebar */}
         <TeacherSidebar />
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 py-6 space-y-6 sm:space-y-8">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="clay-pill clay-lavender px-3 py-0.5 text-xs font-extrabold text-[#4B3B7A]">
-                  ChromaDB Vector Store
-                </span>
-                <span className="clay-pill clay-mint px-3 py-0.5 text-xs font-bold text-[#1D5E4D]">
-                  Validasi Sumber & Tinjauan Guru
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">
-                Knowledge Base &amp; RAG Ingestion Center
-              </h1>
-              <p className="text-xs sm:text-sm text-[#5A5E70] font-medium mt-1">
-                Unggah modul PDF dan silabus ajar. Tinjau draf unit dan kutipan sumber sebelum dipublikasikan kepada siswa.
-              </p>
-            </div>
-
-            <button
-              onClick={() => {
-                audioSynth.playClickSound();
-                setIsCustomModalOpen(true);
-              }}
-              className="clay-btn clay-btn-dark px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 cursor-pointer shrink-0 shadow-xs"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Unggah Modul Kustom</span>
-            </button>
-          </div>
-
-          {/* STRICT GROUNDING TOGGLE & CLASS SELECTOR */}
-          <div className="clay-card clay-white p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <main className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 py-6">
+          <div className="max-w-5xl mx-auto space-y-6">
+            {/* Header */}
+            <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div>
-                <span className="text-xs font-bold text-[#5A5E70] block">Rombongan Belajar Target:</span>
-                <select
-                  value={selectedClassId}
-                  onChange={(e) => setSelectedClassId(e.target.value)}
-                  className="mt-1.5 p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#F8F9FD] focus:outline-none cursor-pointer"
-                >
-                  {!selectedClassId && <option value="">Belum ada kelas</option>}
-                  {classrooms.filter(c => c.teacherId === currentUser.id).map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.joinCode})
-                    </option>
-                  ))}
-                </select>
-                {!selectedClassId && (
-                  <p role="status" className="mt-2 text-xs font-bold text-[#852C28]">
-                    Buat kelas dulu di Dashboard Guru; modul selalu diunggah ke salah satu kelas Anda.
-                  </p>
-                )}
+                <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">Materi Ajar</h1>
+                <p className="text-sm text-[#5A5E70] mt-1 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 shrink-0" />
+                  Materi hanya bisa dibuka oleh siswa di kelas tujuannya.
+                </p>
               </div>
-
-              {/* Strict Grounding Switch */}
-              <div className="clay-card clay-lavender p-4 flex items-center gap-3.5">
-                <div className="w-9 h-9 rounded-xl bg-white text-[#4B3B7A] flex items-center justify-center shrink-0">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black text-[#4B3B7A]">
-                    Strict School Grounding Lock
-                  </h4>
-                  <p className="text-mini text-[#4B3B7A]/80 font-medium">
-                    AI dilarang mengambil informasi di luar dokumen modul yang diunggah
-                  </p>
-                </div>
+              {myClasses.length > 0 && (
                 <button
-                  onClick={() => {
-                    audioSynth.playClickSound();
-                    setStrictGrounding(!strictGrounding);
-                  }}
-                  className={`w-12 h-6 rounded-full transition-colors relative ml-2 cursor-pointer ${
-                    strictGrounding ? "bg-[#4B3B7A]" : "bg-[#c7c6cb]"
-                  }`}
+                  onClick={openUpload}
+                  className="clay-btn clay-btn-dark px-5 py-2.5 text-xs font-black flex items-center gap-2 self-start sm:self-auto cursor-pointer"
                 >
-                  <span
-                    className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                      strictGrounding ? "translate-x-6" : "translate-x-0"
-                    }`}
-                  />
+                  <Plus className="w-4 h-4" />
+                  <span>Unggah materi</span>
                 </button>
-              </div>
-            </div>
-          </div>
+              )}
+            </header>
 
-          {/* UPLOAD SIMULATION DROPZONE */}
-          <div className="clay-card p-8 bg-[#FAF8FD] border-2 border-dashed border-[#E0DAF5] rounded-3xl text-center space-y-4">
-            <div className="clay-card clay-white w-14 h-14 rounded-2xl flex items-center justify-center text-[#4B3B7A] mx-auto shadow-2xs">
-              <UploadCloud className="w-7 h-7" />
-            </div>
-
-            <div className="max-w-md mx-auto space-y-1">
-              <h3 className="text-base font-black text-[#010105]">
-                Unggah Dokumen Silabus / Modul Ajar
-              </h3>
-              <p className="text-xs text-[#5A5E70] font-medium">
-                Sistem akan melakukan ekstraksi teks otomatis, semantic chunking, dan pembobotan embedding vektor ke database backend.
-              </p>
-            </div>
-
-            <div className="flex justify-center pt-2">
-              <button
-                onClick={() => setIsCustomModalOpen(true)}
-                className="clay-btn clay-btn-dark px-6 py-3 text-xs font-black flex items-center gap-2 cursor-pointer shadow-xs"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Input Modul / Silabus Baru</span>
-              </button>
-            </div>
-          </div>
-
-          {/* INGESTED DOCUMENTS TABLE */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-black text-[#010105]">
-                  Daftar Modul Terindeks di Database &amp; ChromaDB
-                </h2>
-                <p className="text-xs text-[#5A5E70]">
-                  Dokumen yang aktif menjadi basis data generative AI kuis dan pembelajaran adaptif.
-                </p>
-              </div>
-              <span className="clay-pill clay-mint px-3 py-1 text-xs font-extrabold text-[#1D5E4D]">
-                {documents.length} Dokumen Aktif
-              </span>
-            </div>
-
-            {documents.length === 0 ? (
-              <div className="clay-card clay-white p-8 rounded-3xl border border-black/5 text-center space-y-3">
-                <BookOpen className="w-8 h-8 text-[#9195A8] mx-auto" />
-                <h3 className="text-sm font-bold text-[#1C1E26]">
-                  Belum Ada Dokumen Modul Terunggah
-                </h3>
-                <p className="text-xs text-[#5A5E70] max-w-sm mx-auto">
-                  Klik tombol "Unggah Modul Kustom" di atas untuk menambahkan silabus pembelajaran pertama Anda.
-                </p>
-              </div>
+            {myClasses.length === 0 ? (
+              <Empty title="Buat kelas dulu">
+                Materi selalu diunggah ke salah satu kelas. <Link to="/teacher" className="font-bold underline">Buat kelas di Beranda</Link>.
+              </Empty>
             ) : (
-              <div className="space-y-3">
-                {documents.filter(doc => classrooms.some(c => c.id === doc.classroomId && c.teacherId === currentUser.id)).map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="clay-card clay-card-hover clay-white p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                  >
-                    <div className="flex items-start gap-3.5">
-                      <div className="clay-card clay-mint w-11 h-11 rounded-2xl flex items-center justify-center text-[#1D5E4D] shrink-0">
-                        <FileText className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="clay-pill clay-mint text-mini font-extrabold px-2.5 py-0.5 text-[#1D5E4D]">
-                            {doc.status}
-                          </span>
-                          <span className="clay-pill clay-dark text-mini font-mono font-bold px-2 py-0.5">
-                            {doc.vectorId}
-                          </span>
-                        </div>
-                        <h4 className="text-sm font-black text-[#010105]">{doc.title}</h4>
-                        <p className="text-xs text-[#5A5E70] mt-0.5">{doc.summary}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 self-end sm:self-center">
-                      <button className="border rounded-xl px-3 py-2 text-sm" onClick={() => setReviewId(reviewId === doc.id ? null : doc.id)}>Tinjau unit belajar</button>
-                      <span className="clay-pill bg-[#F8F9FD] px-3 py-1 text-xs font-bold text-[#5A5E70]">
-                        {doc.chunksCount} Semantic Chunks
-                      </span>
+              <>
+                {/* Class filter */}
+                {myClasses.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Pilih kelas">
+                    {[{ id: "", name: "Semua kelas" }, ...myClasses].map((c) => (
                       <button
-                        onClick={() => {
-                          audioSynth.playClickSound();
-                          deleteDocument(doc.id);
-                        }}
-                        className="clay-btn clay-btn-white w-9 h-9 rounded-xl text-[#ba1a1a] flex items-center justify-center cursor-pointer"
-                        title="Hapus Modul"
+                        key={c.id}
+                        role="tab"
+                        aria-selected={filter === c.id}
+                        onClick={() => setFilter(c.id)}
+                        className={`clay-pill px-3.5 py-1.5 text-xs font-bold whitespace-nowrap cursor-pointer ${
+                          filter === c.id ? "clay-dark text-white" : "clay-white text-[#5A5E70]"
+                        }`}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {c.name}
                       </button>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
+
+                {shown.length === 0 ? (
+                  <Empty title="Belum ada materi">
+                    Unggah PDF atau tempel teks materi. Setelah itu Anda bisa meninjau isinya sebelum siswa melihat.
+                  </Empty>
+                ) : (
+                  <ul className="space-y-3">
+                    {shown.map((doc) => {
+                      const status = STATUS[doc.status] || STATUS.READY;
+                      const open = reviewId === doc.id;
+                      return (
+                        <li key={doc.id} className="clay-card clay-white overflow-hidden">
+                          <div className="p-4 sm:p-5 flex items-center gap-3.5">
+                            <div className="clay-card clay-mint w-10 h-10 rounded-2xl flex items-center justify-center text-[#1D5E4D] shrink-0">
+                              <FileText className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-sm font-black text-[#010105] truncate">{doc.title}</h3>
+                              <p className="text-xs text-[#5A5E70] truncate">
+                                {className(doc.classroomId)} · {new Date(doc.uploadedAt).toLocaleDateString("id-ID")}
+                              </p>
+                            </div>
+                            <span className={`clay-pill ${status.tone} text-mini font-extrabold px-2.5 py-0.5 hidden sm:inline-block`}>
+                              {status.label}
+                            </span>
+                            <button
+                              onClick={() => {
+                                audioSynth.playClickSound();
+                                setReviewId(open ? null : doc.id);
+                              }}
+                              aria-expanded={open}
+                              className="clay-btn clay-btn-white px-3.5 py-2 text-xs font-black flex items-center gap-1 cursor-pointer"
+                            >
+                              {open ? "Tutup" : "Tinjau"}
+                              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+                            </button>
+                            {confirmDeleteId === doc.id ? (
+                              <span className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => {
+                                    audioSynth.playClickSound();
+                                    deleteDocument(doc.id);
+                                    setConfirmDeleteId(null);
+                                    if (open) setReviewId(null);
+                                  }}
+                                  className="clay-btn clay-btn-coral px-3 py-2 text-xs font-black cursor-pointer"
+                                >
+                                  Hapus
+                                </button>
+                                <button
+                                  onClick={() => setConfirmDeleteId(null)}
+                                  className="text-xs font-bold text-[#5A5E70] px-1 cursor-pointer"
+                                >
+                                  Batal
+                                </button>
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmDeleteId(doc.id)}
+                                className="clay-btn clay-btn-white w-9 h-9 rounded-xl text-[#ba1a1a] flex items-center justify-center cursor-pointer shrink-0"
+                                title="Hapus materi"
+                                aria-label={`Hapus ${doc.title}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                          {open && (
+                            <div className="border-t border-[rgba(28,30,38,0.06)] p-4 sm:p-5 bg-[#FAFBFE]">
+                              <p className="text-xs text-[#5A5E70] mb-3">
+                                Periksa isi yang dibuat dari materi ini. Siswa baru bisa melihatnya setelah Anda menyetujui.
+                              </p>
+                              <LearningUnits key={doc.id} documentId={doc.id} teacher />
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </>
             )}
-          </section>
-          {reviewId && <section aria-label="Peninjauan materi">
-            <button className="border rounded-lg px-4 py-2 mb-3" onClick={() => setReviewId(null)}>Tutup peninjauan</button>
-            <LearningUnits key={reviewId} documentId={reviewId} teacher />
-          </section>}
+          </div>
         </main>
       </div>
 
-      {/* CUSTOM UPLOAD MODAL */}
-      {isCustomModalOpen && (
+      {/* Upload modal */}
+      {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="clay-card clay-white w-full max-w-lg p-6 sm:p-8 rounded-3xl border border-black/10 shadow-2xl space-y-5 animate-in zoom-in-95">
+          <div className="clay-card clay-white w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 sm:p-8 rounded-3xl border border-black/10 shadow-2xl space-y-5 animate-in zoom-in-95">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#EBF6F2] text-[#1D5E4D] flex items-center justify-center">
-                  <UploadCloud className="w-4 h-4" />
-                </div>
-                <h3 className="text-base font-black text-[#1C1E26]">
-                  Unggah Modul / Silabus Pembelajaran
-                </h3>
-              </div>
+              <h3 className="text-base font-black text-[#1C1E26]">Unggah materi</h3>
               <button
-                onClick={() => setIsCustomModalOpen(false)}
+                onClick={resetForm}
+                aria-label="Tutup"
                 className="w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-[#5A5E70] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCustomUpload} className="space-y-4">
-              {/* Interactive File Dropzone for PDF / TXT / MD */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-[#5A5E70] block">
-                  Unggah Berkas PDF / Dokumen:
-                </label>
-                
-                <div className="p-4 rounded-2xl border-2 border-dashed border-[#1D5E4D]/30 bg-[#EBF6F2]/40 hover:bg-[#EBF6F2]/70 transition-all text-center space-y-2 relative group">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.txt,.md"
-                    onChange={handleFileSelect}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                  />
-                  <div className="w-10 h-10 rounded-2xl bg-white text-[#1D5E4D] mx-auto flex items-center justify-center shadow-xs">
-                    {isExtracting ? (
-                      <RefreshCw className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <UploadCloud className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-xs font-black text-[#1D5E4D]">
-                      {isExtracting ? "Mengekstrak Teks dari PDF..." : "Pilih File PDF / Dokumen Modul Ajar"}
-                    </p>
-                    <p className="text-mini text-[#5A5E70] mt-0.5">
-                      Mendukung format .pdf, .txt, .md (Teks otomatis diekstrak ke formulir di bawah)
-                    </p>
-                  </div>
+            <form onSubmit={handleUpload} className="space-y-4">
+              <Field label="Untuk kelas">
+                <select
+                  value={targetClassId}
+                  onChange={(e) => setTargetClassId(e.target.value)}
+                  className="w-full p-3 rounded-2xl border border-[rgba(28,30,38,0.12)] text-xs font-bold text-[#1C1E26] bg-[#F8F9FD] focus:outline-none cursor-pointer"
+                >
+                  {myClasses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              {/* Source: file or pasted text */}
+              <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-[#F1F2F7]">
+                {(["file", "teks"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMode(m)}
+                    className={`py-2 rounded-xl text-xs font-black cursor-pointer ${
+                      mode === m ? "bg-white text-[#010105] shadow-xs" : "text-[#5A5E70]"
+                    }`}
+                  >
+                    {m === "file" ? "Dari file" : "Tulis / tempel teks"}
+                  </button>
+                ))}
+              </div>
+
+              {mode === "file" ? (
+                <div>
+                  <label className="p-5 rounded-2xl border-2 border-dashed border-[#1D5E4D]/30 bg-[#EBF6F2]/40 hover:bg-[#EBF6F2]/70 transition-colors text-center block cursor-pointer">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.txt,.md"
+                      onChange={(e) => pickFile(e.target.files?.[0])}
+                      className="sr-only"
+                    />
+                    <UploadCloud className="w-6 h-6 text-[#1D5E4D] mx-auto mb-1.5" />
+                    <span className="block text-xs font-black text-[#1D5E4D]">
+                      {file ? file.name : "Pilih file PDF atau teks"}
+                    </span>
+                    <span className="block text-mini text-[#5A5E70] mt-0.5">
+                      {file ? `${(file.size / 1024).toFixed(0)} KB · klik untuk ganti` : "PDF, TXT, atau MD · maksimal 20 MB"}
+                    </span>
+                  </label>
+                  <p className="text-mini text-[#9195A8] mt-1.5">PDF hasil scan (foto) tidak bisa dibaca. Pakai PDF yang teksnya bisa diblok.</p>
                 </div>
+              ) : (
+                <Field label="Isi materi">
+                  <textarea
+                    rows={6}
+                    placeholder="Tempel isi materi di sini: penjelasan, definisi, dan contoh."
+                    value={rawText}
+                    onChange={(e) => setRawText(e.target.value)}
+                    className="w-full p-3 rounded-2xl border border-[rgba(28,30,38,0.12)] text-xs text-[#1C1E26] bg-[#F8F9FD] focus:outline-none leading-relaxed"
+                  />
+                </Field>
+              )}
 
-                {/* Selected File Feedback Badge */}
-                {selectedFile && (
-                  <div className="p-2.5 rounded-xl bg-white border border-[#1D5E4D]/20 flex items-center justify-between gap-2 shadow-2xs">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <FileText className="w-4 h-4 text-[#1D5E4D] shrink-0" />
-                      <span className="text-xs font-bold text-[#1C1E26] truncate">
-                        {selectedFile.name}
-                      </span>
-                      <span className="text-mini text-[#5A5E70] font-mono shrink-0">
-                        ({(selectedFile.size / 1024).toFixed(1)} KB)
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleClearFile}
-                      className="p-1 rounded-lg hover:bg-black/5 text-[#5A5E70] hover:text-[#ba1a1a] transition-colors cursor-pointer"
-                      title="Hapus file"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                )}
-
-                {extractMsg && (
-                  <div className="p-2 rounded-xl bg-[#EBF6F2] text-[#1D5E4D] text-mini font-bold flex items-center gap-1.5 animate-in fade-in">
-                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                    <span>{extractMsg}</span>
-                  </div>
-                )}
-
-                {extractError && (
-                  <div className="p-2 rounded-xl bg-[#FDE8E8] text-[#9B1C1C] text-mini font-bold flex items-center gap-1.5 animate-in fade-in">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span>{extractError}</span>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-[#5A5E70] block mb-1">
-                  Judul Modul / Topik Bab:
-                </label>
+              <Field label="Judul materi">
                 <input
                   type="text"
-                  required
-                  placeholder="Contoh: Bab 4 - Sistem Ekskresi Ginjal Manusia"
-                  value={customTitle}
-                  onChange={(e) => setCustomTitle(e.target.value)}
+                  placeholder="Contoh: Bab 4 – Sistem Ekskresi"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                   className="w-full p-3 rounded-2xl border border-[rgba(28,30,38,0.12)] text-xs font-bold text-[#1C1E26] bg-[#F8F9FD] focus:outline-none"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="text-xs font-bold text-[#5A5E70] block mb-1">
-                  Ringkasan Modul (Opsional):
-                </label>
+              <Field label="Keterangan singkat (opsional)">
                 <input
                   type="text"
-                  placeholder="Penjelasan ringkas materi untuk siswa"
-                  value={customSummary}
-                  onChange={(e) => setCustomSummary(e.target.value)}
-                  className="w-full p-3 rounded-2xl border border-[rgba(28,30,38,0.12)] text-xs font-bold text-[#1C1E26] bg-[#F8F9FD] focus:outline-none"
+                  placeholder="Satu kalimat tentang isi materi"
+                  value={summary}
+                  onChange={(e) => setSummary(e.target.value)}
+                  className="w-full p-3 rounded-2xl border border-[rgba(28,30,38,0.12)] text-xs text-[#1C1E26] bg-[#F8F9FD] focus:outline-none"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="text-xs font-bold text-[#5A5E70] block mb-1">
-                  Isi / Teks Modul Pembelajaran (Grounding AI):
-                </label>
-                <textarea
-                  required
-                  rows={5}
-                  placeholder="Tempelkan isi rangkuman silabus, konsep utama, dan definisi yang akan dijadikan rujukan oleh Asisten AI Tutor dan Generator Kuis DDA..."
-                  value={customRawText}
-                  onChange={(e) => setCustomRawText(e.target.value)}
-                  className="w-full p-3 rounded-2xl border border-[rgba(28,30,38,0.12)] text-xs text-[#1C1E26] bg-[#F8F9FD] focus:outline-none leading-relaxed"
-                />
-              </div>
+              {error && (
+                <p role="alert" className="p-2.5 rounded-xl bg-[#FDE8E8] text-[#9B1C1C] text-xs font-bold flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  {error}
+                </p>
+              )}
 
-              <div className="flex justify-end gap-2.5 pt-2">
+              <div className="flex justify-end gap-2.5 pt-1">
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsCustomModalOpen(false);
-                    handleClearFile();
-                  }}
+                  onClick={resetForm}
                   className="clay-btn clay-btn-white px-4 py-2.5 rounded-2xl text-xs font-bold text-[#5A5E70] cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  disabled={isUploading || isExtracting}
-                  className="clay-btn clay-btn-dark px-5 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  disabled={!canSubmit}
+                  className="clay-btn clay-btn-dark px-5 py-2.5 rounded-2xl text-xs font-black cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Database className="w-4 h-4" />
-                  <span>{isUploading ? "Memproses & Vektorisasi..." : "Simpan Dokumen"}</span>
+                  {isUploading ? "Mengunggah..." : "Unggah"}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-xs font-bold text-[#5A5E70] block mb-1">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function Empty({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="clay-card clay-white p-8 text-center space-y-2">
+      <BookOpen className="w-8 h-8 text-[#9195A8] mx-auto" />
+      <h3 className="text-sm font-black text-[#010105]">{title}</h3>
+      <p className="text-xs text-[#5A5E70] max-w-sm mx-auto">{children}</p>
     </div>
   );
 }

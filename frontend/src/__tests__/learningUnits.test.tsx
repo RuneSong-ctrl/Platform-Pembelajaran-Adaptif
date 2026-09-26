@@ -54,11 +54,11 @@ describe("Learning unit review", () => {
     }));
     vi.stubGlobal("fetch", fetchMock);
     render(<LearningUnits documentId="doc" teacher />);
-    expect(await screen.findByText(/mungkin masih memuat tulisan dari AI: Ilustrasi utama/)).toBeTruthy();
+    expect(await screen.findByText(/mungkin masih ada tulisan yang tidak perlu: Ilustrasi utama/)).toBeTruthy();
     const poster = screen.getByRole("img", { name: "Poster infografis Model Bahasa N-Gram" });
     expect(poster.querySelector("image")!.getAttribute("href")).toBe("http://localhost:8000/uploads/images/doc_ai_1234abcd.png");
     fireEvent.click(screen.getByText("Buat ulang gambar"));
-    expect(await screen.findByText(/Sedang menggambar ilustrasi dan ikon/)).toBeTruthy();
+    expect(await screen.findByText(/Gambar sedang dibuat/)).toBeTruthy();
     expect(fetchMock.mock.calls.some(([url, o]) => String(url).endsWith("/learning-units/image") && o?.method === "POST")).toBe(true);
   });
 
@@ -83,7 +83,7 @@ describe("Learning unit review", () => {
     render(<LearningUnits documentId="doc" />);
     expect(await screen.findByText("Unit belajar belum dipublikasikan oleh guru.")).toBeTruthy();
     expect(screen.queryByText("86.5%")).toBeNull();
-    expect(screen.queryByText("Setujui dan publikasikan")).toBeNull();
+    expect(screen.queryByText("Setujui & tampilkan ke siswa")).toBeNull();
   });
 
   it("renders accessible sequence, map relationships and comparison cells", () => {
@@ -103,7 +103,7 @@ describe("Learning unit review", () => {
     render(<LearningUnits documentId="doc" showVisual />);
     expect(await screen.findByText("Menyeduh teh")).toBeTruthy();
     expect(screen.queryByText("Edit visual")).toBeNull();
-    expect(screen.queryByText("Setujui dan publikasikan")).toBeNull();
+    expect(screen.queryByText("Setujui & tampilkan ke siswa")).toBeNull();
   });
 
   it("keeps old units readable without inventing a visual", async () => {
@@ -123,9 +123,9 @@ describe("Learning unit review", () => {
     render(<LearningUnits documentId="doc" teacher />);
     const title = await screen.findByLabelText("Judul visual");
     fireEvent.change(title, { target: { value: "Urutan membuat teh" } });
-    expect((screen.getByText("Setujui dan publikasikan") as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByText("Setujui & tampilkan ke siswa") as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByText("Simpan perubahan"));
-    await waitFor(() => expect((screen.getByText("Setujui dan publikasikan") as HTMLButtonElement).disabled).toBe(false));
+    await waitFor(() => expect((screen.getByText("Setujui & tampilkan ke siswa") as HTMLButtonElement).disabled).toBe(false));
     const save = fetchMock.mock.calls.find(([, options]) => options?.method === "PUT");
     expect(JSON.parse(save![1]!.body as string).units[0].visual.title).toBe("Urutan membuat teh");
     expect(fetchMock.mock.calls.every(([url]) => !url.includes("podcast"))).toBe(true);
@@ -137,7 +137,7 @@ describe("Learning unit review", () => {
       : { ok: true, status: 200, json: async () => state });
     vi.stubGlobal("fetch", fetchMock);
     render(<LearningUnits documentId="doc" teacher />);
-    fireEvent.click(await screen.findByText("Buat / coba ulang"));
+    fireEvent.click(await screen.findByText("Susun isi belajar"));
     await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("Akses ditolak"));
     expect(fetchMock.mock.calls.every(([url]) => !url.includes("podcast"))).toBe(true);
   });

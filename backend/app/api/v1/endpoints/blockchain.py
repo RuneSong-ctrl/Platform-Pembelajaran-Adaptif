@@ -8,7 +8,11 @@ from app.core.scope import visible_classroom_ids, visible_student_ids
 from app.models.credential import BlockchainCredential
 from app.models.user import User
 from app.models.classroom import Classroom
-from app.models.task import GroundedTask
+from app.models.task import GroundedTask, QuizAttempt
+from app.api.v1.endpoints.tasks import MAX_QUIZ_ATTEMPTS
+from app.models.submission import AssignmentSubmission
+import uuid
+from datetime import datetime
 from app.schemas.credential import (
     CredentialResponse,
     CredentialMintRequest,
@@ -66,17 +70,43 @@ def claim_quiz_credential(data: CredentialClaimRequest, db: Session = Depends(ge
     questions = {q.get("id"): q for q in (task.content_json or {}).get("questions", []) if q.get("id")}
     if not questions:
         raise HTTPException(400, "Kuis ini belum memiliki soal.")
-    if len(data.answers) < min(4, len(questions)):
-        raise HTTPException(400, "Jawaban belum lengkap.")
+    # Answers already checked through /tasks/{id}/answer are final; the client cannot swap them afterwards.
+    attempt = db.get(QuizAttempt, (actor.id, task.id)) or QuizAttempt(student_id=actor.id, task_id=task.id, answers={}, finished=0)
+    if (attempt.finished or 0) >= MAX_QUIZ_ATTEMPTS:
+        raise HTTPException(409, f"Kamu sudah mengerjakan kuis ini {MAX_QUIZ_ATTEMPTS} kali.")
+    locked = {q: v for q, v in (attempt.answers or {}).items() if q in questions}
+    # Grading closes this attempt: answers reset for a retake, and the attempt is counted.
+    attempt.answers, attempt.finished = {}, (attempt.finished or 0) + 1
+    db.merge(attempt)
     if any(a.question_id not in questions for a in data.answers):
         raise HTTPException(400, "Ada jawaban untuk soal yang tidak ada di kuis ini.")
+    # One answer per question (first wins), locked-in answers override whatever the client sends.
+    answers = {}
+    for a in data.answers:
+        answers.setdefault(a.question_id, a.selected_index)
+    answers.update(locked)
+    if len(answers) < min(4, len(questions)):
+        raise HTTPException(400, "Jawaban belum lengkap.")
 
-    correct = sum(
-        1 for a in data.answers
-        if a.selected_index is not None
-        and a.selected_index == questions[a.question_id].get("correctIndex", questions[a.question_id].get("correct_index"))
-    )
-    score = round(correct / len(data.answers) * 100, 1)
+    key = lambda qid: questions[qid].get("correctIndex", questions[qid].get("correct_index"))
+    correct = sum(1 for qid, chosen in answers.items() if chosen is not None and chosen == key(qid))
+    score = round(correct / len(answers) * 100, 1)
+
+    # Every attempt lands in the teacher's gradebook (best score kept), passed or not.
+    sub = db.query(AssignmentSubmission).filter(
+        AssignmentSubmission.student_id == actor.id, AssignmentSubmission.task_id == task.id
+    ).first()
+    if not sub:
+        sub = AssignmentSubmission(id=f"sub_{uuid.uuid4().hex[:8]}", task_id=task.id, task_title=task.title,
+                                   student_id=actor.id, student_name=actor.name, content="")
+        db.add(sub)
+    if sub.grade is None or score > sub.grade:
+        sub.grade = score
+        sub.content = f"Kuis dinilai otomatis: {correct} dari {len(answers)} jawaban benar."
+        sub.submitted_at = datetime.utcnow()
+    sub.status = "GRADED"
+    db.commit()
+
     if score < PASSING_SCORE:
         raise HTTPException(400, f"Skor {score:g}% belum mencapai batas lulus {PASSING_SCORE}%.")
 

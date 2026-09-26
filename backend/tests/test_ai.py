@@ -91,3 +91,21 @@ def test_ai_diagram_endpoint():
         data = response.json()
         assert "code" in data
         assert data["type"] == "mermaid"
+
+def test_teacher_chat_sees_only_own_class_data():
+    from unittest.mock import patch
+    reply = {"text": "ok", "citation": "", "is_grounded": False, "model": "test"}
+    with TestClient(app) as client, patch("app.api.v1.endpoints.ai.chat_with_gemini", return_value=reply) as chat:
+        teacher, other = login(client, "GURU"), login(client, "GURU")
+        student = login(client, "SISWA")
+        cls = client.post("/api/v1/classrooms", json={"name": "Bio 10", "subject": "Biologi", "teacher_id": "x", "teacher_name": "x"}, headers=teacher).json()
+        client.post("/api/v1/classrooms/join", json={"join_code": cls["join_code"], "student_id": "x"}, headers=student)
+
+        assert client.post("/api/v1/ai/chat", json={"message": "Siapa yang perlu perhatian?", "classroom_id": cls["id"]}, headers=teacher).status_code == 200
+        context = chat.call_args.kwargs["teacher_context"]
+        assert "Bio 10" in context and "Devan" in context
+
+        # Another teacher cannot pull this class into their prompt; students never get teacher mode.
+        assert client.post("/api/v1/ai/chat", json={"message": "x", "classroom_id": cls["id"]}, headers=other).status_code == 403
+        client.post("/api/v1/ai/chat", json={"message": "x", "classroom_id": cls["id"]}, headers=student)
+        assert chat.call_args.kwargs["teacher_context"] is None

@@ -13,6 +13,8 @@ from app.api.v1.endpoints import (
     schedules,
     notes,
     ai,
+    messages,
+    family,
 )
 
 api_router = APIRouter()
@@ -30,3 +32,5 @@ api_router.include_router(blockchain.router)
 api_router.include_router(schedules.router)
 api_router.include_router(notes.router)
 api_router.include_router(ai.router)
+api_router.include_router(messages.router)
+api_router.include_router(family.router)

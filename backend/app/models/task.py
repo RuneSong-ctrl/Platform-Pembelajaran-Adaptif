@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, JSON, DateTime
+from sqlalchemy import Column, String, Boolean, JSON, DateTime, Integer
 from datetime import datetime
 from app.core.database import Base
 
@@ -17,3 +17,13 @@ class GroundedTask(Base):
     due_date = Column(String(64), nullable=True)
     content_json = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class QuizAttempt(Base):
+    """Answers a student has locked in during the current quiz attempt; cleared when the attempt is graded."""
+    __tablename__ = "quiz_attempts"
+
+    student_id = Column(String(64), primary_key=True)
+    task_id = Column(String(64), primary_key=True)
+    answers = Column(JSON, default=dict)  # {question_id: selected_index or None}
+    finished = Column(Integer, default=0)  # graded attempts so far

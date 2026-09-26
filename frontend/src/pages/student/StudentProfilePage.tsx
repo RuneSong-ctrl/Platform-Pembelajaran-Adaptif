@@ -2,6 +2,7 @@ import { levelLabel } from "@/lib/utils";
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
+import ParentCodeCard from "@/components/student/ParentCodeCard";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import StudentSidebar from "@/components/layout/StudentSidebar";
@@ -398,6 +399,8 @@ export default function StudentProfilePage() {
             </div>
           </div>
         </section>
+
+        <ParentCodeCard />
 
         {/* 4. ACTIONS: RE-ASSESSMENT & LOGOUT */}
         <section className="space-y-2.5">

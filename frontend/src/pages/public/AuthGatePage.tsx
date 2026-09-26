@@ -15,10 +15,18 @@ import {
 
 export default function AuthGatePage() {
   const navigate = useNavigate();
-  const { isAuthenticated, currentUser, login, registerUser, loginWithClassCode } = useApp();
+  const {
+    isAuthenticated,
+    currentUser,
+    login,
+    registerUser,
+    loginWithClassCode,
+  } = useApp();
 
   // Mode: "login" | "register" | "class_code"
-  const [authMode, setAuthMode] = useState<"login" | "register" | "class_code">("login");
+  const [authMode, setAuthMode] = useState<"login" | "register" | "class_code">(
+    "login",
+  );
 
   // --- Form States ---
   // 1. Login State
@@ -31,8 +39,11 @@ export default function AuthGatePage() {
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
+  const [regInviteCode, setRegInviteCode] = useState("");
   const [regRole, setRegRole] = useState<"SISWA" | "GURU" | "ORTU">("SISWA");
-  const [regEducationLevel, setRegEducationLevel] = useState<"SD" | "SMP" | "SMA">("SMA");
+  const [regEducationLevel, setRegEducationLevel] = useState<
+    "SD" | "SMP" | "SMA"
+  >("SMA");
   const [regGrade, setRegGrade] = useState<number>(10);
   const [regError, setRegError] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
@@ -79,7 +90,10 @@ export default function AuthGatePage() {
     setIsLoggingIn(false);
 
     if (!res.success || !res.user) {
-      setLoginError(res.message || "Gagal masuk. Periksa kembali nama akun atau email Anda.");
+      setLoginError(
+        res.message ||
+          "Gagal masuk. Periksa kembali nama akun atau email Anda.",
+      );
       audioSynth.playErrorSound();
       return;
     }
@@ -99,11 +113,14 @@ export default function AuthGatePage() {
       role: regRole,
       password: regPassword,
       grade: regRole === "SISWA" ? regGrade : undefined,
+      invite_code: regRole === "GURU" ? regInviteCode.trim() : undefined,
     });
     setIsRegistering(false);
 
     if (!res.success || !res.user) {
-      setRegError(res.message || "Gagal membuat akun. Periksa kembali data Anda.");
+      setRegError(
+        res.message || "Gagal membuat akun. Periksa kembali data Anda.",
+      );
       audioSynth.playErrorSound();
       return;
     }
@@ -121,7 +138,9 @@ export default function AuthGatePage() {
     setIsJoiningCode(false);
 
     if (!res.success || !res.user) {
-      setCodeError(res.message || "Kode kelas tidak valid atau gagal bergabung.");
+      setCodeError(
+        res.message || "Kode kelas tidak valid atau gagal bergabung.",
+      );
       audioSynth.playErrorSound();
       return;
     }
@@ -154,7 +173,8 @@ export default function AuthGatePage() {
                 EduAdapt
               </span>
               <p className="text-mini text-[#595F72] hidden sm:block font-medium">
-                Platform Pembelajaran Adaptif K-12 Berbasis AI Brain &amp; Blockchain Vault
+                Platform Pembelajaran Adaptif K-12 Berbasis AI Brain &amp;
+                Blockchain Vault
               </p>
             </div>
           </div>
@@ -170,15 +190,15 @@ export default function AuthGatePage() {
               {authMode === "login"
                 ? "Selamat Datang"
                 : authMode === "register"
-                ? "Buat Akun Baru"
-                : "Gabung Kode Kelas"}
+                  ? "Buat Akun Baru"
+                  : "Gabung Kode Kelas"}
             </h1>
             <p className="text-xs sm:text-sm text-[#595F72] mt-1 font-medium">
               {authMode === "login"
                 ? "Masuk untuk melanjutkan pembelajaran personal Anda"
                 : authMode === "register"
-                ? "Daftarkan akun sekolah Anda dalam hitungan detik"
-                : "Masukkan nama dan 6-digit kode kelas dari guru Anda"}
+                  ? "Daftarkan akun sekolah Anda dalam hitungan detik"
+                  : "Masukkan nama dan 6-digit kode kelas dari guru Anda"}
             </p>
           </div>
 
@@ -401,6 +421,22 @@ export default function AuthGatePage() {
                 </div>
               </div>
 
+              {regRole === "GURU" && (
+                <div>
+                  <label className="block text-xs font-extrabold text-[#1C1E26] mb-1.5">
+                    Kode undangan guru
+                  </label>
+                  <input
+                    value={regInviteCode}
+                    onChange={(e) => setRegInviteCode(e.target.value)}
+                    placeholder="Minta kode ini ke admin sekolah"
+                    autoComplete="off"
+                    maxLength={64}
+                    className="w-full px-4 py-3.5 bg-[#F7F6FA] border border-[rgba(28,30,38,0.1)] rounded-2xl text-xs font-medium text-[#1C1E26] placeholder:text-[#595F72]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1C1E26]/20 transition-all shadow-inner"
+                  />
+                </div>
+              )}
+
               {/* If Siswa: K-12 Comprehensive Education Level & Grade Selector */}
               {regRole === "SISWA" && (
                 <div className="space-y-2.5 pt-1">
@@ -421,7 +457,11 @@ export default function AuthGatePage() {
                               : "text-[#595F72] hover:text-[#1C1E26]"
                           }`}
                         >
-                          {lvl === "SD" ? "SD" : lvl === "SMP" ? "SMP" : "SMA / SMK"}
+                          {lvl === "SD"
+                            ? "SD"
+                            : lvl === "SMP"
+                              ? "SMP"
+                              : "SMA / SMK"}
                         </button>
                       ))}
                     </div>
@@ -510,10 +550,10 @@ export default function AuthGatePage() {
                   {isRegistering
                     ? "Membuat Akun..."
                     : regRole === "GURU"
-                    ? "Buat Akun & Mulai Mengajar"
-                    : regRole === "ORTU"
-                    ? "Buat Akun & Pantau Anak"
-                    : "Buat Akun & Mulai Belajar"}
+                      ? "Buat Akun & Mulai Mengajar"
+                      : regRole === "ORTU"
+                        ? "Buat Akun & Pantau Anak"
+                        : "Buat Akun & Mulai Belajar"}
                 </span>
                 <div className="w-8 h-8 rounded-full bg-white/15 group-hover:bg-white/25 flex items-center justify-center transition-all duration-200 group-hover:translate-x-0.5">
                   <ArrowRight className="w-4 h-4 text-white" />
@@ -564,7 +604,8 @@ export default function AuthGatePage() {
               </div>
 
               <div className="clay-card clay-mint p-3.5 text-mini font-semibold leading-relaxed">
-                💡 Masuk dengan kode kelas akan otomatis menghubungkan akun siswa Anda ke kelas guru dan membuka asesmen adaptif.
+                💡 Masuk dengan kode kelas akan otomatis menghubungkan akun
+                siswa Anda ke kelas guru dan membuka asesmen adaptif.
               </div>
 
               {/* High-Contrast Clear Primary CTA Button */}
@@ -573,7 +614,9 @@ export default function AuthGatePage() {
                 disabled={isJoiningCode}
                 className="clay-btn clay-btn-dark w-full mt-2 py-4 px-5 rounded-2xl font-black text-sm text-white flex items-center justify-between group active:scale-98 transition-all cursor-pointer disabled:opacity-50 shadow-md"
               >
-                <span>{isJoiningCode ? "Bergabung..." : "Gabung & Mulai Belajar"}</span>
+                <span>
+                  {isJoiningCode ? "Bergabung..." : "Gabung & Mulai Belajar"}
+                </span>
                 <div className="w-8 h-8 rounded-full bg-white/15 group-hover:bg-white/25 flex items-center justify-center transition-all duration-200 group-hover:translate-x-0.5">
                   <ArrowRight className="w-4 h-4 text-white" />
                 </div>

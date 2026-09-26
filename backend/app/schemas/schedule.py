@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -28,11 +28,14 @@ class NoteBase(BaseModel):
     student_name: str
     message: str
 
-class NoteCreate(NoteBase):
-    pass
+class NoteCreate(BaseModel):
+    # Sender and student name come from the server; any such fields sent by the client are ignored.
+    receiver_id: str
+    student_id: str
+    message: str = Field(min_length=1, max_length=2000)
 
 class NoteReply(BaseModel):
-    reply: str
+    reply: str = Field(min_length=1, max_length=2000)
 
 class NoteResponse(NoteBase):
     id: str

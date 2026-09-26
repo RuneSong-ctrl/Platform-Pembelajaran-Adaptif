@@ -1,412 +1,203 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
-import Navbar from "@/components/layout/Navbar";
-import { audioSynth } from "@/services/audioSynth";
-import {
-  Brain,
-  Clock,
-  MessageSquare,
-  Sparkles,
-  Calendar,
-  Check,
-  Flame,
-  ArrowRight,
-} from "@/components/ui/icons";
+import ParentShell from "@/components/parent/ParentShell";
+import { ApiService, Announcement, utcDate } from "@/services/apiClient";
+import { AlertCircle, Bell, CheckCircle2, MessageSquare, School, Clock } from "@/components/ui/icons";
+import type { AssignmentSubmission, User } from "@/types";
+
+const shortDate = (d: string | Date) => new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
 
 export default function ParentPortalPage() {
-  const {
-    users,
-    notes,
-    learningSchedules,
-    selectedParentChildId,
-    setSelectedParentChildId,
-    documents,
-    tasks,
-    classrooms,
-    credentials,
-  } = useApp();
+  return <ParentShell title="Ringkasan">{(child) => <ChildOverview key={child.id} child={child} />}</ParentShell>;
+}
 
-  const [mobileTab, setMobileTab] = useState<"overview" | "consultation">("overview");
+function ChildOverview({ child }: { child: User }) {
+  const { classrooms, tasks, submissions } = useApp();
+  const [progress, setProgress] = useState<number | null>(null);
+  const [news, setNews] = useState<Announcement[]>([]);
 
-  const studentChildren = users.filter((u) => u.role === "SISWA");
-  const selectedChild =
-    studentChildren.find((u) => u.id === selectedParentChildId) ||
-    studentChildren[0] ||
-    users[0] || {
-      id: "guest",
-      name: "Siswa",
-      role: "SISWA",
-      grade: 10,
-      avatar: "SW",
-      learningStyle: "VISUAL",
-      modalityScores: { visual: 0, audio: 0, practice: 0 },
-      processingSpeed: "MODERATE",
-      xpTotal: 0,
-      streakDays: 0,
-      hearts: 5,
-      currentDDALevel: "BASIC",
-    };
+  const classes = classrooms.filter((c) => c.studentIds.includes(child.id));
+  const classIds = new Set(classes.map((c) => c.id));
+  const classTasks = tasks.filter((t) => classIds.has(t.classroomId));
 
-  // Notes related to this child
-  const childNotes = notes
-    .filter((n) => n.studentId === selectedChild.id)
-    .slice()
-    .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
+  // Latest submission per task.
+  const byTask = new Map<string, AssignmentSubmission>();
+  for (const s of submissions) {
+    if (s.studentId !== child.id) continue;
+    const prev = byTask.get(s.taskId);
+    if (!prev || new Date(s.submittedAt) > new Date(prev.submittedAt)) byTask.set(s.taskId, s);
+  }
+  const graded = [...byTask.values()].filter((s) => s.grade != null).sort((a, b) => +new Date(b.submittedAt) - +new Date(a.submittedAt));
+  const average = graded.length ? Math.round(graded.reduce((a, s) => a + (s.grade as number), 0) / graded.length) : null;
+  const now = Date.now();
+  const late = classTasks.filter((t) => !byTask.has(t.id) && t.dueDate && new Date(t.dueDate).getTime() < now);
+  const upcoming = classTasks
+    .filter((t) => !byTask.has(t.id) && (!t.dueDate || new Date(t.dueDate).getTime() >= now))
+    .sort((a, b) => +new Date(a.dueDate || 8.64e15) - +new Date(b.dueDate || 8.64e15));
+  const low = graded.filter((s) => (s.grade as number) < 70);
 
-  const latestNote = childNotes[0];
+  useEffect(() => {
+    ApiService.getLearningProgress(child.id).then((p) => setProgress(p?.overall_progress ?? null));
+    ApiService.getAnnouncements()
+      .then((a) => setNews(a.filter((x) => classIds.has(x.classroom_id)).slice(0, 3)))
+      .catch(() => setNews([]));
+    // classIds is derived from child; refetch when the child changes (component is keyed by child).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [child.id]);
 
-  const childSchedules = learningSchedules.filter(
-    (s) => s.studentId === selectedChild.id
-  );
-
-  const childCredentials = credentials.filter((c) => c.studentId === selectedChild.id);
-  const childTasks = tasks.filter((t) =>
-    classrooms.some((c) => c.id === t.classroomId && c.studentIds?.includes(selectedChild.id))
-  );
-
-  const activeTopic =
-    childCredentials[0]?.competencyTitle ||
-    childTasks[0]?.title ||
-    documents[0]?.title ||
-    "Modul Kurikulum Mandiri";
-
-  const ddaAccuracy =
-    childCredentials.length > 0
-      ? Math.round(childCredentials.reduce((a, b) => a + b.score, 0) / childCredentials.length)
-      : selectedChild.currentDDALevel === "MASTERY"
-      ? 90
-      : 82;
+  if (classes.length === 0) {
+    return (
+      <Card>
+        <p className="text-sm text-[#5A5E70]">
+          {child.name} belum bergabung ke kelas mana pun. Setelah guru membagikan kode kelas dan {child.name.split(" ")[0]} bergabung,
+          nilai dan tugasnya akan muncul di sini.
+        </p>
+      </Card>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] pb-16 relative overflow-hidden">
-      {/* Soft Ambient Modality Top Gradient */}
-      <div
-        className="absolute top-0 left-0 right-0 h-96 bg-gradient-to-b from-[#E3DBF8]/50 via-[#D1EBE1]/30 to-transparent pointer-events-none"
-        aria-hidden="true"
-      />
+    <div className="space-y-6">
+      {/* Key numbers */}
+      <dl className="grid grid-cols-3 gap-3">
+        <Stat label="Rata-rata nilai" value={average ?? "–"} warn={average != null && average < 70} />
+        <Stat label="Tugas dikumpulkan" value={`${byTask.size}/${classTasks.length}`} />
+        <Stat label="Progres belajar" value={progress == null ? "–" : `${progress}%`} />
+      </dl>
 
-      <div className="relative z-10">
-        <Navbar />
-      </div>
+      {/* Needs attention: only shown when there is something */}
+      {(late.length > 0 || low.length > 0) && (
+        <section className="clay-card clay-coral p-4 sm:p-5 space-y-2">
+          <h2 className="text-sm font-black text-[#852C28] flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" /> Perlu perhatian
+          </h2>
+          <ul className="space-y-1 text-xs text-[#852C28]">
+            {late.map((t) => (
+              <li key={t.id}>
+                <b>{t.title}</b> belum dikumpulkan (batas {shortDate(t.dueDate as string)})
+              </li>
+            ))}
+            {low.map((s) => (
+              <li key={s.id}>
+                Nilai <b>{s.taskTitle}</b>: {s.grade}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 pt-4 sm:pt-8 space-y-5 sm:space-y-7 relative z-10">
-        {/* 1. TOP HEADER & CHILD SELECTOR */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="clay-pill clay-mint px-2.5 py-0.5 text-mini font-extrabold text-[#1D5E4D] shadow-2xs">
-                Portal Orang Tua
-              </span>
-              <span className="clay-pill clay-lavender px-2.5 py-0.5 text-mini font-bold text-[#4B3B7A] shadow-2xs">
-                Laporan Perkembangan
-              </span>
-            </div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#1C1E26] tracking-tight">
-              Perkembangan Belajar &amp; Kognitif Anak
-            </h1>
-            <p className="text-xs text-[#5A5E70] font-medium mt-0.5">
-              Pantau kemajuan kurikulum adaptif, kebiasaan belajar mandiri, dan konsultasi dengan wali kelas.
-            </p>
-          </div>
-
-          {/* Child Switcher Pills (Scales gracefully for 1, 2, 3, or more children) */}
-          <div className="clay-card clay-white p-1.5 flex items-center gap-1.5 self-start sm:self-auto shadow-2xs rounded-2xl border border-white max-w-full overflow-x-auto no-scrollbar">
-            {studentChildren.map((child) => {
-              const isSelected = selectedChild.id === child.id;
-              return (
-                <button
-                  key={child.id}
-                  onClick={() => {
-                    audioSynth.playClickSound();
-                    setSelectedParentChildId(child.id);
-                  }}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                    isSelected
-                      ? "clay-btn clay-btn-dark text-white shadow-xs scale-102"
-                      : "text-[#5A5E70] hover:text-[#1C1E26]"
-                  }`}
-                >
-                  {child.name} (Kelas {child.grade || 10}-A)
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-
-        {/* 2. AI NARRATIVE PROGRESS SUMMARY (Clay Mint Hero Card) */}
-        <div className="clay-card clay-mint p-4 sm:p-6 space-y-3 rounded-[28px] border border-white/80 shadow-[0_12px_28px_rgba(29,94,77,0.08)]">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-white text-[#1D5E4D] flex items-center justify-center shadow-xs shrink-0">
-                <Sparkles className="w-5 h-5 text-[#1D5E4D]" />
-              </div>
-              <div>
-                <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-[#0E3D31]">
-                  Ringkasan Naratif AI untuk Orang Tua
-                </h3>
-                <span className="text-mini text-[#1D5E4D] font-bold">
-                  Siswa: {selectedChild.name} • Kelas 10-A
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="clay-pill bg-white text-mini font-black text-[#1D5E4D] px-3 py-1 flex items-center gap-1 shadow-2xs">
-                <Flame className="w-3.5 h-3.5 fill-[#1D5E4D]" />
-                <span>{selectedChild.streakDays || 14} Hari Aktif</span>
-              </span>
-              <span className="clay-pill bg-white text-mini font-black text-[#21518A] px-3 py-1 shadow-2xs">
-                {selectedChild.xpTotal || 450} XP
-              </span>
-            </div>
-          </div>
-
-          <p className="text-xs text-[#082921] font-medium leading-relaxed bg-white/70 p-3 sm:p-4 rounded-2xl border border-white">
-            Minggu ini, <strong>{selectedChild.name}</strong> menunjukkan penguasaan sangat baik pada topik <em>{activeTopic}</em> dengan akurasi asesmen adaptif DDA <strong>{ddaAccuracy}%</strong> dan modalitas dominan <strong>{selectedChild.learningStyle || "Visual"} ({selectedChild.modalityScores?.visual || 80}%)</strong>. Rekomendasi: Berikan apresiasi atas konsistensi belajar mandiri selama {selectedChild.streakDays || 14} hari berturut-turut.
-          </p>
-        </div>
-
-        {/* 3. SEGMENTED SLIDER CONTROL (Mobile Only) */}
-        <div className="grid grid-cols-2 gap-1 bg-[#ECE9F2] p-1.5 rounded-2xl w-full max-w-xs mx-auto md:hidden shadow-inner">
-          <button
-            onClick={() => {
-              audioSynth.playClickSound();
-              setMobileTab("overview");
-            }}
-            className={`py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              mobileTab === "overview"
-                ? "bg-white text-[#1C1E26] shadow-xs font-black"
-                : "text-[#5A5E70] hover:text-[#1C1E26]"
-            }`}
-          >
-            <Brain className="w-3.5 h-3.5 shrink-0" />
-            <span>Penguasaan</span>
-          </button>
-
-          <button
-            onClick={() => {
-              audioSynth.playClickSound();
-              setMobileTab("consultation");
-            }}
-            className={`py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              mobileTab === "consultation"
-                ? "bg-[#1C1E26] text-white shadow-xs font-black"
-                : "text-[#4B3B7A] font-extrabold"
-            }`}
-          >
-            <MessageSquare className="w-3.5 h-3.5 shrink-0" />
-            <span>Konsultasi</span>
-          </button>
-        </div>
-
-        {/* 4. MAIN CONTENT: 2-COLUMN GRID ON DESKTOP, MODERN TABBED ON MOBILE */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7 items-start">
-          {/* LEFT SECTION (7 cols on desktop): TOPIC MASTERY & DIGITAL WELLBEING */}
-          <div
-            className={`lg:col-span-7 space-y-5 ${
-              mobileTab !== "overview" ? "hidden md:block" : ""
-            }`}
-          >
-            {/* Topic Mastery Progress (Clay Card) */}
-            <div className="clay-card clay-white rounded-[28px] p-5 sm:p-6 border border-white shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-black text-[#1C1E26] flex items-center gap-2">
-                    <Brain className="w-4 h-4 text-[#4B3B7A]" />
-                    <span>Penguasaan Topik Kurikulum Adaptif</span>
-                  </h3>
-                  <p className="text-mini text-[#5A5E70] mt-0.5">
-                    Progres pemahaman per materi berdasarkan evaluasi DDA real-time.
-                  </p>
-                </div>
-                <span className="clay-pill clay-lavender text-mini font-extrabold px-2.5 py-1 text-[#4B3B7A] shadow-2xs">
-                  Biologi 10
-                </span>
-              </div>
-
-              <div className="space-y-3.5 pt-1">
-                <div className="p-3 rounded-2xl bg-[#E6F5EE] border border-[#C7EAD9]/80 shadow-2xs">
-                  <div className="flex justify-between text-xs font-black text-[#0E3D31] mb-1.5">
-                    <span>Biologi: Sistem Pencernaan &amp; Reaksi Enzim</span>
-                    <span className="text-[#1D5E4D]">95% (Mastery)</span>
-                  </div>
-                  <div className="w-full bg-white/70 h-2.5 rounded-full overflow-hidden shadow-inner p-0.5">
-                    <div className="bg-[#1D5E4D] h-full rounded-full w-[95%] transition-all duration-500 shadow-xs"></div>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-[#EFEAFB] border border-[#D8CDF8]/80 shadow-2xs">
-                  <div className="flex justify-between text-xs font-black text-[#2D2152] mb-1.5">
-                    <span>Biologi: Ekosistem &amp; Daur Energi</span>
-                    <span className="text-[#4B3B7A]">78% (Challenging)</span>
-                  </div>
-                  <div className="w-full bg-white/70 h-2.5 rounded-full overflow-hidden shadow-inner p-0.5">
-                    <div className="bg-[#4B3B7A] h-full rounded-full w-[78%] transition-all duration-500 shadow-xs"></div>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-[#FFF4DC] border border-[#FCE0A2]/80 shadow-2xs">
-                  <div className="flex justify-between text-xs font-black text-[#4A3205] mb-1.5">
-                    <span>Matematika: Aljabar &amp; Statistik Dasar</span>
-                    <span className="text-[#785308]">65% (Perlu Penguatan)</span>
-                  </div>
-                  <div className="w-full bg-white/70 h-2.5 rounded-full overflow-hidden shadow-inner p-0.5">
-                    <div className="bg-[#785308] h-full rounded-full w-[65%] transition-all duration-500 shadow-xs"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Digital Wellbeing Tracker (Clay Card) */}
-            <div className="clay-card clay-white rounded-[28px] p-5 sm:p-6 border border-white shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-black text-[#1C1E26] flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[#1D5E4D]" />
-                    <span>Pola Waktu Belajar &amp; Istirahat (Digital Wellbeing)</span>
-                  </h3>
-                  <p className="text-mini text-[#5A5E70] mt-0.5">
-                    Monitoring screen time edukatif vs waktu jeda istirahat siswa.
-                  </p>
-                </div>
-                <span className="clay-pill clay-mint text-mini font-extrabold px-2.5 py-1 text-[#1D5E4D] shadow-2xs">
-                  Optimal
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="clay-pill bg-[#F8F9FD] p-3.5 space-y-0.5 border border-white">
-                  <span className="text-mini text-[#5A5E70] font-bold block">Waktu Belajar</span>
-                  <span className="text-xl font-black text-[#1C1E26] block">42 Menit</span>
-                  <span className="text-mini text-[#1D5E4D] font-bold block">Sesuai Panduan</span>
-                </div>
-                <div className="clay-pill bg-[#F8F9FD] p-3.5 space-y-0.5 border border-white">
-                  <span className="text-mini text-[#5A5E70] font-bold block">Status Layar</span>
-                  <span className="text-xl font-black text-[#1D5E4D] block">Seimbang</span>
-                  <span className="text-mini text-[#5A5E70] font-bold block">Jeda 10 Mnt Terpenuhi</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT SECTION (5 cols on desktop): KONSULTASI WALI KELAS DIRECT CTA & JADWAL */}
-          <div
-            className={`lg:col-span-5 space-y-5 ${
-              mobileTab !== "consultation" ? "hidden md:block" : ""
-            }`}
-          >
-            {/* 1. KONSULTASI WALI KELAS DIRECT CTA CARD (Clay Lavender) */}
-            <div className="clay-card clay-lavender rounded-[28px] p-5 border border-[#E3DBF8] shadow-sm space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-11 h-11 rounded-2xl bg-white text-[#4B3B7A] font-black text-sm flex items-center justify-center shrink-0 shadow-xs border border-white">
-                    GW
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="text-sm font-black text-[#2D2152] truncate">
-                        Bpk. Gunawan, M.Pd.
-                      </h3>
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Online"></span>
-                    </div>
-                    <p className="text-mini text-[#4B3B7A] font-bold truncate">
-                      Wali Kelas 10-A • Konsultasi Terbuka
-                    </p>
-                  </div>
-                </div>
-
-                <span className="clay-pill clay-mint text-[#1D5E4D] text-mini font-black px-2.5 py-1 shadow-2xs shrink-0">
-                  Online
-                </span>
-              </div>
-
-              {/* Latest message preview if any */}
-              {latestNote && (
-                <div className="p-3.5 rounded-2xl bg-white/80 border border-white text-xs space-y-1 shadow-2xs">
-                  <span className="text-mini font-extrabold text-[#4B3B7A] uppercase tracking-wider block">
-                    Pesan Terakhir ({selectedChild.name})
-                  </span>
-                  <p className="text-[#1C1E26] font-medium line-clamp-2 leading-relaxed">
-                    "{latestNote.reply || latestNote.message}"
-                  </p>
-                </div>
-              )}
-
-              {/* Direct Link to Dedicated Chat */}
-              <Link
-                to={`/parent/chat?childId=${selectedChild.id}`}
-                onClick={() => audioSynth.playClickSound()}
-                className="clay-btn clay-btn-dark w-full py-3.5 px-4 rounded-2xl text-xs font-black text-white flex items-center justify-center gap-2 shadow-md active:scale-98 transition-transform cursor-pointer"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>Buka Ruang Konsultasi Chat (Layar Penuh)</span>
-                <ArrowRight className="w-4 h-4 ml-0.5" />
-              </Link>
-
-            </div>
-
-            {/* 2. LEARNING SCHEDULE PLAN CREATED BY CHILD (Clay Card) */}
-            <div className="clay-card clay-white rounded-[28px] p-5 border border-white shadow-sm space-y-3.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xs sm:text-sm font-black text-[#1C1E26] flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4 text-[#4B3B7A]" />
-                    <span>Jadwal Mandiri Anak</span>
-                  </h3>
-                  <p className="text-mini text-[#5A5E70] mt-0.5">
-                    Disusun sendiri oleh {selectedChild.name}.
-                  </p>
-                </div>
-                <span className="clay-pill clay-lavender text-mini font-extrabold px-2.5 py-1 text-[#4B3B7A] shadow-2xs">
-                  {childSchedules.filter((s) => s.completed).length}/{childSchedules.length} Tuntas
-                </span>
-              </div>
-
-              <div className="space-y-2.5">
-                {childSchedules.map((sch) => (
-                  <div
-                    key={sch.id}
-                    className={`p-3.5 rounded-2xl border space-y-1.5 transition-all ${
-                      sch.completed
-                        ? "bg-[#F8F9FD] border-[rgba(28,30,38,0.04)] opacity-75"
-                        : "bg-white border-white shadow-2xs"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="clay-pill clay-lavender text-mini font-extrabold px-2 py-0.5 text-[#4B3B7A]">
-                        {sch.day} • {sch.time}
-                      </span>
-                      {sch.completed ? (
-                        <span className="clay-pill clay-mint text-[8px] font-extrabold text-[#1D5E4D] px-2 py-0.5 flex items-center gap-0.5 shadow-2xs">
-                          <Check className="w-2.5 h-2.5 stroke-[3]" /> Selesai
-                        </span>
-                      ) : (
-                        <span className="text-mini font-bold text-[#9195A8]">
-                          Aktif
-                        </span>
-                      )}
-                    </div>
-                    <h4 className={`text-xs font-bold ${sch.completed ? "line-through text-[#9195A8]" : "text-[#1C1E26]"}`}>
-                      {sch.title}
-                    </h4>
-                    <span className="text-mini text-[#5A5E70] block font-medium">
-                      {sch.format} ({sch.duration})
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Recent grades */}
+        <section className="space-y-3">
+          <h2 className="text-base font-black text-[#010105]">Nilai terbaru</h2>
+          {graded.length === 0 ? (
+            <Card>
+              <p className="text-xs text-[#5A5E70]">Belum ada tugas yang dinilai.</p>
+            </Card>
+          ) : (
+            <ul className="clay-card clay-white divide-y divide-[rgba(28,30,38,0.06)]">
+              {graded.slice(0, 5).map((s) => (
+                <li key={s.id} className="px-4 sm:px-5 py-3 space-y-0.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-bold text-[#010105] truncate">{s.taskTitle}</span>
+                    <span className={`text-sm font-black shrink-0 ${(s.grade as number) < 70 ? "text-[#852C28]" : "text-[#1D5E4D]"}`}>
+                      {s.grade}
                     </span>
                   </div>
-                ))}
+                  {s.feedback && <p className="text-xs text-[#5A5E70] line-clamp-2">Catatan guru: {s.feedback}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
-                {childSchedules.length === 0 && (
-                  <div className="p-4 rounded-2xl bg-[#F8F9FD] text-center text-xs text-[#5A5E70]">
-                    Siswa belum menyusun jadwal belajar mandiri minggu ini.
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
+        {/* Upcoming work */}
+        <section className="space-y-3">
+          <h2 className="text-base font-black text-[#010105]">Tugas yang belum dikerjakan</h2>
+          {upcoming.length === 0 ? (
+            <Card>
+              <p className="text-xs text-[#5A5E70] flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#1D5E4D]" /> Tidak ada tugas yang menunggu.
+              </p>
+            </Card>
+          ) : (
+            <ul className="clay-card clay-white divide-y divide-[rgba(28,30,38,0.06)]">
+              {upcoming.slice(0, 5).map((t) => (
+                <li key={t.id} className="px-4 sm:px-5 py-3 flex items-center justify-between gap-3">
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold text-[#010105] truncate">{t.title}</span>
+                    <span className="block text-mini text-[#9195A8]">{t.type === "quiz" ? "Kuis" : "Tugas"} · {t.classroomName}</span>
+                  </span>
+                  {t.dueDate && (
+                    <span className="text-xs text-[#5A5E70] flex items-center gap-1 shrink-0">
+                      <Clock className="w-3.5 h-3.5" /> {shortDate(t.dueDate)}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+
+      {/* Announcements */}
+      {news.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-base font-black text-[#010105] flex items-center gap-2">
+            <Bell className="w-4 h-4 text-[#4B3B7A]" /> Pengumuman kelas
+          </h2>
+          <ul className="space-y-2">
+            {news.map((a) => (
+              <li key={a.id} className="clay-card clay-white p-4">
+                <span className="block text-mini font-bold text-[#9195A8]">
+                  {classes.find((c) => c.id === a.classroom_id)?.name} · {a.author_name} · {shortDate(utcDate(a.created_at))}
+                </span>
+                <p className="text-sm text-[#1C1E26] whitespace-pre-wrap wrap-anywhere mt-1">{a.text}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Classes and teachers */}
+      <section className="space-y-3">
+        <h2 className="text-base font-black text-[#010105]">Kelas {child.name.split(" ")[0]}</h2>
+        <ul className="grid sm:grid-cols-2 gap-3">
+          {classes.map((c) => (
+            <li key={c.id} className="clay-card clay-white p-4 flex items-center gap-3">
+              <span className="w-10 h-10 rounded-2xl clay-lavender text-[#4B3B7A] flex items-center justify-center shrink-0">
+                <School className="w-5 h-5" />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-sm font-black text-[#010105] truncate">{c.name}</span>
+                <span className="block text-xs text-[#5A5E70] truncate">{c.teacherName}</span>
+              </span>
+              <Link
+                to={`/parent/chat?kelas=${c.id}`}
+                className="clay-btn clay-btn-white p-2.5 shrink-0"
+                aria-label={`Kirim pesan ke ${c.teacherName}`}
+                title="Kirim pesan ke guru"
+              >
+                <MessageSquare className="w-4 h-4" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function Card({ children }: { children: React.ReactNode }) {
+  return <div className="clay-card clay-white p-5">{children}</div>;
+}
+
+function Stat({ label, value, warn = false }: { label: string; value: React.ReactNode; warn?: boolean }) {
+  return (
+    <div className="clay-card clay-white px-3 sm:px-4 py-3">
+      <dt className="text-mini sm:text-xs font-bold text-[#9195A8]">{label}</dt>
+      <dd className={`text-xl sm:text-2xl font-black ${warn ? "text-[#852C28]" : "text-[#010105]"}`}>{value}</dd>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
@@ -7,145 +7,140 @@ import { Input } from "@/components/ui/input";
 import { audioSynth } from "@/services/audioSynth";
 import confetti from "canvas-confetti";
 import { ApiService } from "@/services/apiClient";
-import {
-  Sparkles,
-  CheckCircle2,
-  Database,
-  ArrowRight,
-  School,
-  FileText,
-  UploadCloud,
-} from "@/components/ui/icons";
+import type { DDALevel, QuizQuestion } from "@/types";
+import { CheckCircle2, BookOpen, Plus, Trash2, AlertCircle, RefreshCw } from "@/components/ui/icons";
+
+interface Question {
+  id: string;
+  questionText: string;
+  options: string[];
+  correctIndex: number;
+  difficulty?: string;
+  sourceReference?: string;
+  explanation?: unknown;
+}
+
+const LEVELS = [
+  { value: "MIXED", label: "Campuran" },
+  { value: "BASIC", label: "Dasar" },
+  { value: "MEDIUM", label: "Menengah" },
+  { value: "CHALLENGING", label: "Lanjut" },
+  { value: "MASTERY", label: "Mahir" },
+];
+const levelLabel = (v?: string) => LEVELS.find((l) => l.value === v)?.label;
+
+const inWeek = () => new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+const blankQuestion = (): Question => ({
+  id: `q_${Math.random().toString(36).slice(2, 10)}`,
+  questionText: "",
+  options: ["", "", "", ""],
+  correctIndex: 0,
+});
+
+const selectCls =
+  "w-full p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#F8F9FD] focus:outline-none cursor-pointer";
 
 export default function QuizStudioPage() {
-  const { documents, classrooms, createTask } = useApp();
+  const { documents, classrooms, createTask, currentUser } = useApp();
+  const myClasses = classrooms.filter((c) => c.teacherId === currentUser.id);
 
-  const [selectedClassId, setSelectedClassId] = useState<string>(
-    classrooms[0]?.id || ""
-  );
-  const [selectedDocId, setSelectedDocId] = useState<string>(
-    documents[0]?.id || ""
-  );
-  const [targetTopic, setTargetTopic] = useState("");
-  const [numQuestions, setNumQuestions] = useState<number>(10);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("ADAPTIVE");
+  const [classId, setClassId] = useState(myClasses[0]?.id || "");
+  const cls = myClasses.find((c) => c.id === classId) || myClasses[0];
+  const classDocs = documents.filter((d) => d.classroomId === cls?.id);
+  const [docId, setDocId] = useState("");
+  const doc = classDocs.find((d) => d.id === docId) || classDocs[0];
+
+  const [title, setTitle] = useState("");
+  const [focus, setFocus] = useState("");
+  const [count, setCount] = useState(10);
+  const [level, setLevel] = useState("MIXED");
+  const [dueDate, setDueDate] = useState(inWeek());
+
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [draftQuestions, setDraftQuestions] = useState<any[]>([]);
-  const [isPublished, setIsPublished] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [error, setError] = useState("");
+  const [published, setPublished] = useState<{ classId: string; className: string } | null>(null);
 
-  useEffect(() => {
-    if (documents.length > 0 && !selectedDocId) {
-      setSelectedDocId(documents[0].id);
-      setTargetTopic(documents[0].title);
-    }
-  }, [documents, selectedDocId]);
+  const quizTitle = title.trim() || (doc ? `Kuis: ${doc.title}` : "");
 
-  const selectedDoc = documents.find((d) => d.id === selectedDocId) || documents[0];
-
-  const handleGenerateAI = async () => {
-    if (!selectedDoc) return;
-    setIsGenerating(true);
+  const generate = async () => {
+    if (!doc) return;
+    if (questions.length > 0 && !window.confirm("Soal yang sekarang akan diganti. Lanjutkan?")) return;
     audioSynth.playClickSound();
-
+    setIsGenerating(true);
+    setError("");
+    setPublished(null);
     try {
-      const response = await ApiService.generateQuizAI({
-        document_id: selectedDoc.id,
-        topic: targetTopic || selectedDoc.title,
-        difficulty: selectedDifficulty === "ADAPTIVE" ? "MEDIUM" : selectedDifficulty,
-        num_questions: numQuestions,
+      const res = await ApiService.generateQuizAI({
+        document_id: doc.id,
+        topic: focus.trim() || doc.title,
+        difficulty: level === "MIXED" ? "MEDIUM" : level,
+        num_questions: count,
       });
-
+      setQuestions(
+        res.questions.map((q: any) => ({
+          ...q,
+          options: [...q.options],
+          difficulty: level === "MIXED" ? q.difficulty : level,
+        })),
+      );
       audioSynth.playSuccessSound();
-      if (response?.questions && response.questions.length > 0) {
-        setDraftQuestions(response.questions);
-      }
-    } catch (err) {
-      console.warn("Backend quiz gen error, using local RAG extractor:", err);
-      const paragraphs = selectedDoc.rawText
-        .split(/\n\n|\.\s+/)
-        .map((p) => p.trim())
-        .filter((p) => p.length > 25);
-
-      const difficulties = ["BASIC", "BASIC", "MEDIUM", "MEDIUM", "MEDIUM", "CHALLENGING", "CHALLENGING", "CHALLENGING", "MASTERY", "MASTERY"];
-      const questionStems = [
-        `Berdasarkan modul "${selectedDoc.title}", apa konsep esensial yang dibahas pada bagian ke-{idx}?`,
-        `Bagaimana analisis hubungan sebab-akibat terkait aspek "${targetTopic || selectedDoc.title}"?`,
-        `Manakah pernyataan yang paling akurat mengenai mekanisme kerja pada sub-bahasan ini?`,
-        `Pada tingkat analisis lanjutan, implikasi apa yang timbul jika parameter sistem berubah?`,
-        `Berdasarkan rujukan materi ajar, prinsip apakah yang mendasari proses pada bagian ini?`,
-        `Bagaimana korelasi fungsi antara komponen pokok dengan ketercapaian tujuan belajar?`,
-        `Skenario manakah yang paling sesuai dengan kaidah ilmiah yang tertuang dalam materi?`,
-        `Apa simpulan utama yang dapat diambil dari pengujian konsep pada bagian ini?`,
-        `Mengapa regulasi kesetimbangan menjadi faktor krusial dalam mekanisme konsep ini?`,
-        `Pernyataan manakah yang paling tepat membedakan premis teoritis dan bukti empiris materi?`
-      ];
-
-      const generatedList = Array.from({ length: numQuestions }, (_, idx) => {
-        const pIdx = idx % Math.max(1, paragraphs.length);
-        const para = paragraphs[pIdx] || "Konsep esensial kurikulum pembelajaran terpadu.";
-        const correct = para.slice(0, 95) + "...";
-        const otherP = paragraphs.filter((_, i) => i !== pIdx);
-        const distractors = [
-          otherP[0] ? otherP[0].slice(0, 85) + "..." : "Aspek pelengkap tanpa pengaruh langsung",
-          otherP[1] ? otherP[1].slice(0, 85) + "..." : "Reaksi spontan tanpa regulasi sistem",
-          otherP[2] ? otherP[2].slice(0, 85) + "..." : "Parameter di luar standar evaluasi modul",
-        ];
-        const correctIdx = Math.floor(Math.random() * 4);
-        const options = [...distractors];
-        options.splice(correctIdx, 0, correct);
-
-        const diff = selectedDifficulty === "ADAPTIVE"
-          ? difficulties[idx % difficulties.length]
-          : selectedDifficulty;
-
-        const stemTmpl = questionStems[idx % questionStems.length];
-        const qText = stemTmpl.replace("{idx}", String(idx + 1));
-
-        return {
-          id: `draft_${Date.now()}_${idx + 1}`,
-          questionText: qText,
-          options,
-          correctIndex: correctIdx,
-          difficulty: diff,
-          sourceReference: `${selectedDoc.title} (Bagian ${idx + 1})`,
-          explanation: {
-            analogi: `Ibarat memahami komponen ke-${idx + 1} dalam alur kerja topik ${targetTopic || selectedDoc.title}.`,
-            visual: `Diagram Konsep ➔ Langkah ${idx + 1} ➔ Simpulan Evaluasi.`,
-            langkah: `1. Analisis teks modul ➔ 2. Evaluasi premis materi ➔ 3. Pilih opsi ${String.fromCharCode(65 + correctIdx)}.`
-          }
-        };
-      });
-
-      setDraftQuestions(generatedList);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Soal belum berhasil dibuat. Coba lagi.");
+      audioSynth.playErrorSound();
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handlePublishToClass = async () => {
-    if (draftQuestions.length === 0) return;
-    audioSynth.playLevelUpSound();
-    confetti({ disableForReducedMotion: true, particleCount: 80, spread: 60 });
+  const update = (i: number, patch: Partial<Question>) =>
+    setQuestions((qs) => qs.map((q, n) => (n === i ? { ...q, ...patch } : q)));
 
-    const selectedCls = classrooms.find((c) => c.id === selectedClassId);
+  const problems = questions.flatMap((q, i) =>
+    !q.questionText.trim() || q.options.some((o) => !o.trim()) ? [i + 1] : [],
+  );
+  const canPublish = !!cls && !!doc && questions.length > 0 && problems.length === 0 && !!quizTitle && !isPublishing;
 
-    await createTask({
-      classroomId: selectedClassId,
-      classroomName: selectedCls?.name || "Biologi 10-A",
-      type: "quiz",
-      title: `Kuis Adaptif: ${targetTopic || selectedDoc?.title || "Materi Pembelajaran"}`,
-      chapter: selectedDoc?.title || "Modul Kurikulum",
-      sourceReference: `${selectedDoc?.title || "RAG Knowledge Base"} (${selectedDoc?.vectorId || "VEC-101"})`,
-      difficultyLevel: "BASIC",
-      isPublished: true,
-      dueDate: new Date(Date.now() + 7 * 86400000).toISOString(),
-      contentJson: {
-        overview: "Kuis adaptif DDA yang digenerate oleh AI Studio dan disetujui guru pengajar.",
-        questions: draftQuestions,
-      },
-    });
-
-    setIsPublished(true);
+  const publish = async () => {
+    if (!canPublish || !cls || !doc) return;
+    setIsPublishing(true);
+    setError("");
+    try {
+      await createTask({
+        classroomId: cls.id,
+        classroomName: cls.name,
+        type: "quiz",
+        title: quizTitle,
+        chapter: doc.title,
+        sourceReference: doc.title,
+        difficultyLevel: (level === "MIXED" ? "MEDIUM" : level) as DDALevel,
+        isPublished: true,
+        dueDate: dueDate ? new Date(dueDate + "T23:59:00").toISOString() : undefined,
+        contentJson: {
+          overview: `Kuis dari materi "${doc.title}".`,
+          questions: questions.map((q) => ({
+            ...q,
+            questionText: q.questionText.trim(),
+            options: q.options.map((o) => o.trim()),
+            // Hand-written questions get the same fields the student quiz expects.
+            difficulty: (q.difficulty || (level === "MIXED" ? "MEDIUM" : level)) as DDALevel,
+            sourceReference: q.sourceReference || doc.title,
+            explanation: (q.explanation as QuizQuestion["explanation"]) || { analogi: "", visual: "", langkah: "" },
+          })),
+        },
+      });
+      audioSynth.playLevelUpSound();
+      confetti({ disableForReducedMotion: true, particleCount: 80, spread: 60 });
+      setPublished({ classId: cls.id, className: cls.name });
+      setQuestions([]);
+      setTitle("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Kuis gagal dikirim. Coba lagi.");
+      audioSynth.playErrorSound();
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   return (
@@ -153,244 +148,283 @@ export default function QuizStudioPage() {
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden w-full">
-        {/* Responsive Desktop Sidebar */}
         <TeacherSidebar />
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 py-6 space-y-6 sm:space-y-8">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="clay-pill clay-mint px-3 py-0.5 text-xs font-extrabold text-[#1D5E4D]">
-                  Teacher-in-the-Loop Studio
-                </span>
-                <span className="clay-pill clay-lavender px-3 py-0.5 text-xs font-bold text-[#4B3B7A]">
-                  RAG Grounding Verified
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">
-                AI-Assisted Task &amp; Quiz Generator Studio
-              </h1>
-              <p className="text-xs sm:text-sm text-[#5A5E70] font-medium mt-1">
-                Susun draf soal adaptif berbasis dokumen modul guru. Guru memegang kendali penuh untuk mereview, mengedit, dan menyetujui sebelum publikasi.
+        <main className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 py-6">
+          <div className="max-w-5xl mx-auto space-y-6">
+            <header>
+              <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">Buat Kuis</h1>
+              <p className="text-sm text-[#5A5E70] mt-1">
+                Soal dibuat dari materi yang Anda unggah. Periksa dan ubah dulu, lalu kirim ke kelas.
               </p>
-            </div>
-          </div>
+            </header>
 
-          {documents.length === 0 ? (
-            <div className="clay-card clay-white p-8 sm:p-12 rounded-3xl border border-black/5 text-center space-y-4 shadow-xs">
-              <div className="w-16 h-16 rounded-2xl bg-[#FAF8FD] text-[#4B3B7A] flex items-center justify-center mx-auto shadow-2xs">
-                <UploadCloud className="w-8 h-8" />
-              </div>
-              <div className="max-w-md mx-auto space-y-1.5">
-                <h2 className="text-lg font-black text-[#1C1E26]">
-                  Belum Ada Dokumen Silabus di RAG Base
-                </h2>
-                <p className="text-xs sm:text-sm text-[#595F72] leading-relaxed">
-                  Sebelum menghasilkan kuis adaptif DDA, Anda perlu mengunggah modul ajar atau dokumen materi ke Knowledge Base agar AI tidak berhalusinasi.
-                </p>
-              </div>
-              <div className="pt-2">
-                <Link
-                  to="/teacher/rag"
-                  className="clay-btn clay-btn-dark px-5 py-2.5 rounded-2xl text-xs font-black inline-flex items-center gap-2"
-                >
-                  <Database className="w-4 h-4" />
-                  <span>Buka RAG Knowledge Base</span>
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* GENERATOR CONFIGURATION CARD */}
-              <div className="clay-card clay-white p-6 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-[#010105] mb-1">Target Kelas</label>
-                    <select
-                      value={selectedClassId}
-                      onChange={(e) => setSelectedClassId(e.target.value)}
-                      className="w-full p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#F8F9FD] focus:outline-none cursor-pointer"
-                    >
-                      {classrooms.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#010105] mb-1">Modul Sumber RAG</label>
-                    <select
-                      value={selectedDocId}
-                      onChange={(e) => {
-                        setSelectedDocId(e.target.value);
-                        const doc = documents.find((d) => d.id === e.target.value);
-                        if (doc) setTargetTopic(doc.title);
-                      }}
-                      className="w-full p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#F8F9FD] focus:outline-none cursor-pointer"
-                    >
-                      {documents.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#010105] mb-1">Topik Spesifik</label>
-                    <Input
-                      value={targetTopic}
-                      onChange={(e) => setTargetTopic(e.target.value)}
-                      placeholder="Topik evaluasi kuis..."
-                      className="text-xs bg-[#F8F9FD] rounded-2xl"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#010105] mb-1">Jumlah Soal</label>
-                    <select
-                      value={numQuestions}
-                      onChange={(e) => setNumQuestions(Number(e.target.value))}
-                      className="w-full p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#F8F9FD] focus:outline-none cursor-pointer"
-                    >
-                      <option value={5}>5 Butir Soal</option>
-                      <option value={10}>10 Butir Soal (Rekomendasi)</option>
-                      <option value={15}>15 Butir Soal</option>
-                      <option value={20}>20 Butir Soal</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#010105] mb-1">Model Kesulitan</label>
-                    <select
-                      value={selectedDifficulty}
-                      onChange={(e) => setSelectedDifficulty(e.target.value)}
-                      className="w-full p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#F8F9FD] focus:outline-none cursor-pointer"
-                    >
-                      <option value="ADAPTIVE">Bertingkat (BASIC ➔ HOTS)</option>
-                      <option value="BASIC">Dasar (BASIC)</option>
-                      <option value="MEDIUM">Menengah (MEDIUM)</option>
-                      <option value="CHALLENGING">Lanjutan (CHALLENGING)</option>
-                      <option value="MASTERY">Tinggi (MASTERY)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 pt-3 border-t border-[rgba(28,30,38,0.06)]">
-                  <span className="text-xs text-[#5A5E70] font-medium">
-                    Prompt dicocokkan dengan kemiripan vektor ChromaDB dari dokumen: <strong className="text-[#1C1E26]">{selectedDoc?.title}</strong>
-                  </span>
-                  <button
-                    onClick={handleGenerateAI}
-                    disabled={isGenerating}
-                    className="clay-btn clay-btn-dark px-4 py-2.5 text-xs font-black flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shadow-xs"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span>{isGenerating ? "Menghasilkan Draf Soal..." : "Generate Draf Soal via AI RAG"}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* DRAFT QUESTIONS REVIEW & APPROVAL LIST */}
-              <section className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h2 className="text-lg font-black text-[#010105]">
-                      Draf Soal Kuis ({draftQuestions.length} Soal Ter-grounding)
-                    </h2>
-                    <p className="text-xs text-[#5A5E70]">
-                      Setiap butir soal memiliki sitasi halaman dari dokumen ajar asli.
+            {myClasses.length === 0 ? (
+              <Empty title="Belum ada kelas" to="/teacher" cta="Buat kelas di Beranda">
+                Kuis selalu dikirim ke salah satu kelas Anda.
+              </Empty>
+            ) : (
+              <>
+                {published && (
+                  <div className="clay-card clay-mint p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <p className="text-sm font-black text-[#1D5E4D] flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" /> Kuis terkirim ke {published.className}.
                     </p>
-                  </div>
-                  {draftQuestions.length > 0 && (
-                    <span className="clay-pill clay-butter px-3 py-1 text-xs font-extrabold text-[#785308]">
-                      Perlu Persetujuan Guru
-                    </span>
-                  )}
-                </div>
-
-                {draftQuestions.length === 0 ? (
-                  <div className="clay-card clay-white p-8 rounded-3xl border border-black/5 text-center space-y-2">
-                    <p className="text-xs font-bold text-[#5A5E70]">
-                      Belum ada draf soal yang dibuat. Klik tombol "Generate Draf Soal via AI RAG" di atas untuk menyusun pertanyaan adaptif.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {draftQuestions.map((q, qIdx) => (
-                      <div
-                        key={q.id || qIdx}
-                        className="clay-card clay-card-hover clay-white p-6 space-y-3.5"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-center gap-2">
-                            <span className="w-7 h-7 rounded-xl bg-[#1C1E26] text-white flex items-center justify-center text-xs font-black">
-                              {qIdx + 1}
-                            </span>
-                            <span className="clay-pill clay-lavender text-mini font-extrabold px-2.5 py-0.5 text-[#4B3B7A]">
-                              Level {q.difficulty}
-                            </span>
-                          </div>
-                          <span className="clay-pill bg-[#F8F9FD] text-mini font-mono font-bold text-[#5A5E70] px-2.5 py-1">
-                            {q.sourceReference}
-                          </span>
-                        </div>
-
-                        <p className="text-sm font-black text-[#010105] leading-relaxed">
-                          {q.questionText}
-                        </p>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                          {q.options.map((opt: string, optIdx: number) => (
-                            <div
-                              key={optIdx}
-                              className={`p-3 rounded-2xl text-xs font-bold border transition-all ${
-                                optIdx === q.correctIndex
-                                  ? "clay-card clay-mint text-[#1D5E4D] border-[#1D5E4D]"
-                                  : "bg-[#F8F9FD] border-[rgba(28,30,38,0.06)] text-[#5A5E70]"
-                              }`}
-                            >
-                              <span className="font-black mr-1.5">{String.fromCharCode(65 + optIdx)}.</span>
-                              {opt}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* Bottom Actions */}
-                    <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                      {isPublished ? (
-                        <div className="clay-pill clay-mint px-4 py-2 flex items-center gap-2 text-xs font-black text-[#1D5E4D]">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Kuis berhasil disetujui &amp; diterbitkan ke portal siswa!</span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-[#5A5E70] font-medium">
-                          Pastikan seluruh soal telah ditelaah sesuai kurikulum sebelum diterbitkan.
-                        </span>
-                      )}
-
-                      <button
-                        onClick={handlePublishToClass}
-                        disabled={draftQuestions.length === 0}
-                        className="clay-btn clay-btn-dark px-6 py-3 text-xs font-black shadow-md w-full sm:w-auto flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Setujui &amp; Terbitkan Kuis ke Portal Siswa</span>
-                      </button>
-                    </div>
+                    <Link to={`/teacher/class/${published.classId}`} className="text-xs font-black text-[#1D5E4D] underline">
+                      Lihat kelas
+                    </Link>
                   </div>
                 )}
-              </section>
-            </>
-          )}
+
+                {/* Step 1: settings */}
+                <section className="clay-card clay-white p-5 sm:p-6 space-y-4">
+                  <h2 className="text-sm font-black text-[#010105]">1. Pilih materi</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field label="Kelas">
+                      <select
+                        value={cls?.id || ""}
+                        onChange={(e) => {
+                          setClassId(e.target.value);
+                          setDocId("");
+                        }}
+                        className={selectCls}
+                      >
+                        {myClasses.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Materi">
+                      <select
+                        value={doc?.id || ""}
+                        onChange={(e) => setDocId(e.target.value)}
+                        disabled={classDocs.length === 0}
+                        className={selectCls}
+                      >
+                        {classDocs.length === 0 && <option value="">Belum ada materi di kelas ini</option>}
+                        {classDocs.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.title}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
+
+                  {classDocs.length === 0 ? (
+                    <p className="text-xs text-[#5A5E70] flex items-center gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                      Unggah materi untuk kelas ini dulu di{" "}
+                      <Link to={`/teacher/rag?kelas=${cls?.id}`} className="font-bold underline">
+                        Materi Ajar
+                      </Link>
+                      .
+                    </p>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <Field label="Jumlah soal">
+                          <select value={count} onChange={(e) => setCount(Number(e.target.value))} className={selectCls}>
+                            {[5, 10, 15, 20].map((n) => (
+                              <option key={n} value={n}>
+                                {n} soal
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                        <Field label="Tingkat kesulitan">
+                          <select value={level} onChange={(e) => setLevel(e.target.value)} className={selectCls}>
+                            {LEVELS.map((l) => (
+                              <option key={l.value} value={l.value}>
+                                {l.label}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                        <Field label="Fokus bahasan (opsional)">
+                          <Input
+                            value={focus}
+                            onChange={(e) => setFocus(e.target.value)}
+                            placeholder="Contoh: fungsi ginjal"
+                            className="text-xs bg-[#F8F9FD] rounded-2xl"
+                          />
+                        </Field>
+                      </div>
+                      <div className="flex justify-end pt-1">
+                        <button
+                          onClick={generate}
+                          disabled={isGenerating}
+                          className="clay-btn clay-btn-dark px-5 py-2.5 text-xs font-black flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                        >
+                          {isGenerating && <RefreshCw className="w-4 h-4 animate-spin" />}
+                          {isGenerating ? "Sedang membuat soal..." : questions.length ? "Buat ulang soal" : "Buat soal"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </section>
+
+                {error && (
+                  <p role="alert" className="p-3 rounded-2xl bg-[#FDE8E8] text-[#9B1C1C] text-xs font-bold flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+                  </p>
+                )}
+
+                {/* Step 2: review and edit */}
+                {questions.length > 0 && (
+                  <section className="space-y-4">
+                    <div className="flex items-end justify-between gap-3">
+                      <div>
+                        <h2 className="text-sm font-black text-[#010105]">2. Periksa soal ({questions.length})</h2>
+                        <p className="text-xs text-[#5A5E70]">
+                          Klik teks untuk mengubah. Pilih lingkaran di kiri jawaban untuk menandai jawaban benar.
+                        </p>
+                      </div>
+                    </div>
+
+                    {questions.map((q, i) => (
+                      <article key={q.id} className="clay-card clay-white p-5 sm:p-6 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-7 h-7 rounded-xl bg-[#1C1E26] text-white flex items-center justify-center text-xs font-black shrink-0">
+                            {i + 1}
+                          </span>
+                          {levelLabel(q.difficulty) && (
+                            <span className="clay-pill clay-lavender text-mini font-extrabold px-2.5 py-0.5 text-[#4B3B7A]">
+                              {levelLabel(q.difficulty)}
+                            </span>
+                          )}
+                          <button
+                            onClick={() => setQuestions((qs) => qs.filter((_, n) => n !== i))}
+                            className="ml-auto p-2 rounded-xl text-[#9195A8] hover:text-[#ba1a1a] hover:bg-[#FDE8E8] cursor-pointer"
+                            aria-label={`Hapus soal ${i + 1}`}
+                            title="Hapus soal"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <textarea
+                          value={q.questionText}
+                          onChange={(e) => update(i, { questionText: e.target.value })}
+                          rows={2}
+                          placeholder="Tulis pertanyaan"
+                          aria-label={`Pertanyaan ${i + 1}`}
+                          className="w-full p-3 rounded-2xl border border-[rgba(28,30,38,0.08)] text-sm font-black text-[#010105] bg-[#F8F9FD] focus:outline-none focus:border-[#4B3B7A] leading-relaxed"
+                        />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5" role="radiogroup" aria-label={`Jawaban benar soal ${i + 1}`}>
+                          {q.options.map((opt, o) => {
+                            const right = o === q.correctIndex;
+                            return (
+                              <div
+                                key={o}
+                                className={`flex items-center gap-2 p-2 rounded-2xl border ${
+                                  right ? "clay-mint border-[#1D5E4D]" : "bg-[#F8F9FD] border-[rgba(28,30,38,0.06)]"
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`correct-${q.id}`}
+                                  checked={right}
+                                  onChange={() => update(i, { correctIndex: o })}
+                                  aria-label={`Jawaban ${String.fromCharCode(65 + o)} benar`}
+                                  className="accent-[#1D5E4D] w-4 h-4 cursor-pointer shrink-0"
+                                />
+                                <span className="text-xs font-black text-[#5A5E70]">{String.fromCharCode(65 + o)}.</span>
+                                <input
+                                  value={opt}
+                                  onChange={(e) =>
+                                    update(i, { options: q.options.map((x, n) => (n === o ? e.target.value : x)) })
+                                  }
+                                  placeholder="Pilihan jawaban"
+                                  className={`flex-1 min-w-0 bg-transparent text-xs font-bold focus:outline-none ${
+                                    right ? "text-[#1D5E4D]" : "text-[#1C1E26]"
+                                  }`}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {q.sourceReference && <p className="text-mini text-[#9195A8]">Sumber: {q.sourceReference}</p>}
+                      </article>
+                    ))}
+
+                    <button
+                      onClick={() => setQuestions((qs) => [...qs, blankQuestion()])}
+                      className="w-full p-3 rounded-2xl border-2 border-dashed border-[rgba(28,30,38,0.12)] text-xs font-black text-[#5A5E70] hover:bg-white flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" /> Tambah soal sendiri
+                    </button>
+
+                    {/* Step 3: send */}
+                    <section className="clay-card clay-white p-5 sm:p-6 space-y-4">
+                      <h2 className="text-sm font-black text-[#010105]">3. Kirim ke kelas</h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Field label="Judul kuis">
+                          <Input
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            placeholder={doc ? `Kuis: ${doc.title}` : "Judul kuis"}
+                            className="text-xs bg-[#F8F9FD] rounded-2xl"
+                          />
+                        </Field>
+                        <Field label="Batas pengerjaan">
+                          <Input
+                            type="date"
+                            value={dueDate}
+                            min={new Date().toISOString().slice(0, 10)}
+                            onChange={(e) => setDueDate(e.target.value)}
+                            className="text-xs bg-[#F8F9FD] rounded-2xl"
+                          />
+                        </Field>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                        <p className={`text-xs font-medium ${problems.length ? "text-[#852C28]" : "text-[#5A5E70]"}`}>
+                          {problems.length
+                            ? `Lengkapi soal nomor ${problems.join(", ")} dulu (pertanyaan dan semua pilihan harus terisi).`
+                            : `Siswa di ${cls?.name} akan langsung melihat kuis ini.`}
+                        </p>
+                        <button
+                          onClick={publish}
+                          disabled={!canPublish}
+                          className="clay-btn clay-btn-dark px-6 py-3 text-xs font-black flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          {isPublishing ? "Mengirim..." : `Kirim ke ${cls?.name}`}
+                        </button>
+                      </div>
+                    </section>
+                  </section>
+                )}
+              </>
+            )}
+          </div>
         </main>
       </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="block text-xs font-bold text-[#010105] mb-1">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function Empty({ title, to, cta, children }: { title: string; to: string; cta: string; children: React.ReactNode }) {
+  return (
+    <div className="clay-card clay-white p-8 sm:p-12 text-center space-y-3">
+      <BookOpen className="w-8 h-8 text-[#9195A8] mx-auto" />
+      <h2 className="text-base font-black text-[#010105]">{title}</h2>
+      <p className="text-xs text-[#5A5E70] max-w-sm mx-auto">{children}</p>
+      <Link to={to} className="clay-btn clay-btn-dark px-5 py-2.5 rounded-2xl text-xs font-black inline-flex">
+        {cta}
+      </Link>
     </div>
   );
 }

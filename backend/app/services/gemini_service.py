@@ -53,6 +53,18 @@ ATURAN GROUNDING & SITASI WAJIB (MUTLAK):
 5. Akhiri penjelasan dengan 1 pertanyaan reflektif singkat untuk memancing pemikiran kritis siswa.
 """
 
+TEACHER_INSTRUCTION = """Kamu adalah asisten mengajar untuk guru di EduAdapt (Kurikulum Merdeka, Indonesia).
+Bantu guru menyiapkan pembelajaran: rencana pelajaran, soal dan kunci jawaban, rubrik, penjelasan sederhana untuk siswa,
+dan membaca kondisi kelas dari data yang diberikan.
+
+Aturan:
+1. Pakai bahasa Indonesia yang lugas dan langsung ke inti. Jangan berbasa-basi atau memuji pertanyaan.
+2. Jika ada teks di [MODUL_GURU], jadikan itu dasar utama dan sebut judul materinya. Jika materi tidak memuat jawabannya, katakan terus terang lalu beri saran umum yang ditandai sebagai di luar materi.
+3. Jika ada [DATA_KELAS], jawab pertanyaan tentang siswa hanya dari data itu. Jangan mengarang nama, nilai, atau kejadian.
+4. Untuk soal, selalu sertakan kunci jawaban. Untuk rencana pelajaran, sertakan tujuan, langkah beserta alokasi waktu, dan cara menilai.
+5. Jangan pakai tabel Markdown; pakai daftar bernomor atau poin supaya mudah dibaca di layar chat.
+"""
+
 def _call_gemini_text(
     prompt: str,
     system_instruction: Optional[str] = None,
@@ -131,8 +143,10 @@ def chat_with_gemini(
     classroom_id: Optional[str] = None,
     document_id: Optional[str] = None,
     learning_style: Optional[str] = "VISUAL",
-    student_name: Optional[str] = "Siswa"
+    student_name: Optional[str] = "Siswa",
+    teacher_context: Optional[str] = None,
 ) -> Dict[str, Any]:
+    """teacher_context set (even "") switches to the teacher assistant; it holds the [DATA_KELAS] summary."""
     """
     Menghasilkan balasan AI Tutor dengan grounding RAG dan adaptasi kognitif.
     """
@@ -146,6 +160,11 @@ def chat_with_gemini(
         top_k=3
     )
     
+    is_teacher = teacher_context is not None
+    system_inst = TEACHER_INSTRUCTION if is_teacher else _build_system_instruction(learning_style)
+    asker = "Pertanyaan Guru" if is_teacher else f"Pertanyaan Siswa ({student_name})"
+    class_block = f"\n\n[DATA_KELAS]\n{teacher_context}\n[/DATA_KELAS]" if teacher_context else ""
+
     rag_context = ""
     citations = []
     if relevant_chunks:
@@ -156,7 +175,6 @@ def chat_with_gemini(
     if settings.CHAT_ENDPOINT and (settings.CHAT_API_KEY or (settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.startswith("sk-"))):
         try:
             from app.services.gateway_service import AIGatewayService
-            system_inst = _build_system_instruction(learning_style)
             messages = [{"role": "system", "content": system_inst}]
             trimmed_history = chat_history[-6:] if len(chat_history) > 6 else chat_history
             for h in trimmed_history:
@@ -164,9 +182,9 @@ def chat_with_gemini(
                 messages.append({"role": role, "content": h.get("text", "")})
             prompt_content = f"""[MODUL_GURU]
 {rag_context if rag_context else "Belum ada dokumen modul spesifik terindeks. Jawab berdasarkan prinsip sains kurikulum umum."}
-[/MODUL_GURU]
+[/MODUL_GURU]{class_block}
 
-Pertanyaan Siswa ({student_name}): {clean_query}"""
+{asker}: {clean_query}"""
             messages.append({"role": "user", "content": prompt_content})
 
             chat_reply = AIGatewayService.generate_chat(messages, model=settings.CHAT_MODEL, temperature=0.4)
@@ -190,9 +208,9 @@ Pertanyaan Siswa ({student_name}): {clean_query}"""
             
             prompt_content = f"""[MODUL_GURU]
 {rag_context if rag_context else "Belum ada dokumen modul spesifik terindeks. Jawab berdasarkan prinsip sains kurikulum umum."}
-[/MODUL_GURU]
+[/MODUL_GURU]{class_block}
 
-Pertanyaan Siswa ({student_name}): {clean_query}"""
+{asker}: {clean_query}"""
 
             trimmed_history = chat_history[-6:] if len(chat_history) > 6 else chat_history
             
@@ -210,7 +228,7 @@ Pertanyaan Siswa ({student_name}): {clean_query}"""
             ))
 
             config = types.GenerateContentConfig(
-                system_instruction=_build_system_instruction(learning_style),
+                system_instruction=system_inst,
                 temperature=0.4,
                 max_output_tokens=1500,
             )
@@ -253,6 +271,13 @@ Pertanyaan Siswa ({student_name}): {clean_query}"""
             logger.error(f"[GeminiService] API generation failed: {e}")
 
     # 3. Fallback jika offline / API key kosong
+    if is_teacher:
+        return {
+            "text": "Asisten belum bisa menjawab karena layanan AI tidak tersambung. Periksa GEMINI_API_KEY atau CHAT_ENDPOINT di file .env backend, lalu coba lagi.",
+            "citation": "",
+            "is_grounded": False,
+            "model": "unavailable",
+        }
     if relevant_chunks:
         primary_chunk = relevant_chunks[0]["text"]
         return {
@@ -352,76 +377,8 @@ Susunlah sekarang {num_questions} soal berkualitas tinggi dalam format JSON arra
         except Exception as e:
             logger.warning(f"[GeminiService] Quiz JSON parsing error: {e}")
 
-    # 3. Dynamic RAG Fallback Generator yang BERVARIATIF & BERKUALITAS (bukan dummy seragam)
-    paragraphs = [p.strip() for p in raw_text.split("\n\n") if len(p.strip()) > 40]
-    if not paragraphs:
-        paragraphs = [p.strip() for p in raw_text.split(". ") if len(p.strip()) > 30]
-    if not paragraphs:
-        paragraphs = [f"Konsep dasar modul {doc_title} mengenai bab {topic}."]
-
-    question_templates = [
-        "Berdasarkan prinsip materi '{title}', apa konsep inti yang diuraikan pada aspek ini?",
-        "Manakah pernyataan yang paling akurat mengenai mekanisme dalam sub-bahasan '{topic}'?",
-        "Mengapa tahapan berikut memegang peranan krusial dalam pemahaman konsep: '{topic}'?",
-        "Bagaimana korelasi fungsi antara komponen sistemik materi ini dengan penerapannya?",
-        "Apa implikasi teoritis yang terjadi apabila parameter dalam materi ini mengalami pergeseran?",
-        "Berdasarkan rujukan resmi modul ajar, terminologi manakah yang tepat mendeskripsikan fenomena ini?",
-        "Bagaimana perbandingan karakteristik yang tepat antara premis dasar dan hasil analisis materi?",
-        "Pada tingkat analisis lanjutan, mengapa mekanisme ini memerlukan regulasi keseimbangan?",
-        "Penerapan manakah yang paling sesuai dengan kaidah ilmiah yang termuat dalam bab '{topic}'?",
-        "Apa simpulan esensial yang dapat ditarik dari pembahasan terstruktur pada bagian ini?"
-    ]
-
-    difficulty_ladder = ["BASIC", "BASIC", "MEDIUM", "MEDIUM", "MEDIUM", "CHALLENGING", "CHALLENGING", "CHALLENGING", "MASTERY", "MASTERY"]
-    fallback_questions = []
-
-    for idx in range(num_questions):
-        p_idx = idx % len(paragraphs)
-        para = paragraphs[p_idx]
-        
-        # Ambil kalimat pertama sebagai inti jawaban benar
-        sentences = [s.strip() for s in para.split(". ") if len(s.strip()) > 15]
-        correct_answer = sentences[0] if sentences else para[:90]
-        if len(correct_answer) > 110:
-            correct_answer = correct_answer[:105] + "..."
-
-        # Buat pilihan pengecoh dari paragraf lain dalam dokumen yang sama
-        other_paras = [p for i, p in enumerate(paragraphs) if i != p_idx]
-        distractors = []
-        for d_idx in range(3):
-            if other_paras:
-                dp = other_paras[(idx + d_idx) % len(other_paras)]
-                ds = [s.strip() for s in dp.split(". ") if len(s.strip()) > 15]
-                d_ans = ds[0] if ds else dp[:85]
-                distractors.append(d_ans[:95] + "...")
-            else:
-                distractors.append(f"Hipotesis tanpa regulasi kesetimbangan pada sub-bab {d_idx + 1}")
-
-        # Acak posisi kunci jawaban (0, 1, 2, atau 3)
-        target_correct_index = random.randint(0, 3)
-        options = list(distractors[:3])
-        options.insert(target_correct_index, correct_answer)
-
-        stem_tmpl = question_templates[idx % len(question_templates)]
-        q_text = stem_tmpl.format(title=doc_title, topic=topic or doc_title)
-
-        diff = difficulty_ladder[idx % len(difficulty_ladder)]
-
-        fallback_questions.append({
-            "id": f"q_gen_{uuid.uuid4().hex[:6]}",
-            "questionText": q_text,
-            "options": options,
-            "correctIndex": target_correct_index,
-            "difficulty": diff,
-            "sourceReference": f"{doc_title} (Bagian {idx + 1})",
-            "explanation": {
-                "analogi": f"Ibarat menelaah komponen {idx + 1} dalam rangkaian kerja terpadu pada bab {topic}.",
-                "visual": f"Skema Konsep ➔ {topic} ➔ Langkah Pengujian {idx + 1} ➔ Simpulan Terverifikasi.",
-                "langkah": f"1. Cermati modul rujukan ➔ 2. Analisis premis: '{correct_answer[:45]}...' ➔ 3. Pilih opsi {chr(65 + target_correct_index)}."
-            }
-        })
-
-    return fallback_questions
+    # No invented template questions: the caller tells the teacher to try again instead.
+    return []
 
 def generate_visual_mindmap(concept: str, context: Optional[str] = None) -> Dict[str, str]:
     """

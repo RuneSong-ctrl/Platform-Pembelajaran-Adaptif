@@ -1,4 +1,5 @@
 import hashlib
+import time
 import hmac
 import secrets
 from datetime import datetime, timedelta
@@ -69,13 +70,40 @@ def current_user(credentials: HTTPAuthorizationCredentials | None = Depends(bear
     return user
 
 
-def media_user(token: str | None = None, credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+MEDIA_TICKET_TTL = 2 * 60 * 60
+
+
+def _ticket_sig(payload: str) -> str:
+    from app.core.config import settings
+    return hmac.new(settings.SECRET_KEY.encode(), f"media:{payload}".encode(), hashlib.sha256).hexdigest()[:40]
+
+
+def make_media_ticket(user: User) -> str:
+    """Read-only pass for URLs (<img>, <audio>, PDF links, EventSource), which cannot send headers.
+    It is not a session: it cannot call the API, and it expires on its own."""
+    payload = f"{user.id}.{int(time.time()) + MEDIA_TICKET_TTL}"
+    return f"{payload}.{_ticket_sig(payload)}"
+
+
+def user_from_ticket(ticket: str, db: Session) -> User:
+    payload, _, sig = ticket.rpartition(".")
+    user_id, _, exp = payload.rpartition(".")
+    if not (sig and exp.isdigit() and hmac.compare_digest(sig, _ticket_sig(payload)) and int(exp) > time.time()):
+        raise HTTPException(401, "Tautan media kedaluwarsa. Muat ulang halaman.")
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(401, "Sesi tidak valid.")
+    return user
+
+
+def media_user(t: str | None = None, credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
                db: Session = Depends(get_db)) -> User:
-    """<audio>, <img> and PDF links cannot send headers, so media GETs also accept ?token=."""
-    # ponytail: the session token then shows up in URLs/logs; switch to short-lived signed URLs if that matters.
-    if not credentials and token:
-        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
-    return current_user(credentials, db)
+    """Media GETs accept the normal Bearer header, or ?t=<media ticket> for plain links. Never a session token."""
+    if credentials:
+        return current_user(credentials, db)
+    if t:
+        return user_from_ticket(t, db)
+    raise HTTPException(401, "Silakan masuk kembali.")
 
 
 def require_class_access(classroom, user: User, *, teacher: bool = False):

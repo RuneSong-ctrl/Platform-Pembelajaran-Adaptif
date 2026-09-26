@@ -41,7 +41,7 @@ interface AppContextType {
   isAuthenticated: boolean;
   isRestoringSession: boolean;
   login: (identifier: string, password?: string) => Promise<{ success: boolean; user?: User; message?: string }>;
-  registerUser: (data: { name: string; email: string; role: "SISWA" | "GURU" | "ORTU"; password?: string; grade?: number }) => Promise<{ success: boolean; user?: User; message?: string }>;
+  registerUser: (data: { name: string; email: string; role: "SISWA" | "GURU" | "ORTU"; password?: string; grade?: number; invite_code?: string }) => Promise<{ success: boolean; user?: User; message?: string }>;
   loginWithClassCode: (studentName: string, classCode: string) => { success: boolean; user?: User; message?: string; isNewStudent?: boolean };
   logout: () => void;
 
@@ -55,7 +55,7 @@ interface AppContextType {
   classrooms: Classroom[];
   addClassroom: (name: string, grade: number, subject: string) => Classroom;
   createClassroom: (name: string, subject: string, grade?: number) => Classroom;
-  joinClassroom: (joinCode: string) => Promise<{ success: boolean; message: string }>;
+  joinClassroom: (joinCode: string) => Promise<{ success: boolean; message: string; classroomId?: string }>;
 
   // Documents & RAG Grounding
   documents: GroundedDocument[];
@@ -65,13 +65,13 @@ interface AppContextType {
 
   // Tasks & Quiz
   tasks: GroundedTask[];
-  createTask: (task: Omit<GroundedTask, "id" | "createdAt">) => GroundedTask;
+  createTask: (task: Omit<GroundedTask, "id" | "createdAt">) => Promise<GroundedTask>;
 
   // Submissions
   submissions: AssignmentSubmission[];
   submitAssignment: (taskId: string, content: string, attachmentName?: string) => void;
-  gradeSubmission: (submissionId: string, grade: number, feedback: string) => void;
-  gradeAssignmentSubmission: (submissionId: string, grade: number, feedback: string) => void;
+  gradeSubmission: (submissionId: string, grade: number, feedback: string) => Promise<void>;
+  gradeAssignmentSubmission: (submissionId: string, grade: number, feedback: string) => Promise<void>;
 
   // Blockchain Credentials
   credentials: BlockchainCredential[];
@@ -137,7 +137,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const token = ApiService.getToken();
     const isCurrent = () => active && version === sessionVersion.current && token === ApiService.getToken();
     if (token) {
-      ApiService.authenticatedRequest<unknown>("/auth/me").then(raw => {
+      ApiService.authenticatedRequest<unknown>("/auth/me").then(async raw => {
+        await ApiService.refreshMediaTicket();
         if (!isCurrent()) return;
         const user = normalizeUser(raw);
         activeUserId.current = user.id;
@@ -349,9 +350,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     else delete document.documentElement.dataset.jenjang;
   }, [jenjang]);
 
-  const acceptSession = (response: { token: string; user: unknown }) => {
+  const acceptSession = async (response: { token: string; user: unknown }) => {
     const user = normalizeUser(response.user);
     ApiService.setToken(response.token);
+    await ApiService.refreshMediaTicket(); // media links on the first screen need it
     activeUserId.current = user.id;
     setIsRestoringSession(false);
     setUsers(prev => [user, ...prev.filter(item => item.id !== user.id)]);
@@ -381,7 +383,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const registerUser = async (data: {
-    name: string; email: string; role: "SISWA" | "GURU" | "ORTU"; password?: string; grade?: number;
+    name: string; email: string; role: "SISWA" | "GURU" | "ORTU"; password?: string; grade?: number; invite_code?: string;
   }) => {
     const version = ++sessionVersion.current;
     try {
@@ -473,7 +475,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Students only see classes they belong to, so the join code is resolved by the server.
-  const joinClassroom = async (joinCode: string): Promise<{ success: boolean; message: string }> => {
+  const joinClassroom = async (joinCode: string): Promise<{ success: boolean; message: string; classroomId?: string }> => {
     try {
       const res = await ApiService.authenticatedRequest<{ message: string; classroom: unknown }>("/classrooms/join", {
         method: "POST",
@@ -484,7 +486,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const [docs, classTasks] = await Promise.all([ApiService.getDocuments(), ApiService.getTasks()]);
       if (docs) setDocuments(docs.map(normalizeDocument));
       if (classTasks) setTasks(classTasks.map(normalizeTask));
-      return { success: true, message: res.message };
+      return { success: true, message: res.message, classroomId: joined.id };
     } catch (error) {
       return { success: false, message: error instanceof Error ? error.message : "Gagal bergabung ke kelas." };
     }
@@ -585,21 +587,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ApiService.deleteDocument(docId).catch(() => {});
   };
 
-  const createTask = (taskData: Omit<GroundedTask, "id" | "createdAt">): GroundedTask => {
-    const newTask: GroundedTask = {
-      ...taskData,
-      id: `task_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    };
-    setTasks((prev) => [newTask, ...prev]);
-    setClassrooms((prev) =>
-      prev.map((c) =>
-        c.id === taskData.classroomId ? { ...c, tasksCount: c.tasksCount + 1 } : c
-      )
-    );
-
-    // Persist to backend
-    ApiService.createTask({
+  // Waits for the server so the caller only reports success once the task is really saved.
+  const createTask = async (taskData: Omit<GroundedTask, "id" | "createdAt">): Promise<GroundedTask> => {
+    const res = await ApiService.createTask({
       classroom_id: taskData.classroomId,
       classroom_name: taskData.classroomName,
       type: taskData.type,
@@ -610,15 +600,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       is_published: taskData.isPublished,
       due_date: taskData.dueDate,
       content_json: taskData.contentJson,
-    })
-      .then((res) => {
-        if (res) {
-          const norm = normalizeTask(res);
-          setTasks((prev) => prev.map((t) => (t.id === newTask.id ? norm : t)));
-        }
-      })
-      .catch(() => {});
-
+    });
+    const newTask = normalizeTask(res);
+    setTasks((prev) => [newTask, ...prev]);
+    setClassrooms((prev) =>
+      prev.map((c) => (c.id === taskData.classroomId ? { ...c, tasksCount: c.tasksCount + 1 } : c))
+    );
     return newTask;
   };
 
@@ -651,17 +638,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     trackLearningActivity("practice", 1, newSub.taskTitle);
   };
 
-  const gradeSubmission = (submissionId: string, grade: number, feedback: string) => {
-    setSubmissions((prev) =>
-      prev.map((s) =>
-        s.id === submissionId
-          ? { ...s, grade, feedback, status: "Graded" }
-          : s
-      )
-    );
-
-    // Persist to backend
-    ApiService.gradeSubmission(submissionId, grade, feedback).catch(() => {});
+  // Waits for the server so a grade the teacher sees is a grade the student gets.
+  const gradeSubmission = async (submissionId: string, grade: number, feedback: string) => {
+    const saved = normalizeSubmission(await ApiService.gradeSubmission(submissionId, grade, feedback));
+    setSubmissions((prev) => prev.map((s) => (s.id === submissionId ? saved : s)));
   };
 
   const gradeAssignmentSubmission = gradeSubmission;
@@ -762,25 +742,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsSyncing(true);
     try {
       // Background sync with FastAPI backend
-      const [backendClassrooms, backendDocs, backendTasks, backendCreds] = await Promise.all([
+      const [backendClassrooms, backendDocs, backendTasks, backendCreds, backendUsers] = await Promise.all([
         ApiService.getClassrooms(),
         ApiService.getDocuments(),
         ApiService.getTasks(),
         ApiService.getCredentials(),
+        ApiService.getUsers(),
       ]);
 
-      if (backendClassrooms && backendClassrooms.length > 0) {
-        setClassrooms(backendClassrooms);
-      }
-      if (backendDocs && backendDocs.length > 0) {
-        setDocuments(backendDocs);
-      }
-      if (backendTasks && backendTasks.length > 0) {
-        setTasks(backendTasks);
-      }
-      if (backendCreds && backendCreds.length > 0) {
-        setCredentials(backendCreds);
-      }
+      // null = request failed (keep what we have); an empty list is a real answer and replaces local data.
+      if (backendClassrooms) setClassrooms(backendClassrooms.map(normalizeClassroom));
+      if (backendDocs) setDocuments(backendDocs.map(normalizeDocument));
+      if (backendTasks) setTasks(backendTasks.map(normalizeTask));
+      if (backendCreds) setCredentials(backendCreds.map(normalizeCredential));
+      if (backendUsers) setUsers(backendUsers.map(normalizeUser));
     } catch {
       // Graceful offline fallback
     }

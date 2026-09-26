@@ -99,9 +99,9 @@ export default function ClassMaterialReaderPage() {
               <div className="w-14 h-14 rounded-2xl bg-[#FCD9D7] text-[#852C28] flex items-center justify-center mx-auto">
                 <BookOpen className="w-7 h-7" />
               </div>
-              <h2 className="text-lg font-black text-[#1C1E26]">Materi Tidak Ditemukan</h2>
+              <h2 className="text-lg font-black text-[#1C1E26]">Materi Tidak Tersedia</h2>
               <p className="text-xs text-[#5A5E70]">
-                Dokumen modul pembelajaran ini tidak ditemukan atau telah diperbarui.
+                Materi ini tidak bisa dibuka. Mungkin sudah dihapus guru, atau kamu belum bergabung di kelas ini.
               </p>
               <Link
                 to={classId ? `/student/class/${classId}` : "/student/class"}

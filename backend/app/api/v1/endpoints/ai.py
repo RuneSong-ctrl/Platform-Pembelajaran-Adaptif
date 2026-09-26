@@ -68,6 +68,18 @@ class EmbeddingRequest(BaseModel):
     texts: List[str]
     model: Optional[str] = None
 
+def class_summary(cls: Classroom, db: Session) -> str:
+    """Plain-text class snapshot the teacher assistant may quote; only the teacher's own class ever reaches here."""
+    from app.api.v1.endpoints.classrooms import class_roster
+    roster = class_roster(cls, db)
+    lines = [f"Kelas: {cls.name} ({cls.subject}, kelas {cls.grade}). Jumlah siswa: {len(roster)}."]
+    for r in roster:
+        grade = r["average_grade"] if r["average_grade"] is not None else "belum ada"
+        note = "; ".join(r["alerts"]) or "tidak ada catatan"
+        lines.append(f"- {r['name']}: progres {r['progress']}%, tugas {r['tasks_submitted']}/{r['tasks_total']}, "
+                     f"rata-rata nilai {grade}, gaya belajar {r['learning_style'] or 'belum diketahui'}. Catatan: {note}.")
+    return "\n".join(lines[:61])  # cap at 60 students to keep the prompt small
+
 def own_conversation(conversation_id: str, db: Session, user: User) -> AIConversation:
     conv = db.get(AIConversation, conversation_id)
     if not conv or conv.user_id != user.id:
@@ -102,10 +114,16 @@ def delete_conversation(conversation_id: str, db: Session = Depends(get_db), use
 @router.post("/chat", response_model=ChatResponse)
 def ai_chat_endpoint(payload: ChatRequest, db: Session = Depends(get_db), user: User = Depends(current_user)):
     check_rate_limit(f"chat_{user.id}", limit_per_minute=20)
+    payload.student_name, payload.student_id = user.name, user.id
+    is_teacher = user.role == "GURU"
     if payload.document_id:
-        payload.classroom_id = access(payload.document_id, db, user).classroom_id
+        payload.classroom_id = access(payload.document_id, db, user, teacher=is_teacher).classroom_id
     elif payload.classroom_id:
-        require_class_access(db.get(Classroom, payload.classroom_id), user)
+        require_class_access(db.get(Classroom, payload.classroom_id), user, teacher=is_teacher)
+    teacher_context = None
+    if is_teacher:
+        cls = db.get(Classroom, payload.classroom_id) if payload.classroom_id else None
+        teacher_context = class_summary(cls, db) if cls else ""
 
     conv = own_conversation(payload.conversation_id, db, user) if payload.conversation_id else None
     # Saved conversations use their stored history, not whatever the client sends.
@@ -119,7 +137,8 @@ def ai_chat_endpoint(payload: ChatRequest, db: Session = Depends(get_db), user: 
         payload.document_id,
         payload.learning_style
     )
-    cached_data = get_cached_response(cache_key) if not history else None
+    # Teacher answers depend on live class data, so they are never served from cache.
+    cached_data = get_cached_response(cache_key) if not history and not is_teacher else None
     if cached_data:
         reply, cached = cached_data, True
     else:
@@ -130,11 +149,12 @@ def ai_chat_endpoint(payload: ChatRequest, db: Session = Depends(get_db), user: 
             classroom_id=payload.classroom_id,
             document_id=payload.document_id,
             learning_style=payload.learning_style,
-            student_name=payload.student_name
+            student_name=payload.student_name,
+            teacher_context=teacher_context,
         )
         cached = False
         # 3. Cache the response
-        if not history:
+        if not history and not is_teacher:
             set_cached_response(cache_key, reply, ttl_seconds=86400)
 
     # 4. Persist the exchange
@@ -171,7 +191,7 @@ def ai_chat_endpoint(payload: ChatRequest, db: Session = Depends(get_db), user: 
 @router.post("/generate-quiz")
 def ai_generate_quiz_endpoint(payload: GenerateQuizRequest, db: Session = Depends(get_db), user: User = Depends(current_user)):
     check_rate_limit(f"quiz_{user.id}", limit_per_minute=10)
-    doc = access(payload.document_id, db, user)
+    doc = access(payload.document_id, db, user, teacher=True)
     
     # Cache check
     cache_key = get_cache_key("quiz", payload.document_id, payload.topic, payload.difficulty, payload.num_questions)
@@ -187,7 +207,20 @@ def ai_generate_quiz_endpoint(payload: GenerateQuizRequest, db: Session = Depend
         difficulty=payload.difficulty or "MEDIUM",
         num_questions=payload.num_questions or 10
     )
-    
+    # Keep only well-formed multiple-choice items; every question needs an id so answers can be graded.
+    questions = [
+        {**q, "id": q.get("id") or f"q_{uuid.uuid4().hex[:8]}"}
+        for q in (questions if isinstance(questions, list) else [])
+        if isinstance(q, dict) and str(q.get("questionText") or "").strip()
+        and isinstance(q.get("options"), list) and len(q["options"]) >= 2
+        and isinstance(q.get("correctIndex"), int) and 0 <= q["correctIndex"] < len(q["options"])
+    ]
+    ids = [q["id"] for q in questions]
+    if len(set(ids)) != len(ids):
+        questions = [{**q, "id": f"q_{uuid.uuid4().hex[:8]}"} for q in questions]
+    if not questions:
+        raise HTTPException(503, "Soal belum berhasil dibuat. Coba lagi beberapa saat.")
+
     set_cached_response(cache_key, questions, ttl_seconds=86400)
     return {"questions": questions, "cached": False}
 

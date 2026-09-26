@@ -1,4 +1,6 @@
 from app.models.user import User
+from app.models.message import Announcement, DirectMessage
+from app.models.family import ParentLinkCode
 from app.models.classroom import Classroom
 from app.models.document import GroundedDocument
 from app.models.task import GroundedTask

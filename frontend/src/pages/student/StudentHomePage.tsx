@@ -2,6 +2,7 @@ import { levelLabel } from "@/lib/utils";
 import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
+import TeacherNews from "@/components/student/TeacherNews";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import StudentSidebar from "@/components/layout/StudentSidebar";
@@ -404,6 +405,8 @@ export default function StudentHomePage() {
                   </button>
                 </div>
               </section>
+
+              <TeacherNews />
 
               {/* 2. DYNAMIC WEEKLY SCHEDULE & TARGET HUB */}
               <section className={`clay-card ${cal.cardBg} ${cal.textColor} p-4 sm:p-5 rounded-[28px] border ${cal.cardBorder} space-y-3.5 shadow-xs`}>

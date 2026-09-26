@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { audioSynth } from "@/services/audioSynth";
 import {
-  Sparkles,
-  Users,
   Flame,
   Star,
   LogOut,
@@ -12,9 +10,7 @@ import {
 } from "@/components/ui/icons";
 
 export default function Navbar() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const pathname = location.pathname;
   const { currentUser, logout, triggerSync, isSyncing } = useApp();
 
   const [mounted, setMounted] = useState(false);
@@ -32,14 +28,6 @@ export default function Navbar() {
   const isStudent = currentUser?.role === "SISWA";
   const isTeacher = currentUser?.role === "GURU";
   const isParent = currentUser?.role === "ORTU";
-
-  // Active Link Helper
-  const isActive = (path: string) => {
-    if (path === "/student") {
-      return pathname === "/student" || pathname === "/student/learn";
-    }
-    return pathname === path;
-  };
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-[rgba(28,30,38,0.08)] shadow-[0_2px_10px_rgba(0,0,0,0.02)] shrink-0">
@@ -59,43 +47,6 @@ export default function Navbar() {
             </span>
           </Link>
         </div>
-
-        {/* Center Navigation Links (parents only; teachers and students use their sidebar) */}
-        {isParent && (
-          <nav
-            aria-label="Navigasi Utama"
-            className="hidden md:flex items-center gap-1 bg-[#F7F6FA] p-1 rounded-2xl border border-[rgba(28,30,38,0.06)] shadow-inner"
-          >
-            {/* Ortu Navigation */}
-            {isParent && (
-              <>
-                <Link
-                  to="/parent"
-                  className={`text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
-                    isActive("/parent")
-                      ? "bg-white text-[#1C1E26] shadow-xs font-black scale-102"
-                      : "text-[#595F72] hover:text-[#1C1E26]"
-                  }`}
-                >
-                  <Users className="w-3.5 h-3.5 text-[#4B3B7A]" />
-                  <span>Radar Belajar</span>
-                </Link>
-
-                <Link
-                  to="/parent/chat"
-                  className={`text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
-                    isActive("/parent/chat")
-                      ? "bg-white text-[#1C1E26] shadow-xs font-black scale-102"
-                      : "text-[#595F72] hover:text-[#1C1E26]"
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-[#1D5E4D]" />
-                  <span>Konsultasi AI</span>
-                </Link>
-              </>
-            )}
-          </nav>
-        )}
 
         {/* Right Section: Cohesive Metrics, User Avatar & Logout */}
         <div className="flex items-center gap-2 sm:gap-3">

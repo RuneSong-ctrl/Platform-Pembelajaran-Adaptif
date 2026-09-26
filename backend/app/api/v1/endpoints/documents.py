@@ -116,7 +116,8 @@ def _build_pdf_from_text(title: str, text: str, doc_id: str) -> str:
 
 @router.get("", response_model=List[DocumentResponse])
 def get_documents(classroom_id: str = None, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    allowed = visible_classroom_ids(user, db)
+    # Class material is for the class teacher and its enrolled students only (parents see progress, not files).
+    allowed = visible_classroom_ids(user, db) if user.role in ("GURU", "SISWA") else set()
     if classroom_id:
         allowed &= {classroom_id}
     if not allowed:

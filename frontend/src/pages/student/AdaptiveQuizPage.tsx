@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { audioSynth } from "@/services/audioSynth";
+import { ApiService } from "@/services/apiClient";
 import {
   createInitialDDAState,
   evaluateDDAAnswer,
@@ -50,6 +51,8 @@ export default function AdaptiveQuizPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
+  // Result of the server check; the answer key is never sent to the browser before answering.
+  const [reveal, setReveal] = useState<{ correct: boolean; correctIndex: number; langkah?: string } | null>(null);
   const [isQuizFinished, setIsQuizFinished] = useState(false);
 
   const [secondsLeft, setSecondsLeft] = useState(30);
@@ -92,18 +95,30 @@ export default function AdaptiveQuizPage() {
     };
   }, [currentQuestionIndex, isQuizFinished, isAnswerSubmitted, ddaState.currentLevel, allQuestions.length]);
 
-  const handleAnswer = (optionIdx: number | null, isTimeout = false) => {
-    if (isAnswerSubmitted || !activeQuestion) return;
+  const handleAnswer = async (optionIdx: number | null, isTimeout = false) => {
+    if (isAnswerSubmitted || !activeQuestion || !quizTask) return;
 
     if (timerRef.current) clearInterval(timerRef.current);
     const timeSpent = (Date.now() - questionStartTimeRef.current) / 1000;
-
-    const isCorrect =
-      !isTimeout && optionIdx !== null && optionIdx === activeQuestion.correctIndex;
+    const chosen = isTimeout ? null : optionIdx;
 
     setSelectedOption(optionIdx);
     setIsAnswerSubmitted(true);
-    answersRef.current.push({ question_id: activeQuestion.id, selected_index: isTimeout ? null : optionIdx });
+    answersRef.current.push({ question_id: activeQuestion.id, selected_index: chosen });
+
+    let isCorrect = false;
+    try {
+      const res = await ApiService.answerQuiz(quizTask.id, activeQuestion.id, chosen);
+      isCorrect = res.correct;
+      setSelectedOption(res.selected_index);
+      setReveal({ correct: res.correct, correctIndex: res.correct_index, langkah: res.langkah });
+    } catch (err) {
+      setReveal({
+        correct: false,
+        correctIndex: -1,
+        langkah: err instanceof Error ? err.message : "Jawaban belum bisa diperiksa. Periksa koneksi lalu lanjut ke soal berikutnya.",
+      });
+    }
 
     if (isCorrect) {
       audioSynth.playSuccessSound();
@@ -133,6 +148,7 @@ export default function AdaptiveQuizPage() {
     } else {
       setIsAnswerSubmitted(false);
       setSelectedOption(null);
+      setReveal(null);
       setCurrentQuestionIndex((prev) => prev + 1);
     }
   };
@@ -144,19 +160,18 @@ export default function AdaptiveQuizPage() {
         ? Math.round((ddaState.totalCorrect / ddaState.totalAnswered) * 100)
         : 0;
 
-    if (accuracy >= 50) {
-      confetti({ disableForReducedMotion: true, particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      if (!quizTask) return;
-      setIsMinting(true);
-      setMintError(null);
-      try {
-        const newCert = await claimQuizCredential(quizTask.id, answersRef.current);
-        setMintedCertId(newCert.certificateId);
-      } catch (err) {
-        setMintError(err instanceof Error ? err.message : "Sertifikat gagal diterbitkan.");
-      } finally {
-        setIsMinting(false);
-      }
+    // Always send the attempt: the server grades it, records it for the teacher, and issues a credential if passed.
+    if (!quizTask) return;
+    if (accuracy >= 50) confetti({ disableForReducedMotion: true, particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    setIsMinting(true);
+    setMintError(null);
+    try {
+      const newCert = await claimQuizCredential(quizTask.id, answersRef.current);
+      setMintedCertId(newCert.certificateId);
+    } catch (err) {
+      setMintError(err instanceof Error ? err.message : "Sertifikat gagal diterbitkan.");
+    } finally {
+      setIsMinting(false);
     }
   };
 
@@ -308,7 +323,7 @@ export default function AdaptiveQuizPage() {
               <div className="flex flex-col gap-3">
                 {activeQuestion?.options.map((opt: string, idx: number) => {
                   const isSelected = selectedOption === idx;
-                  const isCorrectAnswer = idx === activeQuestion.correctIndex;
+                  const isCorrectAnswer = reveal !== null && idx === reveal.correctIndex;
 
                   let styleClass = "clay-card clay-card-hover clay-white text-[#010105]";
 
@@ -351,21 +366,20 @@ export default function AdaptiveQuizPage() {
                 <div className="pt-4 border-t border-black/5 flex flex-col gap-4 animate-in fade-in">
                   <div
                     className={`clay-card p-4 rounded-2xl text-xs font-semibold ${
-                      selectedOption === activeQuestion.correctIndex
+                      reveal?.correct
                         ? "clay-mint text-[#1D5E4D]"
                         : "bg-[#FCD9D7] text-[#ba1a1a]"
                     }`}
                   >
                     <p className="font-black mb-1">
-                      {selectedOption === activeQuestion.correctIndex
-                        ? "✅ Jawaban Tepat!"
-                        : "❌ Jawaban Kurang Tepat"}
+                      {!reveal ? "Memeriksa jawaban..." : reveal.correct ? "✅ Jawaban Tepat!" : "❌ Jawaban Kurang Tepat"}
                     </p>
-                    <p className="opacity-90 leading-relaxed">{activeQuestion.explanation?.langkah}</p>
+                    <p className="opacity-90 leading-relaxed">{reveal?.langkah}</p>
                   </div>
 
                   <button
                     onClick={handleNextQuestion}
+                    disabled={!reveal}
                     className="clay-btn clay-btn-dark w-full py-3.5 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 shadow-xs cursor-pointer"
                   >
                     <span>{ddaState.history.length >= 3 ? "Selesaikan Kuis" : "Lanjut Soal Berikutnya"}</span>
@@ -411,7 +425,7 @@ export default function AdaptiveQuizPage() {
 
               {isMinting && (
                 <p className="text-xs font-bold text-[#5A5E70] text-center" role="status">
-                  Menerbitkan sertifikat ke ledger…
+                  Menyimpan hasil kuis…
                 </p>
               )}
               {mintError && (
@@ -497,7 +511,9 @@ export default function AdaptiveQuizPage() {
           </div>
 
           <div className="p-4 rounded-2xl bg-[#FBF9F4] text-xs font-medium text-[#010105] leading-relaxed">
-            {activeQuestion?.explanation?.[activeHintTab] || "Petunjuk tidak tersedia untuk soal ini."}
+            {activeHintTab === "langkah"
+              ? reveal?.langkah || "Langkah penyelesaian muncul setelah kamu menjawab."
+              : activeQuestion?.explanation?.[activeHintTab] || "Petunjuk tidak tersedia untuk soal ini."}
           </div>
 
           <div className="flex justify-end pt-2">
