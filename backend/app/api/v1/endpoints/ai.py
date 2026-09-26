@@ -5,6 +5,9 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.classroom import Classroom
 from app.models.user import User
+from app.models.ai_conversation import AIConversation
+from datetime import datetime
+import uuid
 from app.core.auth import current_user, require_class_access
 from app.api.v1.endpoints.learning_units import access
 from app.services.gemini_service import chat_with_gemini, generate_ai_quiz, generate_visual_mindmap
@@ -29,6 +32,7 @@ class ChatRequest(BaseModel):
     learning_style: Optional[str] = "VISUAL"
     student_name: Optional[str] = "Siswa"
     student_id: Optional[str] = "guest"
+    conversation_id: Optional[str] = None
 
 class ChatResponse(BaseModel):
     text: str
@@ -36,6 +40,7 @@ class ChatResponse(BaseModel):
     is_grounded: bool
     cached: bool = False
     model: str
+    conversation_id: Optional[str] = None
 
 class GenerateQuizRequest(BaseModel):
     document_id: str
@@ -63,6 +68,37 @@ class EmbeddingRequest(BaseModel):
     texts: List[str]
     model: Optional[str] = None
 
+def own_conversation(conversation_id: str, db: Session, user: User) -> AIConversation:
+    conv = db.get(AIConversation, conversation_id)
+    if not conv or conv.user_id != user.id:
+        raise HTTPException(404, "Percakapan tidak ditemukan.")
+    return conv
+
+def conversation_summary(c: AIConversation) -> Dict[str, Any]:
+    return {"id": c.id, "title": c.title, "document_id": c.document_id, "updated_at": c.updated_at}
+
+@router.get("/conversations")
+def list_conversations(db: Session = Depends(get_db), user: User = Depends(current_user)):
+    convs = (
+        db.query(AIConversation)
+        .filter(AIConversation.user_id == user.id)
+        .order_by(AIConversation.updated_at.desc())
+        .limit(100)
+        .all()
+    )
+    return [conversation_summary(c) for c in convs]
+
+@router.get("/conversations/{conversation_id}")
+def get_conversation(conversation_id: str, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    conv = own_conversation(conversation_id, db, user)
+    return {**conversation_summary(conv), "messages": conv.messages or []}
+
+@router.delete("/conversations/{conversation_id}")
+def delete_conversation(conversation_id: str, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    db.delete(own_conversation(conversation_id, db, user))
+    db.commit()
+    return {"deleted": True}
+
 @router.post("/chat", response_model=ChatResponse)
 def ai_chat_endpoint(payload: ChatRequest, db: Session = Depends(get_db), user: User = Depends(current_user)):
     check_rate_limit(f"chat_{user.id}", limit_per_minute=20)
@@ -70,8 +106,12 @@ def ai_chat_endpoint(payload: ChatRequest, db: Session = Depends(get_db), user: 
         payload.classroom_id = access(payload.document_id, db, user).classroom_id
     elif payload.classroom_id:
         require_class_access(db.get(Classroom, payload.classroom_id), user)
-    
-    # 1. Semantic Response Cache Check
+
+    conv = own_conversation(payload.conversation_id, db, user) if payload.conversation_id else None
+    # Saved conversations use their stored history, not whatever the client sends.
+    history = [{"sender": m["sender"], "text": m["text"]} for m in conv.messages] if conv else (payload.history or [])
+
+    # 1. Semantic Response Cache Check (only for context-free first questions)
     cache_key = get_cache_key(
         "chat",
         payload.message.strip().lower(),
@@ -79,35 +119,53 @@ def ai_chat_endpoint(payload: ChatRequest, db: Session = Depends(get_db), user: 
         payload.document_id,
         payload.learning_style
     )
-    cached_data = get_cached_response(cache_key)
+    cached_data = get_cached_response(cache_key) if not history else None
     if cached_data:
-        return ChatResponse(
-            text=cached_data["text"],
-            citation=cached_data["citation"],
-            is_grounded=cached_data["is_grounded"],
-            cached=True,
-            model=cached_data["model"]
+        reply, cached = cached_data, True
+    else:
+        # 2. Process with Gemini & RAG
+        reply = chat_with_gemini(
+            user_query=payload.message,
+            chat_history=history,
+            classroom_id=payload.classroom_id,
+            document_id=payload.document_id,
+            learning_style=payload.learning_style,
+            student_name=payload.student_name
         )
-    
-    # 2. Process with Gemini & RAG
-    reply = chat_with_gemini(
-        user_query=payload.message,
-        chat_history=payload.history or [],
-        classroom_id=payload.classroom_id,
-        document_id=payload.document_id,
-        learning_style=payload.learning_style,
-        student_name=payload.student_name
-    )
-    
-    # 3. Cache the response
-    set_cached_response(cache_key, reply, ttl_seconds=86400)
-    
+        cached = False
+        # 3. Cache the response
+        if not history:
+            set_cached_response(cache_key, reply, ttl_seconds=86400)
+
+    # 4. Persist the exchange
+    now = datetime.utcnow()
+    if not conv:
+        title = " ".join(payload.message.split())
+        conv = AIConversation(
+            id=f"conv_{uuid.uuid4().hex[:12]}",
+            user_id=user.id,
+            title=title[:60] + ("…" if len(title) > 60 else ""),
+            document_id=payload.document_id,
+            messages=[],
+            created_at=now,
+        )
+        db.add(conv)
+    ts = now.isoformat() + "Z"
+    conv.messages = [
+        *(conv.messages or []),
+        {"sender": "user", "text": payload.message, "timestamp": ts},
+        {"sender": "ai", "text": reply["text"], "citation": reply["citation"], "timestamp": ts},
+    ]
+    conv.updated_at = now
+    db.commit()
+
     return ChatResponse(
         text=reply["text"],
         citation=reply["citation"],
         is_grounded=reply["is_grounded"],
-        cached=False,
-        model=reply["model"]
+        cached=cached,
+        model=reply["model"],
+        conversation_id=conv.id,
     )
 
 @router.post("/generate-quiz")

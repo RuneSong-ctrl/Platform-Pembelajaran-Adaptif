@@ -217,7 +217,7 @@ export default function ParentChatPage() {
                   </h1>
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Online"></span>
                 </div>
-                <p className="text-[10px] sm:text-[11px] text-[#5A5E70] font-medium truncate">
+                <p className="text-mini sm:text-mini text-[#5A5E70] font-medium truncate">
                   Wali Kelas • Konsultasi Terbuka
                 </p>
               </div>
@@ -225,7 +225,7 @@ export default function ParentChatPage() {
 
             {/* Focused Child Badge */}
             <div className="flex items-center gap-1.5 shrink-0">
-              <div className="clay-pill bg-[#F2EFFC] text-[#4B3B7A] px-3 py-1.5 rounded-xl text-[10px] sm:text-[11px] font-black flex items-center gap-1.5 shadow-2xs border border-[#E3DBF8]/70">
+              <div className="clay-pill bg-[#F2EFFC] text-[#4B3B7A] px-3 py-1.5 rounded-xl text-mini sm:text-mini font-black flex items-center gap-1.5 shadow-2xs border border-[#E3DBF8]/70">
                 <User className="w-3.5 h-3.5 text-[#4B3B7A]" />
                 <span className="truncate max-w-[130px] sm:max-w-[200px]">
                   Siswa: {selectedChild?.name || "Anak Terdaftar"}
@@ -249,7 +249,7 @@ export default function ParentChatPage() {
 
               {/* Context Banner */}
               <div className="text-center my-0.5">
-                <span className="clay-pill bg-white/90 text-[#4B3B7A] text-[9px] sm:text-[10px] font-extrabold px-3 py-1 border border-[#E3DBF8]/70 shadow-2xs">
+                <span className="clay-pill bg-white/90 text-[#4B3B7A] text-mini sm:text-mini font-extrabold px-3 py-1 border border-[#E3DBF8]/70 shadow-2xs">
                   Konsultasi Khusus Siswa: {selectedChild?.name || "Siswa"}
                 </span>
               </div>
@@ -267,7 +267,7 @@ export default function ParentChatPage() {
                         {note.message}
                       </p>
 
-                      <div className="mt-2 pt-1.5 border-t border-white/15 flex items-center justify-between text-[9px] text-white/70 font-medium">
+                      <div className="mt-2 pt-1.5 border-t border-white/15 flex items-center justify-between text-mini text-white/70 font-medium">
                         <span>{note.senderName || currentUser.name || "Orang Tua"}</span>
                         <span className="text-emerald-400 flex items-center gap-0.5 font-bold">
                           <Check className="w-2.5 h-2.5 stroke-[3]" /> Terkirim ke Guru
@@ -284,7 +284,7 @@ export default function ParentChatPage() {
                       </div>
 
                       <div className="p-3.5 sm:p-4 rounded-3xl text-xs sm:text-sm leading-relaxed max-w-full min-w-0 overflow-hidden break-words [overflow-wrap:anywhere] [word-break:break-word] clay-card bg-[#FDFCFE] border border-[#E3DBF8] text-[#1C1E26] shadow-2xs">
-                        <span className="text-[10px] font-black text-[#4B3B7A] block mb-1">
+                        <span className="text-mini font-black text-[#4B3B7A] block mb-1">
                           {note.receiverName || targetTeacher?.name || "Wali Kelas"}
                         </span>
 
@@ -292,7 +292,7 @@ export default function ParentChatPage() {
                           {note.reply}
                         </p>
 
-                        <div className="mt-2 pt-1.5 border-t border-[#E3DBF8]/60 flex items-center justify-between text-[9px] text-[#5A5E70] font-medium">
+                        <div className="mt-2 pt-1.5 border-t border-[#E3DBF8]/60 flex items-center justify-between text-mini text-[#5A5E70] font-medium">
                           <span className="text-[#4B3B7A] font-bold flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3 text-[#4B3B7A]" /> Terverifikasi Wali Kelas
                           </span>
@@ -306,7 +306,7 @@ export default function ParentChatPage() {
 
               {/* System ACK Notice Pill */}
               {ackNotice && (
-                <div className="clay-pill bg-[#E6F5EE] border border-[#C7EAD9] text-[#1D5E4D] py-1.5 px-3 rounded-full text-[10px] font-bold flex items-center justify-center gap-1.5 shadow-2xs mx-auto animate-in fade-in max-w-fit">
+                <div className="clay-pill bg-[#E6F5EE] border border-[#C7EAD9] text-[#1D5E4D] py-1.5 px-3 rounded-full text-mini font-bold flex items-center justify-center gap-1.5 shadow-2xs mx-auto animate-in fade-in max-w-fit">
                   <CheckCircle2 className="w-3.5 h-3.5 text-[#1D5E4D] shrink-0" />
                   <span>
                     Sistem EduAdapt: <strong>{ackNotice.ackCode}</strong> terkonfirmasi • Diteruskan ke Wali Kelas
@@ -350,7 +350,7 @@ export default function ParentChatPage() {
                 <button
                   key={idx}
                   onClick={() => handleSendMessage(q)}
-                  className="bg-[#F2EFFC] hover:bg-[#E3DBF8] text-[#4B3B7A] px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-bold shrink-0 transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap"
+                  className="bg-[#F2EFFC] hover:bg-[#E3DBF8] text-[#4B3B7A] px-3 py-1.5 rounded-full text-mini sm:text-mini font-bold shrink-0 transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap"
                 >
                   <Sparkles className="w-3 h-3 text-[#4B3B7A]" />
                   <span>{q}</span>

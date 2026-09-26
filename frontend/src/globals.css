@@ -46,6 +46,20 @@
   --radius-card: 26px;
   --radius-container: 32px;
   --radius-pill: 9999px;
+
+  /* Per-jenjang sizing; data-jenjang is set on <html> for students only */
+  --fs-mini: 11px;
+  --tap: 44px;
+}
+
+[data-jenjang="smp"] { --fs-mini: 12px; }
+[data-jenjang="sd"] { --fs-mini: 13px; --tap: 48px; font-size: 17px; }
+[data-jenjang="sd-awal"] { --fs-mini: 15px; --tap: 52px; font-size: 18px; }
+
+/* Small fingers: every control a student can press gets a full-size target */
+[data-jenjang] :is(button, [role="button"], select, input:not([type="checkbox"], [type="radio"], [type="range"])) {
+  min-height: var(--tap);
+  min-width: var(--tap);
 }
 
 @theme inline {
@@ -77,6 +91,8 @@
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
   --color-slate-brand: var(--brand-slate);
+
+  --text-mini: var(--fs-mini);
 }
 
 html {

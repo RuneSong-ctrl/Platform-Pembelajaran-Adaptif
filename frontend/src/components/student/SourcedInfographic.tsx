@@ -59,7 +59,7 @@ export default function SourcedInfographic({ info, sources, onChange, disabled }
   const [done, setDone] = useState<Record<number, boolean>>({});
   const source = (refs: SourceRef[]) => (
     <details className="mt-2 text-left">
-      <summary className="cursor-pointer text-[11px] font-bold text-[#595F72] py-1">Sumber</summary>
+      <summary className="cursor-pointer text-mini font-bold text-[#595F72] py-1">Sumber</summary>
       {sources(refs)}
     </details>
   );
@@ -84,7 +84,7 @@ export default function SourcedInfographic({ info, sources, onChange, disabled }
     <section className="space-y-5 min-w-0" aria-label="Infografis materi">
       <div className="clay-card p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] bg-[#D1EBE1] text-[#1D5E4D]">
+          <span className="inline-flex items-center gap-1.5 text-mini font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] bg-[#D1EBE1] text-[#1D5E4D]">
             <Layers className="w-3.5 h-3.5" />Infografis materi
           </span>
           <h2 className="text-xl sm:text-2xl font-extrabold text-[#1C1E26] mt-2 break-words">{info.title}</h2>
@@ -96,7 +96,7 @@ export default function SourcedInfographic({ info, sources, onChange, disabled }
               {progress}%
             </div>
             <div className="flex-1">
-              <div className="flex items-center justify-between text-[11px] font-bold text-[#475569] mb-1 gap-2">
+              <div className="flex items-center justify-between text-mini font-bold text-[#475569] mb-1 gap-2">
                 <span>Progres pemahaman</span>
                 <span className="text-[#21518A] font-extrabold">{doneCount}/{info.flow_steps.length} tahap</span>
               </div>
@@ -109,19 +109,19 @@ export default function SourcedInfographic({ info, sources, onChange, disabled }
       </div>
 
       <section className="clay-card p-5 sm:p-6 space-y-4">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] bg-[#D2E5FA] text-[#21518A]">
+        <span className="inline-flex items-center gap-1.5 text-mini font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] bg-[#D2E5FA] text-[#21518A]">
           <Lightbulb className="w-3.5 h-3.5" />{stage("Fondasi & Konsep Inti")}
         </span>
         <div className="p-4 rounded-2xl bg-[#EBF6F2] border border-[#1D5E4D]/25 flex items-start gap-3">
           <Lightbulb className="w-5 h-5 text-[#1D5E4D] shrink-0 mt-0.5" />
           <div className="min-w-0">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#1D5E4D] block">Gagasan pokok</span>
+            <span className="text-mini font-extrabold uppercase tracking-wider text-[#1D5E4D] block">Gagasan pokok</span>
             <p className="text-sm font-bold text-[#1D5E4D] leading-relaxed mt-0.5 break-words">{info.big_idea.text}</p>
             {source(info.big_idea.source_refs)}
           </div>
         </div>
         <div className="p-4 rounded-2xl bg-[#F7F6FA] border border-[#E6E4EE]">
-          <span className="text-[10px] font-extrabold uppercase text-[#9195A8] tracking-wider block mb-1">Definisi</span>
+          <span className="text-mini font-extrabold uppercase text-[#9195A8] tracking-wider block mb-1">Definisi</span>
           <p className="text-sm text-[#475569] leading-relaxed font-medium break-words">{info.definition.text}</p>
           {source(info.definition.source_refs)}
         </div>
@@ -149,7 +149,7 @@ export default function SourcedInfographic({ info, sources, onChange, disabled }
       {hasFlow && (
         <section className="clay-card p-5 sm:p-6 space-y-4">
           <div>
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] bg-[#D1EBE1] text-[#1D5E4D]">
+            <span className="inline-flex items-center gap-1.5 text-mini font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] bg-[#D1EBE1] text-[#1D5E4D]">
               <Workflow className="w-3.5 h-3.5" />{stage(info.flow_title || "Alur & Tahapan")}
             </span>
             <p className="text-xs text-[#595F72] mt-1">Buka setiap tahap, pelajari, lalu tandai jika sudah paham.</p>
@@ -201,12 +201,12 @@ export default function SourcedInfographic({ info, sources, onChange, disabled }
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
           {hasFacts && (
             <section className="clay-card p-5 sm:p-6 space-y-3 min-w-0">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] bg-[#D2E5FA] text-[#21518A]">
+              <span className="inline-flex items-center gap-1.5 text-mini font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] bg-[#D2E5FA] text-[#21518A]">
                 <Calculator className="w-3.5 h-3.5" />{stage("Rumus & Fakta Kunci")}
               </span>
               {info.key_facts.map((fact, index) => (
                 <div key={index} className="p-4 rounded-2xl bg-[#F7F6FA] border border-[#E6E4EE] min-w-0">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#595F72] flex items-center gap-1.5">
+                  <span className="text-mini font-extrabold uppercase tracking-wider text-[#595F72] flex items-center gap-1.5">
                     <BookOpen className="w-3.5 h-3.5" />{fact.label}
                   </span>
                   <p className="font-mono text-sm font-bold text-[#1C1E26] mt-1.5 break-words">{fact.value}</p>
@@ -231,7 +231,7 @@ export default function SourcedInfographic({ info, sources, onChange, disabled }
           )}
           {hasApplied && (
             <section className="clay-card p-5 sm:p-6 space-y-3 min-w-0">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] bg-[#E3DBF8] text-[#4B3B7A]">
+              <span className="inline-flex items-center gap-1.5 text-mini font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] bg-[#E3DBF8] text-[#4B3B7A]">
                 <Globe className="w-3.5 h-3.5" />{stage("Penerapan & Analogi")}
               </span>
               {info.application && (
@@ -250,7 +250,7 @@ export default function SourcedInfographic({ info, sources, onChange, disabled }
                     <Sparkles className="w-4 h-4 text-[#4B3B7A] shrink-0" />
                     <h4 className="text-sm font-extrabold break-words">{info.analogy.title}</h4>
                   </div>
-                  <p className="text-[11px] font-bold text-[#4B3B7A] mt-1">Analogi (dibuat AI, bukan dari materi)</p>
+                  <p className="text-mini font-bold text-[#4B3B7A] mt-1">Analogi (dibuat AI, bukan dari materi)</p>
                   <p className="text-sm text-[#475569] leading-relaxed font-medium mt-2 break-words">{info.analogy.story}</p>
                 </div>
               )}
@@ -264,12 +264,12 @@ export default function SourcedInfographic({ info, sources, onChange, disabled }
           <Award className="w-6 h-6" />
         </div>
         <div className="min-w-0">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#1D5E4D]/30 text-[#D1EBE1]">
+          <span className="text-mini font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#1D5E4D]/30 text-[#D1EBE1]">
             Kesimpulan kunci
           </span>
           <p className="text-sm text-[#F0EEF6] mt-1.5 leading-relaxed font-medium break-words">{info.takeaway.text}</p>
           <details className="mt-2">
-            <summary className="cursor-pointer text-[11px] font-bold text-[#9195A8] py-1">Sumber</summary>
+            <summary className="cursor-pointer text-mini font-bold text-[#9195A8] py-1">Sumber</summary>
             <div className="bg-white rounded-xl p-2 mt-1">{sources(info.takeaway.source_refs)}</div>
           </details>
         </div>

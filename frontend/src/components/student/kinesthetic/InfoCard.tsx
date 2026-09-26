@@ -13,7 +13,7 @@ export default function InfoCard({ left, top, bottom, width, maxHeight, badge, t
         .kin-card { animation: kin-card .32s cubic-bezier(.2,1.4,.4,1) both; transform-origin: top center; }
       `}</style>
       <div className="flex items-start justify-between gap-2">
-        {badge ? <span className="text-[10px] font-bold uppercase tracking-wider text-[#785308] bg-[#FEE7B3] rounded-[8px] px-2 py-0.5">{badge}</span> : <span />}
+        {badge ? <span className="text-mini font-bold uppercase tracking-wider text-[#785308] bg-[#FEE7B3] rounded-[8px] px-2 py-0.5">{badge}</span> : <span />}
         {onClose && <button type="button" onClick={onClose} aria-label="Tutup info" className="-mt-1 -mr-1 w-7 h-7 rounded-full flex items-center justify-center text-[#595F72] hover:bg-[#F0EEF6] cursor-pointer"><X className="w-4 h-4" /></button>}
       </div>
       <p className="mt-1.5 text-[14px] font-bold text-[#1C1E26] leading-5 break-words">{title}</p>

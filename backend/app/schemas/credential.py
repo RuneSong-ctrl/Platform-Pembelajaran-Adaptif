@@ -1,11 +1,19 @@
-from pydantic import BaseModel, ConfigDict
-from typing import Optional
+from pydantic import BaseModel, ConfigDict, Field
+from typing import List, Optional
 
 class CredentialMintRequest(BaseModel):
     student_id: str
     classroom_id: str
     competency_title: str
     score: float
+
+class QuizAnswer(BaseModel):
+    question_id: str
+    selected_index: Optional[int] = None  # None = waktu habis
+
+class CredentialClaimRequest(BaseModel):
+    task_id: str
+    answers: List[QuizAnswer] = Field(..., max_length=50)
 
 class CredentialResponse(BaseModel):
     id: str
@@ -23,6 +31,8 @@ class CredentialResponse(BaseModel):
     issued_at: str
     qr_verification_url: str
     is_verified: bool
+    task_id: Optional[str] = None
+    hash_version: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
 

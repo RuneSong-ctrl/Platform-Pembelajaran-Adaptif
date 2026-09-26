@@ -125,7 +125,7 @@ export default function QuizStudioPage() {
   const handlePublishToClass = async () => {
     if (draftQuestions.length === 0) return;
     audioSynth.playLevelUpSound();
-    confetti({ particleCount: 80, spread: 60 });
+    confetti({ disableForReducedMotion: true, particleCount: 80, spread: 60 });
 
     const selectedCls = classrooms.find((c) => c.id === selectedClassId);
 
@@ -331,11 +331,11 @@ export default function QuizStudioPage() {
                             <span className="w-7 h-7 rounded-xl bg-[#1C1E26] text-white flex items-center justify-center text-xs font-black">
                               {qIdx + 1}
                             </span>
-                            <span className="clay-pill clay-lavender text-[10px] font-extrabold px-2.5 py-0.5 text-[#4B3B7A]">
+                            <span className="clay-pill clay-lavender text-mini font-extrabold px-2.5 py-0.5 text-[#4B3B7A]">
                               Level {q.difficulty}
                             </span>
                           </div>
-                          <span className="clay-pill bg-[#F8F9FD] text-[10px] font-mono font-bold text-[#5A5E70] px-2.5 py-1">
+                          <span className="clay-pill bg-[#F8F9FD] text-mini font-mono font-bold text-[#5A5E70] px-2.5 py-1">
                             {q.sourceReference}
                           </span>
                         </div>

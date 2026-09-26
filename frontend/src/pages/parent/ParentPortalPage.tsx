@@ -95,10 +95,10 @@ export default function ParentPortalPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="clay-pill clay-mint px-2.5 py-0.5 text-[11px] font-extrabold text-[#1D5E4D] shadow-2xs">
+              <span className="clay-pill clay-mint px-2.5 py-0.5 text-mini font-extrabold text-[#1D5E4D] shadow-2xs">
                 Portal Orang Tua
               </span>
-              <span className="clay-pill clay-lavender px-2.5 py-0.5 text-[11px] font-bold text-[#4B3B7A] shadow-2xs">
+              <span className="clay-pill clay-lavender px-2.5 py-0.5 text-mini font-bold text-[#4B3B7A] shadow-2xs">
                 Laporan Perkembangan
               </span>
             </div>
@@ -146,18 +146,18 @@ export default function ParentPortalPage() {
                 <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-[#0E3D31]">
                   Ringkasan Naratif AI untuk Orang Tua
                 </h3>
-                <span className="text-[11px] text-[#1D5E4D] font-bold">
+                <span className="text-mini text-[#1D5E4D] font-bold">
                   Siswa: {selectedChild.name} • Kelas 10-A
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="clay-pill bg-white text-[10px] font-black text-[#1D5E4D] px-3 py-1 flex items-center gap-1 shadow-2xs">
+              <span className="clay-pill bg-white text-mini font-black text-[#1D5E4D] px-3 py-1 flex items-center gap-1 shadow-2xs">
                 <Flame className="w-3.5 h-3.5 fill-[#1D5E4D]" />
                 <span>{selectedChild.streakDays || 14} Hari Aktif</span>
               </span>
-              <span className="clay-pill bg-white text-[10px] font-black text-[#21518A] px-3 py-1 shadow-2xs">
+              <span className="clay-pill bg-white text-mini font-black text-[#21518A] px-3 py-1 shadow-2xs">
                 {selectedChild.xpTotal || 450} XP
               </span>
             </div>
@@ -217,11 +217,11 @@ export default function ParentPortalPage() {
                     <Brain className="w-4 h-4 text-[#4B3B7A]" />
                     <span>Penguasaan Topik Kurikulum Adaptif</span>
                   </h3>
-                  <p className="text-[11px] text-[#5A5E70] mt-0.5">
+                  <p className="text-mini text-[#5A5E70] mt-0.5">
                     Progres pemahaman per materi berdasarkan evaluasi DDA real-time.
                   </p>
                 </div>
-                <span className="clay-pill clay-lavender text-[9px] font-extrabold px-2.5 py-1 text-[#4B3B7A] shadow-2xs">
+                <span className="clay-pill clay-lavender text-mini font-extrabold px-2.5 py-1 text-[#4B3B7A] shadow-2xs">
                   Biologi 10
                 </span>
               </div>
@@ -267,25 +267,25 @@ export default function ParentPortalPage() {
                     <Clock className="w-4 h-4 text-[#1D5E4D]" />
                     <span>Pola Waktu Belajar &amp; Istirahat (Digital Wellbeing)</span>
                   </h3>
-                  <p className="text-[11px] text-[#5A5E70] mt-0.5">
+                  <p className="text-mini text-[#5A5E70] mt-0.5">
                     Monitoring screen time edukatif vs waktu jeda istirahat siswa.
                   </p>
                 </div>
-                <span className="clay-pill clay-mint text-[9px] font-extrabold px-2.5 py-1 text-[#1D5E4D] shadow-2xs">
+                <span className="clay-pill clay-mint text-mini font-extrabold px-2.5 py-1 text-[#1D5E4D] shadow-2xs">
                   Optimal
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-center">
                 <div className="clay-pill bg-[#F8F9FD] p-3.5 space-y-0.5 border border-white">
-                  <span className="text-[10px] text-[#5A5E70] font-bold block">Waktu Belajar</span>
+                  <span className="text-mini text-[#5A5E70] font-bold block">Waktu Belajar</span>
                   <span className="text-xl font-black text-[#1C1E26] block">42 Menit</span>
-                  <span className="text-[9px] text-[#1D5E4D] font-bold block">Sesuai Panduan</span>
+                  <span className="text-mini text-[#1D5E4D] font-bold block">Sesuai Panduan</span>
                 </div>
                 <div className="clay-pill bg-[#F8F9FD] p-3.5 space-y-0.5 border border-white">
-                  <span className="text-[10px] text-[#5A5E70] font-bold block">Status Layar</span>
+                  <span className="text-mini text-[#5A5E70] font-bold block">Status Layar</span>
                   <span className="text-xl font-black text-[#1D5E4D] block">Seimbang</span>
-                  <span className="text-[9px] text-[#5A5E70] font-bold block">Jeda 10 Mnt Terpenuhi</span>
+                  <span className="text-mini text-[#5A5E70] font-bold block">Jeda 10 Mnt Terpenuhi</span>
                 </div>
               </div>
             </div>
@@ -311,13 +311,13 @@ export default function ParentPortalPage() {
                       </h3>
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Online"></span>
                     </div>
-                    <p className="text-[11px] text-[#4B3B7A] font-bold truncate">
+                    <p className="text-mini text-[#4B3B7A] font-bold truncate">
                       Wali Kelas 10-A • Konsultasi Terbuka
                     </p>
                   </div>
                 </div>
 
-                <span className="clay-pill clay-mint text-[#1D5E4D] text-[10px] font-black px-2.5 py-1 shadow-2xs shrink-0">
+                <span className="clay-pill clay-mint text-[#1D5E4D] text-mini font-black px-2.5 py-1 shadow-2xs shrink-0">
                   Online
                 </span>
               </div>
@@ -325,7 +325,7 @@ export default function ParentPortalPage() {
               {/* Latest message preview if any */}
               {latestNote && (
                 <div className="p-3.5 rounded-2xl bg-white/80 border border-white text-xs space-y-1 shadow-2xs">
-                  <span className="text-[9px] font-extrabold text-[#4B3B7A] uppercase tracking-wider block">
+                  <span className="text-mini font-extrabold text-[#4B3B7A] uppercase tracking-wider block">
                     Pesan Terakhir ({selectedChild.name})
                   </span>
                   <p className="text-[#1C1E26] font-medium line-clamp-2 leading-relaxed">
@@ -355,11 +355,11 @@ export default function ParentPortalPage() {
                     <Calendar className="w-4 h-4 text-[#4B3B7A]" />
                     <span>Jadwal Mandiri Anak</span>
                   </h3>
-                  <p className="text-[10px] text-[#5A5E70] mt-0.5">
+                  <p className="text-mini text-[#5A5E70] mt-0.5">
                     Disusun sendiri oleh {selectedChild.name}.
                   </p>
                 </div>
-                <span className="clay-pill clay-lavender text-[9px] font-extrabold px-2.5 py-1 text-[#4B3B7A] shadow-2xs">
+                <span className="clay-pill clay-lavender text-mini font-extrabold px-2.5 py-1 text-[#4B3B7A] shadow-2xs">
                   {childSchedules.filter((s) => s.completed).length}/{childSchedules.length} Tuntas
                 </span>
               </div>
@@ -375,7 +375,7 @@ export default function ParentPortalPage() {
                     }`}
                   >
                     <div className="flex items-center justify-between gap-1">
-                      <span className="clay-pill clay-lavender text-[9px] font-extrabold px-2 py-0.5 text-[#4B3B7A]">
+                      <span className="clay-pill clay-lavender text-mini font-extrabold px-2 py-0.5 text-[#4B3B7A]">
                         {sch.day} • {sch.time}
                       </span>
                       {sch.completed ? (
@@ -383,7 +383,7 @@ export default function ParentPortalPage() {
                           <Check className="w-2.5 h-2.5 stroke-[3]" /> Selesai
                         </span>
                       ) : (
-                        <span className="text-[9px] font-bold text-[#9195A8]">
+                        <span className="text-mini font-bold text-[#9195A8]">
                           Aktif
                         </span>
                       )}
@@ -391,7 +391,7 @@ export default function ParentPortalPage() {
                     <h4 className={`text-xs font-bold ${sch.completed ? "line-through text-[#9195A8]" : "text-[#1C1E26]"}`}>
                       {sch.title}
                     </h4>
-                    <span className="text-[10px] text-[#5A5E70] block font-medium">
+                    <span className="text-mini text-[#5A5E70] block font-medium">
                       {sch.format} ({sch.duration})
                     </span>
                   </div>

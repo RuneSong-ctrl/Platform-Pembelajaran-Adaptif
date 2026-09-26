@@ -3,12 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { audioSynth } from "@/services/audioSynth";
 import {
-  BookOpen,
-  Layers,
-  Calendar,
-  GraduationCap,
   Sparkles,
-  Award,
   Users,
   Flame,
   Star,
@@ -20,12 +15,7 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const pathname = location.pathname;
-  const {
-    currentUser,
-    logout,
-    triggerSync,
-    isSyncing,
-  } = useApp();
+  const { currentUser, logout, triggerSync, isSyncing } = useApp();
 
   const [mounted, setMounted] = useState(false);
 
@@ -70,145 +60,62 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* Center Navigation Links (Clean Segmented Architecture) */}
-        <nav aria-label="Navigasi Utama" className="hidden md:flex items-center gap-1 bg-[#F7F6FA] p-1 rounded-2xl border border-[rgba(28,30,38,0.06)] shadow-inner">
-          {/* Siswa Navigation */}
-          {isStudent && (
-            <>
-              <Link
-                to="/student"
-                className={`text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
-                  isActive("/student")
-                    ? "bg-white text-[#1C1E26] shadow-xs font-black scale-102"
-                    : "text-[#595F72] hover:text-[#1C1E26]"
-                }`}
-              >
-                <BookOpen className="w-3.5 h-3.5 text-[#1D5E4D]" />
-                <span>Belajar</span>
-              </Link>
+        {/* Center Navigation Links (parents only; teachers and students use their sidebar) */}
+        {isParent && (
+          <nav
+            aria-label="Navigasi Utama"
+            className="hidden md:flex items-center gap-1 bg-[#F7F6FA] p-1 rounded-2xl border border-[rgba(28,30,38,0.06)] shadow-inner"
+          >
+            {/* Ortu Navigation */}
+            {isParent && (
+              <>
+                <Link
+                  to="/parent"
+                  className={`text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                    isActive("/parent")
+                      ? "bg-white text-[#1C1E26] shadow-xs font-black scale-102"
+                      : "text-[#595F72] hover:text-[#1C1E26]"
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5 text-[#4B3B7A]" />
+                  <span>Radar Belajar</span>
+                </Link>
 
-              <Link
-                to="/student/status"
-                className={`text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
-                  isActive("/student/status")
-                    ? "bg-white text-[#1C1E26] shadow-xs font-black scale-102"
-                    : "text-[#595F72] hover:text-[#1C1E26]"
-                }`}
-              >
-                <Layers className="w-3.5 h-3.5 text-[#4B3B7A]" />
-                <span>Roadmap</span>
-              </Link>
-
-              <Link
-                to="/student/schedule"
-                className={`text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
-                  isActive("/student/schedule")
-                    ? "bg-white text-[#1C1E26] shadow-xs font-black scale-102"
-                    : "text-[#595F72] hover:text-[#1C1E26]"
-                }`}
-              >
-                <Calendar className="w-3.5 h-3.5 text-[#785308]" />
-                <span>Jadwal</span>
-              </Link>
-            </>
-          )}
-
-          {/* Guru Navigation */}
-          {isTeacher && (
-            <>
-              <Link
-                to="/teacher"
-                className={`text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
-                  isActive("/teacher")
-                    ? "bg-white text-[#1C1E26] shadow-xs font-black scale-102"
-                    : "text-[#595F72] hover:text-[#1C1E26]"
-                }`}
-              >
-                <GraduationCap className="w-3.5 h-3.5 text-[#1D5E4D]" />
-                <span>Kelas</span>
-              </Link>
-
-              <Link
-                to="/teacher/rag"
-                className={`text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
-                  isActive("/teacher/rag")
-                    ? "bg-white text-[#1C1E26] shadow-xs font-black scale-102"
-                    : "text-[#595F72] hover:text-[#1C1E26]"
-                }`}
-              >
-                <BookOpen className="w-3.5 h-3.5 text-[#4B3B7A]" />
-                <span>RAG Materi</span>
-              </Link>
-
-              <Link
-                to="/teacher/quiz-generator"
-                className={`text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
-                  isActive("/teacher/quiz-generator")
-                    ? "bg-white text-[#1C1E26] shadow-xs font-black scale-102"
-                    : "text-[#595F72] hover:text-[#1C1E26]"
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-[#785308]" />
-                <span>AI Kuis</span>
-              </Link>
-
-              <Link
-                to="/teacher/gradebook"
-                className={`text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
-                  isActive("/teacher/gradebook")
-                    ? "bg-white text-[#1C1E26] shadow-xs font-black scale-102"
-                    : "text-[#595F72] hover:text-[#1C1E26]"
-                }`}
-              >
-                <Award className="w-3.5 h-3.5 text-[#21518A]" />
-                <span>Gradebook</span>
-              </Link>
-            </>
-          )}
-
-          {/* Ortu Navigation */}
-          {isParent && (
-            <>
-              <Link
-                to="/parent"
-                className={`text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
-                  isActive("/parent")
-                    ? "bg-white text-[#1C1E26] shadow-xs font-black scale-102"
-                    : "text-[#595F72] hover:text-[#1C1E26]"
-                }`}
-              >
-                <Users className="w-3.5 h-3.5 text-[#4B3B7A]" />
-                <span>Radar Belajar</span>
-              </Link>
-
-              <Link
-                to="/parent/chat"
-                className={`text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
-                  isActive("/parent/chat")
-                    ? "bg-white text-[#1C1E26] shadow-xs font-black scale-102"
-                    : "text-[#595F72] hover:text-[#1C1E26]"
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-[#1D5E4D]" />
-                <span>Konsultasi AI</span>
-              </Link>
-            </>
-          )}
-        </nav>
+                <Link
+                  to="/parent/chat"
+                  className={`text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                    isActive("/parent/chat")
+                      ? "bg-white text-[#1C1E26] shadow-xs font-black scale-102"
+                      : "text-[#595F72] hover:text-[#1C1E26]"
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#1D5E4D]" />
+                  <span>Konsultasi AI</span>
+                </Link>
+              </>
+            )}
+          </nav>
+        )}
 
         {/* Right Section: Cohesive Metrics, User Avatar & Logout */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Siswa Stats: Single Unified High-End Capsule */}
           {isStudent && (
             <div className="hidden sm:flex items-center gap-2.5 bg-[#F7F6FA] px-3 py-1.5 rounded-2xl border border-[rgba(28,30,38,0.06)] shadow-inner text-xs font-extrabold text-[#1C1E26]">
-              <span className="flex items-center gap-1 text-[#785308]" title="Streak Hari Belajar">
+              <span
+                className="flex items-center gap-1 text-[#785308]"
+                title="Streak Hari Belajar"
+              >
                 <Flame className="w-3.5 h-3.5 fill-[#785308] text-[#785308]" />
-                <span>{mounted ? (currentUser?.streakDays || 1) : 1}d</span>
+                <span>{mounted ? currentUser?.streakDays || 1 : 1}d</span>
               </span>
               <span className="w-1 h-1 rounded-full bg-black/20" />
-              <span className="flex items-center gap-1 text-[#1D5E4D]" title="Total XP Terkumpul">
+              <span
+                className="flex items-center gap-1 text-[#1D5E4D]"
+                title="Total XP Terkumpul"
+              >
                 <Star className="w-3.5 h-3.5 fill-[#1D5E4D] text-[#1D5E4D]" />
-                <span>{mounted ? (currentUser?.xpTotal || 0) : 0} XP</span>
+                <span>{mounted ? currentUser?.xpTotal || 0 : 0} XP</span>
               </span>
             </div>
           )}
@@ -222,21 +129,28 @@ export default function Navbar() {
             title="Sinkronisasi Data"
             aria-label="Sinkronisasi Data"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-[#1D5E4D]" : ""}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-[#1D5E4D]" : ""}`}
+            />
           </button>
 
           {/* User Profile & Logout */}
           {currentUser && (
             <div className="flex items-center gap-2.5 pl-1 sm:pl-2">
               <div className="w-8 h-8 rounded-xl bg-[#1C1E26] text-white flex items-center justify-center text-xs font-black shadow-xs overflow-hidden shrink-0">
-                {currentUser.avatar && (currentUser.avatar.startsWith("data:image") || currentUser.avatar.startsWith("http")) ? (
+                {currentUser.avatar &&
+                (currentUser.avatar.startsWith("data:image") ||
+                  currentUser.avatar.startsWith("http")) ? (
                   <img
                     src={currentUser.avatar}
                     alt={currentUser.name}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span>{currentUser.avatar || currentUser.name.slice(0, 2).toUpperCase()}</span>
+                  <span>
+                    {currentUser.avatar ||
+                      currentUser.name.slice(0, 2).toUpperCase()}
+                  </span>
                 )}
               </div>
 
@@ -244,7 +158,7 @@ export default function Navbar() {
                 <p className="text-xs font-extrabold text-[#1C1E26] leading-tight truncate max-w-[110px]">
                   {currentUser.name}
                 </p>
-                <span className="text-[10px] font-bold text-[#595F72] tracking-wider uppercase">
+                <span className="text-mini font-bold text-[#595F72] tracking-wider uppercase">
                   {currentUser.role}
                 </span>
               </div>

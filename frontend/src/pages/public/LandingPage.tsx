@@ -111,7 +111,7 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-[#124B3D] mb-4 shadow-md">
                 <Brain className="w-6 h-6" />
               </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-white/80 text-[#124B3D] text-[10px] font-black uppercase">
+              <span className="px-2.5 py-0.5 rounded-full bg-white/80 text-[#124B3D] text-mini font-black uppercase">
                 PWA Mobile-First
               </span>
               <h3 className="text-lg font-extrabold text-[#010105] mt-2 group-hover:text-[#124B3D] transition-colors">
@@ -145,7 +145,7 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-[#3C2D68] mb-4 shadow-md">
                 <GraduationCap className="w-6 h-6" />
               </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-white/80 text-[#3C2D68] text-[10px] font-black uppercase">
+              <span className="px-2.5 py-0.5 rounded-full bg-white/80 text-[#3C2D68] text-mini font-black uppercase">
                 Desktop Web Dashboard
               </span>
               <h3 className="text-lg font-extrabold text-[#010105] mt-2 group-hover:text-[#3C2D68] transition-colors">
@@ -179,7 +179,7 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-[#694503] mb-4 shadow-md">
                 <Users className="w-6 h-6" />
               </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-white/80 text-[#694503] text-[10px] font-black uppercase">
+              <span className="px-2.5 py-0.5 rounded-full bg-white/80 text-[#694503] text-mini font-black uppercase">
                 PWA Mobile-First
               </span>
               <h3 className="text-lg font-extrabold text-[#010105] mt-2 group-hover:text-[#694503] transition-colors">

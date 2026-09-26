@@ -196,7 +196,7 @@ export default function VisualMap({ info, sources, art = null }: Props) {
       )}
       <div className="flex items-center bg-[#F7F6FA] rounded-xl border border-black/5 p-0.5">
         <button type="button" aria-label="Perkecil" disabled={zoom <= 60} onClick={() => setZoom(z => Math.max(60, z - 20))} className="p-2 rounded-lg disabled:opacity-40 cursor-pointer"><ZoomOut className="w-4 h-4" /></button>
-        <button type="button" aria-label="Ukuran semula" onClick={() => setZoom(100)} className="px-2 py-1 text-[11px] font-bold text-[#21518A] cursor-pointer">{zoom}%</button>
+        <button type="button" aria-label="Ukuran semula" onClick={() => setZoom(100)} className="px-2 py-1 text-mini font-bold text-[#21518A] cursor-pointer">{zoom}%</button>
         <button type="button" aria-label="Perbesar" disabled={zoom >= 250} onClick={() => setZoom(z => Math.min(250, z + 30))} className="p-2 rounded-lg disabled:opacity-40 cursor-pointer"><ZoomIn className="w-4 h-4" /></button>
       </div>
       {!fullscreen && (
@@ -214,7 +214,7 @@ export default function VisualMap({ info, sources, art = null }: Props) {
       <div className="clay-card p-4 sm:p-5 space-y-4">
         <div className="space-y-3">
           <div className="min-w-0">
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] bg-[#D1EBE1] text-[#1D5E4D]"><Network className="w-3.5 h-3.5" />Peta visual materi</span>
+            <span className="inline-flex items-center gap-1.5 text-mini font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] bg-[#D1EBE1] text-[#1D5E4D]"><Network className="w-3.5 h-3.5" />Peta visual materi</span>
             <h2 className="text-lg sm:text-xl font-extrabold text-[#1C1E26] mt-2 break-words">{tab === "diagram" && diagram ? diagram.title : info.title}</h2>
             <p className="text-xs text-[#595F72] mt-0.5">
               {tab === "image"
@@ -286,7 +286,7 @@ function NodeDetail({ diagram, node, onSelect, onClose, sources }: {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {trail.length > 0 && (
-            <p className="text-[11px] font-bold text-[#595F72] break-words">Bagian dari: {trail.map(item => item.label).join(" › ")}</p>
+            <p className="text-mini font-bold text-[#595F72] break-words">Bagian dari: {trail.map(item => item.label).join(" › ")}</p>
           )}
           <h3 className="font-extrabold text-[#1C1E26] break-words">{node.label}</h3>
         </div>
@@ -295,13 +295,13 @@ function NodeDetail({ diagram, node, onSelect, onClose, sources }: {
       {node.detail && <p className="text-sm text-[#475569] leading-relaxed break-words">{node.detail}</p>}
       {node.example && (
         <div className="rounded-xl bg-white border border-[#785308]/25 p-3">
-          <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#785308]">Contoh</p>
+          <p className="text-mini font-extrabold uppercase tracking-wider text-[#785308]">Contoh</p>
           <p className="text-sm text-[#475569] mt-1 break-words">{node.example}</p>
         </div>
       )}
       {related.length > 0 && (
         <div>
-          <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#595F72] mb-1.5">{diagram.kind === "flowchart" ? "Langkah berikutnya" : "Cabang"}</p>
+          <p className="text-mini font-extrabold uppercase tracking-wider text-[#595F72] mb-1.5">{diagram.kind === "flowchart" ? "Langkah berikutnya" : "Cabang"}</p>
           <div className="flex flex-wrap gap-1.5">{related.map(chip)}</div>
         </div>
       )}

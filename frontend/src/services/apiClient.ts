@@ -130,7 +130,7 @@ export function normalizeCredential(c: any): BlockchainCredential {
     previousHash: c.previous_hash || c.previousHash || "0000000000000000000000000000000000000000000000000000000000000000",
     blockHash: c.block_hash || c.blockHash || "",
     transactionId: c.transaction_id || c.transactionId || "",
-    verifiedBy: c.verified_by || c.verifiedBy || "Universitas Udayana & Riset Fundamental HPF",
+    verifiedBy: c.verified_by || c.verifiedBy || `EduAdapt · ${c.classroom_name || c.className || "Kelas"}`,
     issuedAt: c.issued_at || c.issuedAt || new Date().toISOString(),
   };
 }
@@ -475,14 +475,33 @@ export class ApiService {
     competency_title: string;
     score: number;
   }) {
-    return this.request<any>("/credentials/mint", {
+    return this.authenticatedRequest<any>("/credentials/mint", {
       method: "POST",
       body: JSON.stringify(data),
     });
   }
 
-  static async verifyCredential(query: string) {
-    return this.request<any>(`/credentials/verify/${encodeURIComponent(query)}`);
+  /** Student claims a quiz credential; the server grades the answers. Throws with the server's reason on failure. */
+  static async claimCredential(data: {
+    task_id: string;
+    answers: { question_id: string; selected_index: number | null }[];
+  }) {
+    return this.authenticatedRequest<any>("/credentials/claim", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async verifyCredential(query: string, simulateScore?: number) {
+    const sim = simulateScore !== undefined ? `?simulate_score=${simulateScore}` : "";
+    return this.request<{
+      is_valid: boolean;
+      is_tampered: boolean;
+      computed_hash: string;
+      recorded_hash: string;
+      certificate: any | null;
+      tamper_reason?: string | null;
+    }>(`/credentials/verify/${encodeURIComponent(query)}${sim}`);
   }
 
   // --- SCHEDULES ---
@@ -567,6 +586,7 @@ export class ApiService {
     learning_style?: string;
     student_name?: string;
     student_id?: string;
+    conversation_id?: string;
   }) {
     return this.request<{
       text: string;
@@ -574,10 +594,28 @@ export class ApiService {
       is_grounded: boolean;
       cached: boolean;
       model: string;
+      conversation_id?: string;
     }>("/ai/chat", {
       method: "POST",
       body: JSON.stringify(data),
     });
+  }
+
+  static async listAIConversations() {
+    return this.request<{ id: string; title: string; document_id?: string | null; updated_at: string }[]>("/ai/conversations");
+  }
+
+  static async getAIConversation(id: string) {
+    return this.request<{
+      id: string;
+      title: string;
+      document_id?: string | null;
+      messages: { sender: "ai" | "user"; text: string; citation?: string; timestamp: string }[];
+    }>(`/ai/conversations/${encodeURIComponent(id)}`);
+  }
+
+  static async deleteAIConversation(id: string) {
+    return this.request<{ deleted: boolean }>(`/ai/conversations/${encodeURIComponent(id)}`, { method: "DELETE" });
   }
 
   static async generateQuizAI(data: {

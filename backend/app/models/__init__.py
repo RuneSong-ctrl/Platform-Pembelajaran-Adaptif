@@ -6,6 +6,7 @@ from app.models.submission import AssignmentSubmission
 from app.models.credential import BlockchainCredential
 from app.models.schedule import LearningSchedule
 from app.models.note import ParentTeacherNote
+from app.models.ai_conversation import AIConversation
 
 __all__ = [
     "User",
@@ -16,4 +17,5 @@ __all__ = [
     "BlockchainCredential",
     "LearningSchedule",
     "ParentTeacherNote",
+    "AIConversation",
 ]

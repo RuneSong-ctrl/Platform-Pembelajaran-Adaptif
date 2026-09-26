@@ -85,7 +85,7 @@ export default function PracticeMission({ documentId, preview, sources, onStageC
     <section className="space-y-5" aria-label="Misi praktik">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] bg-[#FEE7B3] text-[#785308]"><Trophy className="w-3.5 h-3.5" />Challenge</span>
+          <span className="inline-flex items-center gap-1.5 text-mini font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] bg-[#FEE7B3] text-[#785308]"><Trophy className="w-3.5 h-3.5" />Challenge</span>
           <h2 className="text-[18px] leading-[26px] font-bold text-[#1C1E26] mt-2">{preview ? "Pratinjau misi (semua tahap terbuka)" : "Selesaikan tahap berurutan dari mudah ke sulit"}</h2>
         </div>
         {!preview && <p className="clay-pill bg-[#FFF6DF] px-3 py-1.5 inline-flex items-center gap-1.5 text-[13px] font-bold text-[#785308]"><Star className="w-4 h-4" />{progress?.xp ?? 0} XP · {completed.length}/{stages.length} tahap</p>}
@@ -103,14 +103,14 @@ export default function PracticeMission({ documentId, preview, sources, onStageC
                 aria-current={isCurrent ? "step" : undefined}
                 className={`w-full h-full text-left rounded-[18px] p-3 transition-colors ${
                   isCurrent ? "clay-butter" : done ? "bg-[#EBF6F2] cursor-pointer" : open ? "clay-white cursor-pointer" : "bg-[#F0EEF6] text-[#595F72] cursor-not-allowed"}`}>
-                <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[#595F72]">
-                  <span className={`w-6 h-6 rounded-[8px] flex items-center justify-center text-[11px] font-bold ${done ? "bg-[#D1EBE1] text-[#1D5E4D]" : open ? "bg-[#1C1E26] text-white" : "bg-[#E6E4EE] text-[#595F72]"}`}>
+                <span className="flex items-center gap-2 text-mini font-bold uppercase tracking-wider text-[#595F72]">
+                  <span className={`w-6 h-6 rounded-[8px] flex items-center justify-center text-mini font-bold ${done ? "bg-[#D1EBE1] text-[#1D5E4D]" : open ? "bg-[#1C1E26] text-white" : "bg-[#E6E4EE] text-[#595F72]"}`}>
                     {done ? <Check className="w-3.5 h-3.5" strokeWidth={3} /> : open ? levelIcon[stage.level] : <Lock className="w-3.5 h-3.5" />}
                   </span>
                   {stage.level}
                 </span>
                 <span className="block text-[14px] font-semibold text-[#1C1E26] mt-1.5 break-words">{stage.title}</span>
-                {!open && <span className="block text-[11px] text-[#595F72] mt-1">Selesaikan “{stages[i - 1]?.title}” dulu</span>}
+                {!open && <span className="block text-mini text-[#595F72] mt-1">Selesaikan “{stages[i - 1]?.title}” dulu</span>}
               </button>
             </li>
           );

@@ -282,7 +282,7 @@ export default function BongkarBoard({ diagram, selected, onSelect, onProgress }
                 <span aria-hidden="true" className="absolute inset-[-6px] rounded-full border-4 border-dashed border-[#785308]/50" style={{ opacity: tension, rotate: `${tension * 90}deg` }} />
               )}
               <span className="relative break-words">{node.label}</span>
-              {closedParent && <span className="relative block mt-1 text-[10px] font-bold opacity-80">{tension >= 1 ? "Lepas!" : `${kids} bagian di dalam`}</span>}
+              {closedParent && <span className="relative block mt-1 text-mini font-bold opacity-80">{tension >= 1 ? "Lepas!" : `${kids} bagian di dalam`}</span>}
             </button>
           </div>
         );
@@ -307,7 +307,7 @@ export default function BongkarBoard({ diagram, selected, onSelect, onProgress }
               <p>{brief(undefined, cardNode.detail, 150)}</p>
               <p className="text-xs font-bold text-[#595F72]">Berisi {children.get(cardNode.id)!.length} bagian:</p>
               <div className="flex flex-wrap gap-1">
-                {children.get(cardNode.id)!.map(kid => <span key={kid.id} className="rounded-full bg-[#D2E5FA] px-2.5 py-0.5 text-[11px] font-semibold text-[#21518A]">{kid.label}</span>)}
+                {children.get(cardNode.id)!.map(kid => <span key={kid.id} className="rounded-full bg-[#D2E5FA] px-2.5 py-0.5 text-mini font-semibold text-[#21518A]">{kid.label}</span>)}
               </div>
             </>
           ) : (
@@ -326,7 +326,7 @@ export default function BongkarBoard({ diagram, selected, onSelect, onProgress }
         <p className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-2 text-[13px] font-semibold text-[#595F72] pointer-events-none"><Hand className="w-4 h-4" />Tarik bola besar ini menjauh sampai pecah</p>
       )}
       {compact && trail.length > 1 && (
-        <nav aria-label="Posisi di peta" className="absolute top-2 inset-x-2 z-40 flex flex-wrap items-center gap-1 text-[11px] font-bold">
+        <nav aria-label="Posisi di peta" className="absolute top-2 inset-x-2 z-40 flex flex-wrap items-center gap-1 text-mini font-bold">
           {trail.map((step, i) => (
             <span key={step.id} className="flex items-center gap-1">
               {i > 0 && <span aria-hidden="true" className="text-[#9195A8]">›</span>}
@@ -338,7 +338,7 @@ export default function BongkarBoard({ diagram, selected, onSelect, onProgress }
         </nav>
       )}
       {compact && focus !== root.id && open.has(focus) && (
-        <p className="absolute bottom-3 inset-x-0 text-center text-[11px] font-bold text-[#595F72] pointer-events-none">Dorong bagian ke tengah untuk memasangnya kembali</p>
+        <p className="absolute bottom-3 inset-x-0 text-center text-mini font-bold text-[#595F72] pointer-events-none">Dorong bagian ke tengah untuk memasangnya kembali</p>
       )}
       {nudge && <p className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-2 text-[12px] font-semibold text-[#785308] pointer-events-none"><Hand className="w-4 h-4" />Tarik bolanya menjauh, jangan diketuk</p>}
     </div>

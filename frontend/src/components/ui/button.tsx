@@ -52,7 +52,7 @@ const buttonVariants = cva(
           "clay-btn clay-coral hover:brightness-95",
       },
       size: {
-        xs: "h-7 rounded-lg px-2.5 text-[11px] font-semibold",
+        xs: "h-7 rounded-lg px-2.5 text-mini font-semibold",
         sm: "h-9 rounded-xl px-3.5 text-xs font-semibold",
         default: "h-11 px-5 py-2.5",
         lg: "h-13 rounded-2xl px-7 text-base font-extrabold",

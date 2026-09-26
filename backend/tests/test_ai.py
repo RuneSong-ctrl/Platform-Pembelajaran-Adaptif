@@ -62,6 +62,27 @@ def test_ai_chat_endpoint():
         assert resp2.status_code == 200
         assert resp2.json()["cached"] is True
 
+def test_ai_chat_conversations_are_saved_and_private():
+    with TestClient(app) as client:
+        auth = login(client)
+        first = client.post("/api/v1/ai/chat", json={"message": "Apa itu fotosintesis?"}, headers=auth).json()
+        conv_id = first["conversation_id"]
+        assert conv_id
+        second = client.post("/api/v1/ai/chat", json={"message": "Contohnya?", "conversation_id": conv_id}, headers=auth).json()
+        assert second["conversation_id"] == conv_id
+
+        convs = client.get("/api/v1/ai/conversations", headers=auth).json()
+        assert convs[0]["id"] == conv_id and convs[0]["title"] == "Apa itu fotosintesis?"
+        detail = client.get(f"/api/v1/ai/conversations/{conv_id}", headers=auth).json()
+        assert [m["sender"] for m in detail["messages"]] == ["user", "ai", "user", "ai"]
+
+        other = login(client)
+        assert client.get(f"/api/v1/ai/conversations/{conv_id}", headers=other).status_code == 404
+        assert client.post("/api/v1/ai/chat", json={"message": "x", "conversation_id": conv_id}, headers=other).status_code == 404
+
+        assert client.delete(f"/api/v1/ai/conversations/{conv_id}", headers=auth).json() == {"deleted": True}
+        assert client.get(f"/api/v1/ai/conversations/{conv_id}", headers=auth).status_code == 404
+
 def test_ai_diagram_endpoint():
     with TestClient(app) as client:
         payload = {"concept": "Siklus Krebs"}

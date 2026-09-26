@@ -32,7 +32,7 @@ def check_and_migrate_db():
                     if name not in columns:
                         conn.execute(text(f"ALTER TABLE documents ADD COLUMN {name} TEXT"))
             # create_all never adds columns to an existing table, so newer model columns are added here.
-            for table_name in ["adaptive_documents", "auth_sessions"]:
+            for table_name in ["adaptive_documents", "auth_sessions", "credentials"]:
                 table = Base.metadata.tables.get(table_name)
                 if table is None or not inspector.has_table(table_name):
                     continue
@@ -42,6 +42,15 @@ def check_and_migrate_db():
                         ddl_type = column.type.compile(dialect=conn.dialect)
                         conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column.name} {ddl_type}"))
                         logger.info(f"Auto-migrated {table_name}: added {column.name} column.")
+            if inspector.has_table("credentials"):
+                # Older DBs lack the unique index that stops two blocks sharing one index.
+                indexes = {ix["name"] for ix in inspector.get_indexes("credentials")}
+                if "ux_credentials_block_index" not in indexes:
+                    try:
+                        with conn.begin_nested():
+                            conn.execute(text("CREATE UNIQUE INDEX ux_credentials_block_index ON credentials (block_index)"))
+                    except Exception as e:
+                        logger.warning(f"Could not add unique block_index index (duplicate blocks exist?): {e}")
             if inspector.has_table("adaptive_documents"):
                 for name in ["source_segments", "draft_units", "published_units", "published_sources"]:
                     conn.execute(text(f"UPDATE adaptive_documents SET {name} = '[]' WHERE {name} IS NULL"))

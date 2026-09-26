@@ -4,11 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useApp } from "@/contexts/AppContext";
-import {
-  verifyCertificateIntegrity,
-  VerificationResult,
-} from "@/services/blockchainVault";
+import { useSearchParams } from "react-router-dom";
+import { ApiService, normalizeCredential } from "@/services/apiClient";
+import type { BlockchainCredential } from "@/types";
 import { audioSynth } from "@/services/audioSynth";
 import confetti from "canvas-confetti";
 import {
@@ -18,57 +16,76 @@ import {
   CheckCircle2,
 } from "@/components/ui/icons";
 
-export default function PublicVerifyPage() {
-  const { credentials } = useApp();
+interface VerificationResult {
+  isValid: boolean;
+  isTampered: boolean;
+  computedHash: string;
+  recordedHash: string;
+  tamperReason?: string | null;
+}
 
-  const [queryCertId, setQueryCertId] = useState("KOG-2026-BIO-X7A9");
+export default function PublicVerifyPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [queryCertId, setQueryCertId] = useState(searchParams.get("cert") || "");
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const [matchedCert, setMatchedCert] = useState<BlockchainCredential | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
 
   // Tamper Sandbox Testing State
   const [tamperedScore, setTamperedScore] = useState<number>(95);
   const [isTamperSimActive, setIsTamperSimActive] = useState(false);
 
-  const matchedCert = credentials.find(
-    (c) =>
-      c.certificateId.toLowerCase() === queryCertId.trim().toLowerCase() ||
-      c.transactionId.toLowerCase() === queryCertId.trim().toLowerCase()
-  );
+  // Checked by the backend ledger, so anyone (employer, parent) can verify without logging in.
+  const handleVerify = async (simulatedScore?: number, query = queryCertId) => {
+    const q = query.trim();
+    if (!q) return;
+    setIsVerifying(true);
+    if (simulatedScore === undefined) audioSynth.playClickSound();
+    const res = await ApiService.verifyCredential(q, simulatedScore);
+    setIsVerifying(false);
 
-  const handleVerify = async (simulatedScore?: number) => {
-    if (!matchedCert) {
+    if (!res) {
+      setMatchedCert(null);
       setVerificationResult({
         isValid: false,
         isTampered: false,
         computedHash: "",
         recordedHash: "",
-        storedHash: "",
-        tamperReason: "ID Sertifikat atau TxID tidak ditemukan di node buku besar Merkle.",
+        tamperReason: "Server verifikasi tidak dapat dihubungi. Coba lagi sebentar.",
       });
       audioSynth.playErrorSound();
       return;
     }
 
-    setIsVerifying(true);
-    audioSynth.playClickSound();
-
-    setTimeout(async () => {
-      const result = await verifyCertificateIntegrity(matchedCert, simulatedScore);
-      setVerificationResult(result);
-      setIsVerifying(false);
-
-      if (result.isValid) {
-        audioSynth.playLevelUpSound();
-        confetti({ particleCount: 70, spread: 60 });
-      } else {
-        audioSynth.playErrorSound();
-      }
-    }, 600);
+    setMatchedCert(res.certificate ? normalizeCredential(res.certificate) : null);
+    setVerificationResult({
+      isValid: res.is_valid,
+      isTampered: res.is_tampered,
+      computedHash: res.computed_hash,
+      recordedHash: res.recorded_hash,
+      tamperReason: res.tamper_reason,
+    });
+    if (simulatedScore !== undefined) return;
+    if (res.is_valid) {
+      audioSynth.playLevelUpSound();
+      confetti({ disableForReducedMotion: true, particleCount: 70, spread: 60 });
+    } else {
+      audioSynth.playErrorSound();
+    }
   };
 
-  useEffect(() => {
+  const submitSearch = () => {
+    setIsTamperSimActive(false);
+    setSearchParams(queryCertId.trim() ? { cert: queryCertId.trim() } : {}, { replace: true });
     handleVerify();
-  }, [queryCertId]);
+  };
+
+  // Deep link from a QR code / shared link: /verify?cert=KOG-...
+  useEffect(() => {
+    const cert = searchParams.get("cert");
+    if (cert) handleVerify(undefined, cert);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#FBF9F4] text-[#1B1C19] selection:bg-[#FADFAD] pb-24">
@@ -92,25 +109,32 @@ export default function PublicVerifyPage() {
 
         {/* SEARCH BAR */}
         <Card className="p-4 bg-white rounded-3xl border border-[rgba(28,30,38,0.08)] shadow-xs">
-          <div className="flex flex-col sm:flex-row gap-2">
+          <form
+            className="flex flex-col sm:flex-row gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitSearch();
+            }}
+          >
             <div className="relative flex-1">
               <Search className="w-4 h-4 text-[#9195A8] absolute left-3.5 top-3" />
               <Input
                 value={queryCertId}
                 onChange={(e) => setQueryCertId(e.target.value)}
-                placeholder="Masukkan ID Sertifikat (cth: KOG-2026-BIO-X7A9) atau TxID..."
+                placeholder="Masukkan ID Sertifikat (cth: KOG-2026-A1B2C3) atau TxID..."
+                aria-label="ID Sertifikat atau TxID"
                 className="pl-10 text-xs sm:text-sm"
               />
             </div>
             <Button
-              onClick={() => handleVerify(isTamperSimActive ? tamperedScore : undefined)}
-              disabled={isVerifying}
+              type="submit"
+              disabled={isVerifying || !queryCertId.trim()}
               variant="primary"
               className="font-bold text-xs shrink-0"
             >
               {isVerifying ? "Menghitung Hash..." : "Verifikasi Sekarang"}
             </Button>
-          </div>
+          </form>
         </Card>
 
         {/* VERIFICATION RESULT PANEL */}
@@ -125,7 +149,7 @@ export default function PublicVerifyPage() {
                       <CheckCircle2 className="w-7 h-7" />
                     </div>
                     <div>
-                      <Badge variant="white" className="text-[10px] mb-1">
+                      <Badge variant="white" className="text-mini mb-1">
                         Cryptographically Authentic
                       </Badge>
                       <h2 className="text-xl font-bold text-[#010105]">
@@ -135,22 +159,22 @@ export default function PublicVerifyPage() {
                   </div>
 
                   <span className="text-xs font-mono font-bold text-[#1D5E4D] bg-white px-3 py-1.5 rounded-full self-start sm:self-auto">
-                    Blok #{matchedCert?.blockIndex} • 100% Cocok
+                    Blok #{matchedCert?.blockIndex} • Hash &amp; rantai cocok
                   </span>
                 </div>
 
                 {/* Candidate & Subject Meta */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="p-4 rounded-2xl bg-white shadow-xs">
-                    <span className="text-[10px] uppercase font-bold text-[#9195A8] block">Nama Pemilik</span>
+                    <span className="text-mini uppercase font-bold text-[#9195A8] block">Nama Pemilik</span>
                     <span className="text-sm font-bold text-[#010105]">{matchedCert?.studentName}</span>
                   </div>
                   <div className="p-4 rounded-2xl bg-white shadow-xs">
-                    <span className="text-[10px] uppercase font-bold text-[#9195A8] block">Kompetensi</span>
+                    <span className="text-mini uppercase font-bold text-[#9195A8] block">Kompetensi</span>
                     <span className="text-sm font-bold text-[#010105]">{matchedCert?.competencyTitle}</span>
                   </div>
                   <div className="p-4 rounded-2xl bg-white shadow-xs">
-                    <span className="text-[10px] uppercase font-bold text-[#9195A8] block">Nilai Capaian</span>
+                    <span className="text-mini uppercase font-bold text-[#9195A8] block">Nilai Capaian</span>
                     <span className="text-sm font-extrabold text-[#1D5E4D]">{matchedCert?.score}%</span>
                   </div>
                 </div>
@@ -158,11 +182,11 @@ export default function PublicVerifyPage() {
                 {/* Cryptographic Comparison */}
                 <div className="p-4 rounded-2xl bg-white font-mono text-xs space-y-2 border border-[rgba(29,94,77,0.15)]">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-[#9195A8] block">Stored Block Hash</span>
+                    <span className="text-mini uppercase font-bold text-[#9195A8] block">Stored Block Hash</span>
                     <span className="text-[#010105] break-all">{verificationResult.recordedHash}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-[#9195A8] block">Recomputed SHA-256 Hash</span>
+                    <span className="text-mini uppercase font-bold text-[#9195A8] block">Recomputed SHA-256 Hash</span>
                     <span className="text-[#1D5E4D] font-bold break-all">{verificationResult.computedHash}</span>
                   </div>
                 </div>
@@ -175,7 +199,7 @@ export default function PublicVerifyPage() {
                     <ShieldAlert className="w-7 h-7" />
                   </div>
                   <div>
-                    <Badge variant="coral" className="text-[10px] mb-1">
+                    <Badge variant="coral" className="text-mini mb-1">
                       Manipulasi Kredensial Terdeteksi
                     </Badge>
                     <h2 className="text-xl font-bold text-[#852C28]">
@@ -189,14 +213,14 @@ export default function PublicVerifyPage() {
                   <p className="text-[#5A5E70]">{verificationResult.tamperReason}</p>
                 </div>
 
-                {verificationResult.isTampered && (
+                {verificationResult.isTampered && verificationResult.computedHash !== "N/A" && (
                   <div className="p-4 rounded-2xl bg-white font-mono text-xs space-y-2 border border-[rgba(133,44,40,0.15)]">
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-[#9195A8] block">Stored Hash</span>
+                      <span className="text-mini uppercase font-bold text-[#9195A8] block">Stored Hash</span>
                       <span className="text-[#5A5E70] break-all">{verificationResult.recordedHash}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-[#852C28] block">Hash Baru Hasil Perubahan Data</span>
+                      <span className="text-mini uppercase font-bold text-[#852C28] block">Hash Baru Hasil Perubahan Data</span>
                       <span className="text-[#852C28] font-bold break-all">{verificationResult.computedHash}</span>
                     </div>
                   </div>

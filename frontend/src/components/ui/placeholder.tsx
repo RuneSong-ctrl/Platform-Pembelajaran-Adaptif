@@ -146,24 +146,24 @@ export function MaterialPlaceholder({
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <Badge variant={badgeInfo.color}>{badgeInfo.label}</Badge>
-          <span className="text-[11px] font-extrabold text-[#5A5E70] flex items-center gap-1">
+          <span className="text-mini font-extrabold text-[#5A5E70] flex items-center gap-1">
             <Timer className="w-3 h-3" /> {estMinutes} Menit
           </span>
         </div>
 
         {isLocked ? (
-          <div className="clay-pill clay-coral px-2.5 py-0.5 text-[10px] font-black flex items-center gap-1">
+          <div className="clay-pill clay-coral px-2.5 py-0.5 text-mini font-black flex items-center gap-1">
             <Lock className="w-3 h-3" /> Terkunci
           </div>
         ) : (
-          <div className="clay-pill clay-mint px-2.5 py-0.5 text-[10px] font-black flex items-center gap-1">
+          <div className="clay-pill clay-mint px-2.5 py-0.5 text-mini font-black flex items-center gap-1">
             <Sparkles className="w-3 h-3" /> Siap Dipelajari
           </div>
         )}
       </div>
 
       <div className="space-y-1.5 mb-5">
-        <span className="text-[10px] font-black uppercase tracking-wider text-[#9195A8]">
+        <span className="text-mini font-black uppercase tracking-wider text-[#9195A8]">
           {topic}
         </span>
         <h4 className="text-base md:text-lg font-black text-[#1C1E26] leading-snug">
@@ -235,7 +235,7 @@ export function QuizPlaceholder({
     >
       <div className="flex items-center justify-between mb-3">
         <Badge variant={diff.color}>{diff.label}</Badge>
-        <div className="clay-pill clay-butter px-3 py-1 flex items-center gap-1 text-[11px] font-black text-[#785308]">
+        <div className="clay-pill clay-butter px-3 py-1 flex items-center gap-1 text-mini font-black text-[#785308]">
           <Flame className="w-3.5 h-3.5 fill-[#785308]" />
           <span>+{rewardXP} XP</span>
         </div>
@@ -254,7 +254,7 @@ export function QuizPlaceholder({
       </div>
 
       <div className="pt-3 border-t border-[rgba(28,30,38,0.06)] flex items-center justify-between">
-        <span className="text-[11px] font-bold text-[#5A5E70] flex items-center gap-1">
+        <span className="text-mini font-bold text-[#5A5E70] flex items-center gap-1">
           <Award className="w-3.5 h-3.5 text-[#1C1E26]" /> Sertifikat Terverifikasi
         </span>
 

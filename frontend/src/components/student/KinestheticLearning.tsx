@@ -59,7 +59,7 @@ export default function KinestheticLearning({ documentId, preview, sources, onAc
             </span>
             <span className="min-w-0">
               <span className="block text-[15px] font-extrabold text-[#1C1E26]">{m.label}</span>
-              <span className="block text-[11px] font-semibold text-[#475569] leading-snug">{m.hint}</span>
+              <span className="block text-mini font-semibold text-[#475569] leading-snug">{m.hint}</span>
             </span>
           </button>
         ))}
@@ -138,7 +138,7 @@ function Games({ info, onDone, onChallenge }: { info: Infographic | null; onDone
             </span>
             <span className="min-w-0">
               <span className="block text-[13px] font-bold text-[#1C1E26]">{g.label}</span>
-              <span className="block text-[11px] font-semibold text-[#595F72]">{g.available ? g.progress : "Tidak ada di materi ini"}</span>
+              <span className="block text-mini font-semibold text-[#595F72]">{g.available ? g.progress : "Tidak ada di materi ini"}</span>
             </span>
           </button>
         ))}
@@ -156,7 +156,7 @@ function Games({ info, onDone, onChallenge }: { info: Infographic | null; onDone
       )}
       {game === "gear" && hasFlow && (
         <div>
-          {info.flow_title && <p className="text-[10px] font-bold uppercase tracking-wider text-[#595F72] mb-2">{info.flow_title}</p>}
+          {info.flow_title && <p className="text-mini font-bold uppercase tracking-wider text-[#595F72] mb-2">{info.flow_title}</p>}
           <GearBoard steps={info.flow_steps} onProgress={onFlow} />
         </div>
       )}

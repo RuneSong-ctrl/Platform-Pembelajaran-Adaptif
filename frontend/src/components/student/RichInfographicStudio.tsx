@@ -161,7 +161,7 @@ export default function RichInfographicStudio({ doc }: RichInfographicStudioProp
     if (isNowComplete) {
       audioSynth.playSuccessSound();
       try {
-        confetti({
+        confetti({ disableForReducedMotion: true, 
           particleCount: 35,
           spread: 60,
           origin: { y: 0.7 },
@@ -215,7 +215,7 @@ export default function RichInfographicStudio({ doc }: RichInfographicStudioProp
             <h3 className="text-sm sm:text-base font-black text-[#1C1E26]">
               Studio Infografis 4-Tahap Interaktif
             </h3>
-            <p className="text-[11px] text-[#5A5E70]">
+            <p className="text-mini text-[#5A5E70]">
               Eksplorasi tahapan alur konsep yang dapat di-expand, wawasan metrik terukur, dan poster HD terpadu.
             </p>
           </div>
@@ -294,7 +294,7 @@ export default function RichInfographicStudio({ doc }: RichInfographicStudioProp
           {/* 🏷️ HEADER BANNER & GAMIFIED PROGRESS */}
           <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md bg-[#E0F2FE] text-[#0284C7] border border-[#BAE6FD]">
+              <span className="text-mini font-black uppercase tracking-wider px-3 py-1 rounded-md bg-[#E0F2FE] text-[#0284C7] border border-[#BAE6FD]">
                 ✦ {data.category_badge || "INFOGRAFIS 4-TAHAP KURIKULUM ADAPTIF"}
               </span>
               <h2 className="text-xl sm:text-2xl font-black text-[#0F172A] mt-2">
@@ -311,7 +311,7 @@ export default function RichInfographicStudio({ doc }: RichInfographicStudioProp
                 {progressPct}%
               </div>
               <div className="flex-1">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 mb-1">
+                <div className="flex items-center justify-between text-mini font-bold text-slate-700 mb-1">
                   <span>Progres Pemahaman</span>
                   <span className="text-[#0284C7] font-black">{completedCount}/{totalSteps} Tahap</span>
                 </div>
@@ -331,7 +331,7 @@ export default function RichInfographicStudio({ doc }: RichInfographicStudioProp
               <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-lg bg-[#E0F2FE] text-[#0284C7]">
                 💡 {t1.title || "Tahap 1: Fondasi & Konsep Inti"}
               </span>
-              <span className="text-[11px] font-bold text-slate-400">Fondasi Teoretis</span>
+              <span className="text-mini font-bold text-slate-400">Fondasi Teoretis</span>
             </div>
 
             {/* Big Idea Banner */}
@@ -339,7 +339,7 @@ export default function RichInfographicStudio({ doc }: RichInfographicStudioProp
               <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 flex items-start gap-3">
                 <Lightbulb className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block">
+                  <span className="text-mini font-black uppercase tracking-wider text-emerald-700 block">
                     Gagasan Pokok Utama
                   </span>
                   <p className="text-xs sm:text-sm font-bold text-emerald-950 leading-relaxed mt-0.5">
@@ -351,7 +351,7 @@ export default function RichInfographicStudio({ doc }: RichInfographicStudioProp
 
             {/* Definition Box */}
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1">
+              <span className="text-mini font-black uppercase text-slate-400 tracking-wider block mb-1">
                 Definisi Ilmiah Presisi
               </span>
               <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
@@ -459,11 +459,11 @@ export default function RichInfographicStudio({ doc }: RichInfographicStudioProp
                         {/* Step Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                            <span className="text-mini font-black uppercase px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
                               {st.badge || `Langkah ${idx + 1}`}
                             </span>
                             {isDone && (
-                              <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                              <span className="text-mini font-bold text-emerald-600 flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3" />
                                 <span>Tuntas Dipelajari</span>
                               </span>
@@ -503,7 +503,7 @@ export default function RichInfographicStudio({ doc }: RichInfographicStudioProp
                       <div className="px-5 pb-5 pt-1 border-t border-slate-100 space-y-3.5 animate-fade-in bg-slate-50/40">
                         {/* Main Step Description */}
                         <div className="p-4 rounded-xl bg-white border border-slate-200/80 space-y-1">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                          <span className="text-mini font-black uppercase tracking-wider text-slate-400 block">
                             Uraian Dinamika & Mekanisme Proses
                           </span>
                           <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium">
@@ -549,7 +549,7 @@ export default function RichInfographicStudio({ doc }: RichInfographicStudioProp
                 <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-lg bg-sky-50 text-sky-700 border border-sky-200">
                   📊 {data.tahap_3_parameter?.title || "Tahap 3: Parameter Kunci & Kaidah Ilmiah"}
                 </span>
-                <span className="text-[11px] font-bold text-slate-400">Analisis Metrik</span>
+                <span className="text-mini font-bold text-slate-400">Analisis Metrik</span>
               </div>
 
               <p className="text-xs text-slate-500">
@@ -587,7 +587,7 @@ export default function RichInfographicStudio({ doc }: RichInfographicStudioProp
                 <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200">
                   🌐 {t4.title || "Tahap 4: Analogi Nyata & Studi Kasus Terapan"}
                 </span>
-                <span className="text-[11px] font-bold text-slate-400">Konkretisasi</span>
+                <span className="text-mini font-bold text-slate-400">Konkretisasi</span>
               </div>
 
               <p className="text-xs text-slate-500">
@@ -626,7 +626,7 @@ export default function RichInfographicStudio({ doc }: RichInfographicStudioProp
               <Award className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300">
+              <span className="text-mini font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300">
                 Prinsip Aplikatif Terintegrasi
               </span>
               <p className="text-xs sm:text-sm text-slate-200 mt-1.5 leading-relaxed font-medium">
@@ -647,7 +647,7 @@ export default function RichInfographicStudio({ doc }: RichInfographicStudioProp
               <span className="text-xs font-bold text-slate-700">
                 Vektor Lossless SVG (1200 x 1380 px)
               </span>
-              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#E0F2FE] text-[#0284C7]">
+              <span className="text-mini font-black uppercase px-2 py-0.5 rounded-md bg-[#E0F2FE] text-[#0284C7]">
                 HD Clean Layout
               </span>
             </div>
@@ -666,7 +666,7 @@ export default function RichInfographicStudio({ doc }: RichInfographicStudioProp
               <button
                 type="button"
                 onClick={handleZoomReset}
-                className="px-2 py-1 text-[11px] font-mono font-bold text-[#0284C7] hover:bg-white rounded-lg cursor-pointer"
+                className="px-2 py-1 text-mini font-mono font-bold text-[#0284C7] hover:bg-white rounded-lg cursor-pointer"
                 title="Reset"
               >
                 {zoomLevel}%

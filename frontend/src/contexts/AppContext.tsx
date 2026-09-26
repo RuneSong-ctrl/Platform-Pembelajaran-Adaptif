@@ -25,11 +25,6 @@ import {
   MOCK_OFFLINE_PACKAGES,
 } from "@/services/mockData";
 import {
-  generateBlockHash,
-  generateTransactionId,
-  GENESIS_BLOCK_HASH,
-} from "@/services/blockchainVault";
-import {
   ApiService,
   normalizeUser,
   normalizeClassroom,
@@ -81,6 +76,7 @@ interface AppContextType {
   // Blockchain Credentials
   credentials: BlockchainCredential[];
   mintCredential: (studentId: string, classroomId: string, competencyTitle: string, score: number) => Promise<BlockchainCredential>;
+  claimQuizCredential: (taskId: string, answers: { question_id: string; selected_index: number | null }[]) => Promise<BlockchainCredential>;
   mintNewCredential: (newCert: BlockchainCredential) => void;
 
   // Parent Notes & Active Child Focus
@@ -343,6 +339,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const currentUser = users.find((u) => u.id === currentUserId) || DEFAULT_EMPTY_USER;
+
+  // Text size and tap-target size follow the student's school level (see globals.css).
+  const grade = currentUser.grade ?? 10;
+  const jenjang = !currentUser.id || currentUser.role !== "SISWA" ? ""
+    : grade <= 3 ? "sd-awal" : grade <= 6 ? "sd" : grade <= 9 ? "smp" : "sma";
+  useEffect(() => {
+    if (jenjang) document.documentElement.dataset.jenjang = jenjang;
+    else delete document.documentElement.dataset.jenjang;
+  }, [jenjang]);
 
   const acceptSession = (response: { token: string; user: unknown }) => {
     const user = normalizeUser(response.user);
@@ -661,73 +666,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const gradeAssignmentSubmission = gradeSubmission;
 
+  // Blocks are only ever created by the backend ledger; a locally made "certificate" would not verify anywhere.
+  const addCredential = (raw: any) => {
+    const cred = normalizeCredential(raw);
+    setCredentials((prev) => [cred, ...prev.filter((c) => c.id !== cred.id)]);
+    return cred;
+  };
+
   const mintCredential = async (
     studentId: string,
     classroomId: string,
     competencyTitle: string,
     score: number
-  ): Promise<BlockchainCredential> => {
-    const student = users.find((u) => u.id === studentId);
-    const cls = classrooms.find((c) => c.id === classroomId);
-
-    const blockIndex = credentials.length + 1;
-    const previousHash =
-      credentials.length > 0
-        ? credentials[credentials.length - 1].blockHash
-        : GENESIS_BLOCK_HASH;
-
-    const certCode = `KOG-2026-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-    const timestamp = new Date().toISOString();
-
-    const blockHash = await generateBlockHash(
-      blockIndex,
-      previousHash,
-      studentId,
-      certCode,
-      score,
-      timestamp
-    );
-
-    const transactionId = await generateTransactionId(blockHash, certCode);
-
-    const newCert: BlockchainCredential = {
-      id: `cred_${Date.now()}`,
-      certificateId: certCode,
-      studentId,
-      studentName: student ? student.name : "Siswa EduAdapt",
-      classroomId,
-      className: cls ? cls.name : "Kelas Adaptif",
-      competencyTitle,
-      score,
-      blockIndex,
-      previousHash,
-      blockHash,
-      transactionId,
-      verifiedBy: "Universitas Udayana & Riset Fundamental HPF",
-      issuedAt: timestamp,
-    };
-
-    setCredentials((prev) => [newCert, ...prev]);
-
-    // Persist to backend
-    try {
-      const res = await ApiService.mintCredential({
+  ): Promise<BlockchainCredential> =>
+    addCredential(
+      await ApiService.mintCredential({
         student_id: studentId,
         classroom_id: classroomId,
         competency_title: competencyTitle,
         score,
-      });
-      if (res) {
-        const norm = normalizeCredential(res);
-        setCredentials((prev) => prev.map((c) => (c.id === newCert.id ? norm : c)));
-        return norm;
-      }
-    } catch {
-      // safe fallback
-    }
+      })
+    );
 
-    return newCert;
-  };
+  const claimQuizCredential = async (
+    taskId: string,
+    answers: { question_id: string; selected_index: number | null }[]
+  ): Promise<BlockchainCredential> => addCredential(await ApiService.claimCredential({ task_id: taskId, answers }));
 
   const mintNewCredential = (newCert: BlockchainCredential) => {
     setCredentials((prev) => [newCert, ...prev]);
@@ -861,6 +825,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         gradeAssignmentSubmission,
         credentials,
         mintCredential,
+        claimQuizCredential,
         mintNewCredential,
         notes,
         selectedParentChildId,

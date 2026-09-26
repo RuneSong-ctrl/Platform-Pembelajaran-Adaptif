@@ -61,7 +61,7 @@ export default function AdaptiveFlashcards({ cards, topicTitle }: AdaptiveFlashc
       nextSet.add(cardId);
       audioSynth.playLevelUpSound();
       if (nextSet.size === cards.length) {
-        confetti({ particleCount: 80, spread: 70 });
+        confetti({ disableForReducedMotion: true, particleCount: 80, spread: 70 });
       }
     }
     setMasteredIds(nextSet);
@@ -86,7 +86,7 @@ export default function AdaptiveFlashcards({ cards, topicTitle }: AdaptiveFlashc
       {/* Top Header & Mastery Progress */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#785308]/15 pb-3">
         <div>
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#785308]/80 block">
+          <span className="text-mini font-extrabold uppercase tracking-wider text-[#785308]/80 block">
             Arena Kinestetik • Flashcard Interaktif
           </span>
           <h3 className="text-sm sm:text-base font-black text-[#2C1D02] mt-0.5">
@@ -138,11 +138,11 @@ export default function AdaptiveFlashcards({ cards, topicTitle }: AdaptiveFlashc
             style={{ backfaceVisibility: "hidden" }}
           >
             <div className="flex items-center justify-between shrink-0">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-[#FFF3D6] text-[#785308]">
+              <span className="text-mini font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-[#FFF3D6] text-[#785308]">
                 Kartu {currentIndex + 1} dari {cards.length}
               </span>
               {currentCard.conceptTag && (
-                <span className="text-[10px] font-bold text-[#5A5E70] bg-black/5 px-2 py-0.5 rounded-md">
+                <span className="text-mini font-bold text-[#5A5E70] bg-black/5 px-2 py-0.5 rounded-md">
                   {currentCard.conceptTag}
                 </span>
               )}
@@ -154,13 +154,13 @@ export default function AdaptiveFlashcards({ cards, topicTitle }: AdaptiveFlashc
                 {currentCard.question}
               </p>
               {showHint && currentCard.hint && (
-                <p className="text-[11px] text-[#785308] bg-[#FFF9EE] p-2 rounded-xl border border-[#785308]/20 animate-in fade-in">
+                <p className="text-mini text-[#785308] bg-[#FFF9EE] p-2 rounded-xl border border-[#785308]/20 animate-in fade-in">
                   💡 Petunjuk: {currentCard.hint}
                 </p>
               )}
             </div>
 
-            <div className="flex items-center justify-between pt-2 text-[11px] text-[#5A5E70] shrink-0 border-t border-black/5">
+            <div className="flex items-center justify-between pt-2 text-mini text-[#5A5E70] shrink-0 border-t border-black/5">
               {currentCard.hint ? (
                 <button
                   type="button"
@@ -177,7 +177,7 @@ export default function AdaptiveFlashcards({ cards, topicTitle }: AdaptiveFlashc
               ) : (
                 <span />
               )}
-              <span className="font-bold text-[#785308]/80 text-[11px]">
+              <span className="font-bold text-[#785308]/80 text-mini">
                 Klik untuk membalik kartu ➔
               </span>
             </div>
@@ -192,7 +192,7 @@ export default function AdaptiveFlashcards({ cards, topicTitle }: AdaptiveFlashc
             }}
           >
             <div className="flex items-center justify-between shrink-0">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/80 text-[#1D5E4D]">
+              <span className="text-mini font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/80 text-[#1D5E4D]">
                 Jawaban &amp; Penjelasan
               </span>
               <Sparkles className="w-4 h-4 text-[#1D5E4D]" />
@@ -205,7 +205,7 @@ export default function AdaptiveFlashcards({ cards, topicTitle }: AdaptiveFlashc
               </p>
             </div>
 
-            <div className="text-center text-[11px] font-bold text-[#1D5E4D]/80 shrink-0 border-t border-[#1D5E4D]/15 pt-2">
+            <div className="text-center text-mini font-bold text-[#1D5E4D]/80 shrink-0 border-t border-[#1D5E4D]/15 pt-2">
               Klik kartu untuk kembali ke soal ↺
             </div>
           </div>

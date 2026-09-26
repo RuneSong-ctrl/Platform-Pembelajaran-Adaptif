@@ -18,11 +18,6 @@ import {
   evaluateDDAAnswer,
   DDAState,
 } from "@/services/ddaEngine";
-import {
-  generateBlockHash,
-  generateTransactionId,
-  GENESIS_BLOCK_HASH,
-} from "@/services/blockchainVault";
 import { BlockchainCredential } from "@/types";
 import confetti from "canvas-confetti";
 import {
@@ -39,7 +34,7 @@ import {
 
 export default function AdaptiveQuizPage() {
   const navigate = useNavigate();
-  const { currentUser, tasks, classrooms, credentials, mintCredential } = useApp();
+  const { currentUser, tasks, classrooms, credentials, claimQuizCredential } = useApp();
 
   const myClassrooms = classrooms.filter((c) =>
     Boolean(currentUser?.id && c.studentIds?.includes(currentUser.id))
@@ -65,6 +60,10 @@ export default function AdaptiveQuizPage() {
   const [activeHintTab, setActiveHintTab] = useState<"analogi" | "visual" | "langkah">("analogi");
 
   const [mintedCertId, setMintedCertId] = useState<string | null>(null);
+  const [mintError, setMintError] = useState<string | null>(null);
+  const [isMinting, setIsMinting] = useState(false);
+  // Every answer is sent to the server, which grades them and issues the credential.
+  const answersRef = useRef<{ question_id: string; selected_index: number | null }[]>([]);
 
   const activeQuestion =
     allQuestions.find((q) => q.difficulty === ddaState.currentLevel) ||
@@ -104,6 +103,7 @@ export default function AdaptiveQuizPage() {
 
     setSelectedOption(optionIdx);
     setIsAnswerSubmitted(true);
+    answersRef.current.push({ question_id: activeQuestion.id, selected_index: isTimeout ? null : optionIdx });
 
     if (isCorrect) {
       audioSynth.playSuccessSound();
@@ -145,16 +145,17 @@ export default function AdaptiveQuizPage() {
         : 0;
 
     if (accuracy >= 50) {
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      const score = Math.max(accuracy, 85);
-      const targetClassId = quizTask?.classroomId || myClassrooms[0]?.id || "cls_bio_10a";
-      const competencyTitle = `Penguasaan ${quizTask?.chapter || quizTask?.title || "Materi Pembelajaran"} (Level ${ddaState.currentLevel})`;
-
+      confetti({ disableForReducedMotion: true, particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      if (!quizTask) return;
+      setIsMinting(true);
+      setMintError(null);
       try {
-        const newCert = await mintCredential(currentUser.id, targetClassId, competencyTitle, score);
+        const newCert = await claimQuizCredential(quizTask.id, answersRef.current);
         setMintedCertId(newCert.certificateId);
       } catch (err) {
-        console.warn("Mint credential offline fallback", err);
+        setMintError(err instanceof Error ? err.message : "Sertifikat gagal diterbitkan.");
+      } finally {
+        setIsMinting(false);
       }
     }
   };
@@ -235,7 +236,7 @@ export default function AdaptiveQuizPage() {
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
             <span>Kembali ke Beranda</span>
           </Link>
-          <span className="clay-pill clay-mint text-[11px] font-extrabold text-[#1D5E4D] uppercase tracking-wider px-3 py-1">
+          <span className="clay-pill clay-mint text-mini font-extrabold text-[#1D5E4D] uppercase tracking-wider px-3 py-1">
             Sesi Kuis Adaptif DDA
           </span>
         </div>
@@ -278,7 +279,7 @@ export default function AdaptiveQuizPage() {
 
             {/* Progress Bar */}
             <div className="space-y-1.5 px-1">
-              <div className="flex justify-between text-[11px] font-bold text-[#9195A8]">
+              <div className="flex justify-between text-mini font-bold text-[#9195A8]">
                 <span>Pertanyaan {ddaState.history.length + 1} dari 4</span>
                 <span className="truncate max-w-[200px]">{quizTask?.title || "Kuis Evaluasi Adaptif DDA"}</span>
               </div>
@@ -408,6 +409,16 @@ export default function AdaptiveQuizPage() {
                 </div>
               </div>
 
+              {isMinting && (
+                <p className="text-xs font-bold text-[#5A5E70] text-center" role="status">
+                  Menerbitkan sertifikat ke ledger…
+                </p>
+              )}
+              {mintError && (
+                <p className="clay-card p-4 rounded-2xl text-xs font-bold text-[#852C28] bg-[#FDF0EF]" role="alert">
+                  Sertifikat belum terbit: {mintError}
+                </p>
+              )}
               {mintedCertId && (
                 <div className="clay-card clay-mint p-4 rounded-2xl flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -416,7 +427,7 @@ export default function AdaptiveQuizPage() {
                       <h4 className="text-xs font-black text-[#1D5E4D]">
                         Kredensial Kompetensi Berhasil Diterbitkan
                       </h4>
-                      <p className="text-[11px] text-[#5A5E70]">
+                      <p className="text-mini text-[#5A5E70]">
                         ID: {mintedCertId} • Terkunci di Paspor Blockchain
                       </p>
                     </div>

@@ -128,7 +128,7 @@ export default function GearBoard({ steps, onProgress }: { steps: Step[]; onProg
           return (
             <div key={i} className={`absolute ${vertical ? "text-left" : "text-center"}`} style={style}>
               <p className={`text-[12px] sm:text-[13px] font-bold break-words ${i < done ? "text-[#1C1E26]" : "text-[#9195A8]"}`}>{step.title}</p>
-              {i < done && <p className="mt-1 inline-block rounded-[8px] bg-[#D1EBE1] px-2 py-0.5 text-[11px] font-semibold text-[#1D5E4D]">{brief(step.caption, step.desc, 50)}</p>}
+              {i < done && <p className="mt-1 inline-block rounded-[8px] bg-[#D1EBE1] px-2 py-0.5 text-mini font-semibold text-[#1D5E4D]">{brief(step.caption, step.desc, 50)}</p>}
             </div>
           );
         })}
@@ -165,7 +165,7 @@ export default function GearBoard({ steps, onProgress }: { steps: Step[]; onProg
                 badge={`Langkah ${i + 1} berjalan`} title={step.title} onClose={() => setHidden(true)}>
                 <p className="font-semibold text-[#1D5E4D]">{brief(step.caption, step.desc, 70)}</p>
                 <p>{step.desc}</p>
-                {i + 1 < n && <p className="text-[11px] font-semibold text-[#595F72]">Putar terus untuk menggerakkan “{steps[i + 1].title}”</p>}
+                {i + 1 < n && <p className="text-mini font-semibold text-[#595F72]">Putar terus untuk menggerakkan “{steps[i + 1].title}”</p>}
               </InfoCard>
             </>
           );
@@ -174,7 +174,7 @@ export default function GearBoard({ steps, onProgress }: { steps: Step[]; onProg
         {turned === 0 && (
           <p className="absolute flex items-center gap-2 text-[13px] font-semibold text-[#595F72] pointer-events-none" style={vertical ? { left: 130, top: 20 } : { left: centres[0].x - 40, top: 30 }}><RotateCw className="w-4 h-4" />Putar engkolnya searah jarum jam</p>
         )}
-        {done > 0 && done < n && <p className={`absolute ${vertical ? "top-2" : "bottom-2"} right-3 text-[11px] font-bold text-[#9195A8] pointer-events-none`}>Putar balik untuk mundur</p>}
+        {done > 0 && done < n && <p className={`absolute ${vertical ? "top-2" : "bottom-2"} right-3 text-mini font-bold text-[#9195A8] pointer-events-none`}>Putar balik untuk mundur</p>}
       </div>
       <StepNote summaryOnly steps={steps} done={done} finishedText="Mesin prosesnya berjalan penuh. Setiap langkah menggerakkan langkah berikutnya." onRestart={() => setTurned(0)} />
     </div>

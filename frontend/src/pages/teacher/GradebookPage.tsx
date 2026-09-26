@@ -1,3 +1,4 @@
+import { levelLabel } from "@/lib/utils";
 import React, { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
@@ -15,10 +16,10 @@ import {
 } from "@/components/ui/icons";
 
 export default function GradebookPage() {
-  const { users, credentials, classrooms, mintCredential } = useApp();
+  const { users, credentials, classrooms, tasks, submissions, mintCredential } = useApp();
 
   const [isBatchMinting, setIsBatchMinting] = useState(false);
-  const [batchMintSuccess, setBatchMintSuccess] = useState(false);
+  const [mintSummary, setMintSummary] = useState<{ issued: number; skipped: number; failed: string[] } | null>(null);
 
   const students = users.filter((u) => u.role === "SISWA");
   const basicCount = students.filter((s) => s.currentDDALevel === "BASIC").length;
@@ -27,29 +28,45 @@ export default function GradebookPage() {
   const masteryCount = students.filter((s) => s.currentDDALevel === "MASTERY").length;
   const primaryClass = classrooms[0];
 
+  // Credential score = average of the student's graded work in this class. No grades, no credential.
+  const classTaskIds = new Set(tasks.filter((t) => t.classroomId === primaryClass?.id).map((t) => t.id));
+  const averageGrade = (studentId: string): number | null => {
+    const grades = submissions
+      .filter((s) => s.studentId === studentId && classTaskIds.has(s.taskId) && s.grade != null)
+      .map((s) => s.grade as number);
+    return grades.length ? Math.round((grades.reduce((a, b) => a + b, 0) / grades.length) * 10) / 10 : null;
+  };
+  const hasClassCert = (studentId: string) =>
+    credentials.some((c) => c.studentId === studentId && c.classroomId === primaryClass?.id);
+
   const handleBatchMint = async () => {
+    if (!primaryClass) return;
     setIsBatchMinting(true);
+    setMintSummary(null);
     audioSynth.playClickSound();
 
-    try {
-      for (const st of students) {
-        const hasCert = credentials.some((c) => c.studentId === st.id);
-        if (!hasCert && primaryClass) {
-          await mintCredential(
-            st.id,
-            primaryClass.id,
-            `Penguasaan Materi ${primaryClass.subject}`,
-            st.currentDDALevel === "MASTERY" ? 95 : st.currentDDALevel === "CHALLENGING" ? 85 : 75
-          );
-        }
+    const summary = { issued: 0, skipped: 0, failed: [] as string[] };
+    // Only students actually enrolled in the class; the ledger rejects anyone else.
+    for (const st of students.filter((s) => primaryClass.studentIds?.includes(s.id))) {
+      if (hasClassCert(st.id)) continue;
+      const score = averageGrade(st.id);
+      if (score === null) {
+        summary.skipped++;
+        continue;
       }
-      setIsBatchMinting(false);
-      setBatchMintSuccess(true);
+      try {
+        await mintCredential(st.id, primaryClass.id, `Penguasaan Materi ${primaryClass.subject}`, score);
+        summary.issued++;
+      } catch (err) {
+        summary.failed.push(`${st.name}: ${err instanceof Error ? err.message : "gagal"}`);
+      }
+    }
+
+    setIsBatchMinting(false);
+    setMintSummary(summary);
+    if (summary.issued > 0) {
       audioSynth.playLevelUpSound();
-      confetti({ particleCount: 90, spread: 70 });
-    } catch (err) {
-      console.error("Batch mint error", err);
-      setIsBatchMinting(false);
+      confetti({ disableForReducedMotion: true, particleCount: 90, spread: 70 });
     }
   };
 
@@ -71,7 +88,7 @@ export default function GradebookPage() {
                   Buku Nilai &amp; Analitik DDA
                 </span>
                 <span className="clay-pill clay-lavender px-3 py-0.5 text-xs font-bold text-[#4B3B7A]">
-                  Smart Contract Blockchain
+                  Ledger Sertifikat
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">
@@ -84,23 +101,30 @@ export default function GradebookPage() {
 
             <button
               onClick={handleBatchMint}
-              disabled={isBatchMinting || students.length === 0}
+              disabled={isBatchMinting || !primaryClass}
+              title="Menerbitkan sertifikat untuk siswa yang sudah punya nilai tugas di kelas ini"
               className="clay-btn clay-btn-dark px-5 py-2.5 text-xs font-black flex items-center gap-2 shadow-sm self-start sm:self-auto cursor-pointer disabled:opacity-50"
             >
               <ShieldCheck className="w-4 h-4" />
-              <span>{isBatchMinting ? "Memproses Minting..." : "Batch Minting Paspor Kelas"}</span>
+              <span>{isBatchMinting ? "Menerbitkan..." : "Terbitkan Sertifikat Kelas"}</span>
             </button>
           </div>
 
-          {batchMintSuccess && (
-            <div className="clay-card clay-mint p-4 flex items-center justify-between gap-3 animate-in fade-in">
-              <div className="flex items-center gap-2 text-xs font-black text-[#1D5E4D]">
+          {mintSummary && (
+            <div
+              role="status"
+              className={`clay-card p-4 space-y-1 text-xs font-bold ${
+                mintSummary.failed.length ? "bg-[#FDF0EF] text-[#852C28]" : "clay-mint text-[#1D5E4D]"
+              }`}
+            >
+              <p className="flex items-center gap-2 font-black">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>Seluruh sertifikat siswa {primaryClass?.name || "kelas"} berhasil diterbitkan dan dicatat ke dalam ledger blockchain.</span>
-              </div>
-              <span className="clay-pill clay-white px-3 py-0.5 text-xs font-extrabold text-[#1D5E4D]">
-                Minted
-              </span>
+                {mintSummary.issued} sertifikat terbit di {primaryClass?.name || "kelas"}
+                {mintSummary.skipped > 0 && ` · ${mintSummary.skipped} siswa dilewati karena belum ada nilai`}
+              </p>
+              {mintSummary.failed.map((f) => (
+                <p key={f} className="pl-6">Gagal: {f}</p>
+              ))}
             </div>
           )}
 
@@ -111,7 +135,7 @@ export default function GradebookPage() {
                 Basic Level
               </span>
               <p className="text-2xl font-black text-[#010105]">{basicCount} Siswa</p>
-              <span className="clay-pill clay-coral text-[10px] text-[#7A2420] font-bold px-2 py-0.5 inline-flex items-center gap-1">
+              <span className="clay-pill clay-coral text-mini text-[#7A2420] font-bold px-2 py-0.5 inline-flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" /> Perlu Bimbingan
               </span>
             </div>
@@ -121,7 +145,7 @@ export default function GradebookPage() {
                 Medium Level
               </span>
               <p className="text-2xl font-black text-[#010105]">{mediumCount} Siswa</p>
-              <span className="clay-pill clay-butter text-[10px] text-[#694503] font-bold px-2 py-0.5 inline-block">
+              <span className="clay-pill clay-butter text-mini text-[#694503] font-bold px-2 py-0.5 inline-block">
                 Progres Stabil
               </span>
             </div>
@@ -131,7 +155,7 @@ export default function GradebookPage() {
                 Challenging Level
               </span>
               <p className="text-2xl font-black text-[#010105]">{challengingCount} Siswa</p>
-              <span className="clay-pill clay-lavender text-[10px] text-[#4B3B7A] font-bold px-2 py-0.5 inline-block">
+              <span className="clay-pill clay-lavender text-mini text-[#4B3B7A] font-bold px-2 py-0.5 inline-block">
                 Akselerasi Baik
               </span>
             </div>
@@ -141,7 +165,7 @@ export default function GradebookPage() {
                 Mastery Level
               </span>
               <p className="text-2xl font-black text-[#010105]">{masteryCount} Siswa</p>
-              <span className="clay-pill clay-mint text-[10px] text-[#1D5E4D] font-bold px-2 py-0.5 inline-block">
+              <span className="clay-pill clay-mint text-mini text-[#1D5E4D] font-bold px-2 py-0.5 inline-block">
                 Siap Pengayaan
               </span>
             </div>
@@ -166,7 +190,7 @@ export default function GradebookPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-medium">
                 <thead>
-                  <tr className="border-b border-[rgba(28,30,38,0.06)] text-[#9195A8] uppercase text-[10px] font-black">
+                  <tr className="border-b border-[rgba(28,30,38,0.06)] text-[#9195A8] uppercase text-mini font-black">
                     <th className="pb-3">Nama Siswa</th>
                     <th className="pb-3">Modalitas Dominan</th>
                     <th className="pb-3">Level DDA</th>
@@ -183,7 +207,8 @@ export default function GradebookPage() {
                     </tr>
                   ) : (
                     students.map((st) => {
-                      const hasCert = credentials.some((c) => c.studentId === st.id);
+                      const hasCert = hasClassCert(st.id);
+                      const avg = averageGrade(st.id);
 
                       return (
                         <tr key={st.id} className="hover:bg-[#F8F9FD] transition-colors">
@@ -200,7 +225,7 @@ export default function GradebookPage() {
 
                         <td className="py-4">
                           <span
-                            className={`clay-pill text-[10px] font-extrabold px-2.5 py-0.5 ${
+                            className={`clay-pill text-mini font-extrabold px-2.5 py-0.5 ${
                               st.learningStyle === "VISUAL"
                                 ? "clay-mint text-[#1D5E4D]"
                                 : st.learningStyle === "AUDITORI"
@@ -214,7 +239,7 @@ export default function GradebookPage() {
 
                         <td className="py-4">
                           <span
-                            className={`clay-pill text-[10px] font-extrabold px-2.5 py-0.5 ${
+                            className={`clay-pill text-mini font-extrabold px-2.5 py-0.5 ${
                               st.currentDDALevel === "CHALLENGING"
                                 ? "clay-lavender text-[#4B3B7A]"
                                 : st.currentDDALevel === "BASIC"
@@ -222,7 +247,7 @@ export default function GradebookPage() {
                                 : "clay-mint text-[#1D5E4D]"
                             }`}
                           >
-                            {st.currentDDALevel}
+                            {levelLabel(st.currentDDALevel)}
                           </span>
                         </td>
 
@@ -232,12 +257,16 @@ export default function GradebookPage() {
 
                         <td className="py-4">
                           {hasCert ? (
-                            <span className="clay-pill clay-mint text-[10px] font-extrabold px-2.5 py-0.5 text-[#1D5E4D] inline-flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Minted
+                            <span className="clay-pill clay-mint text-mini font-extrabold px-2.5 py-0.5 text-[#1D5E4D] inline-flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Sudah terbit
+                            </span>
+                          ) : avg === null ? (
+                            <span className="clay-pill clay-white text-mini font-extrabold px-2.5 py-0.5 text-[#9195A8] inline-block">
+                              Belum ada nilai
                             </span>
                           ) : (
-                            <span className="clay-pill clay-butter text-[10px] font-extrabold px-2.5 py-0.5 text-[#785308] inline-block">
-                              Ready to Mint
+                            <span className="clay-pill clay-butter text-mini font-extrabold px-2.5 py-0.5 text-[#785308] inline-block">
+                              Siap terbit · rata-rata {avg}
                             </span>
                           )}
                         </td>

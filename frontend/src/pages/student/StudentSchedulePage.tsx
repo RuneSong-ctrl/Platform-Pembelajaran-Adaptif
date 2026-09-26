@@ -156,10 +156,10 @@ export default function StudentSchedulePage() {
         {/* Page Title & Progress Overview */}
         <div>
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="clay-pill clay-lavender text-[10px] font-extrabold px-3 py-0.5 text-[#4B3B7A]">
+            <span className="clay-pill clay-lavender text-mini font-extrabold px-3 py-0.5 text-[#4B3B7A]">
               Self-Regulated Learning
             </span>
-            <span className="clay-pill clay-mint text-[10px] font-bold text-[#1D5E4D] px-3 py-0.5">
+            <span className="clay-pill clay-mint text-mini font-bold text-[#1D5E4D] px-3 py-0.5">
               {completedCount}/{studentSchedules.length} Selesai
             </span>
           </div>
@@ -197,7 +197,7 @@ export default function StudentSchedulePage() {
             Daftar Target ({filteredSchedules.length})
           </span>
 
-          <div className="clay-pill bg-[#F0EEF6] p-1 flex items-center gap-1 text-[10px] font-bold">
+          <div className="clay-pill bg-[#F0EEF6] p-1 flex items-center gap-1 text-mini font-bold">
             <button
               onClick={() => setStatusFilter("all")}
               className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
@@ -253,13 +253,13 @@ export default function StudentSchedulePage() {
 
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                    <span className="clay-pill clay-lavender text-[9px] font-extrabold px-2.5 py-0.5 text-[#4B3B7A]">
+                    <span className="clay-pill clay-lavender text-mini font-extrabold px-2.5 py-0.5 text-[#4B3B7A]">
                       {sch.day}
                     </span>
-                    <span className="text-[10px] text-[#5A5E70] font-semibold flex items-center gap-0.5">
+                    <span className="text-mini text-[#5A5E70] font-semibold flex items-center gap-0.5">
                       <Clock className="w-3 h-3" /> {sch.time} ({sch.duration})
                     </span>
-                    <span className="clay-pill clay-mint text-[9px] font-extrabold px-2.5 py-0.5 text-[#1D5E4D]">
+                    <span className="clay-pill clay-mint text-mini font-extrabold px-2.5 py-0.5 text-[#1D5E4D]">
                       {sch.format}
                     </span>
                   </div>
@@ -289,7 +289,7 @@ export default function StudentSchedulePage() {
           {filteredSchedules.length === 0 && (
             <div className="clay-card clay-white p-8 text-center text-xs text-[#5A5E70] space-y-1">
               <p className="font-bold">Tidak ada jadwal belajar pada kategori ini.</p>
-              <p className="text-[11px] text-[#9195A8]">Klik tombol Tambah Jadwal untuk menyusun target belajarmu.</p>
+              <p className="text-mini text-[#9195A8]">Klik tombol Tambah Jadwal untuk menyusun target belajarmu.</p>
             </div>
           )}
         </div>
@@ -334,7 +334,7 @@ export default function StudentSchedulePage() {
                       key={d}
                       type="button"
                       onClick={() => setDay(d)}
-                      className={`py-1.5 text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
+                      className={`py-1.5 text-mini font-bold rounded-xl transition-all cursor-pointer ${
                         day === d
                           ? "clay-btn clay-btn-dark text-white font-bold scale-102"
                           : "clay-pill bg-[#F0EEF6] hover:bg-[#E3DBF8] text-[#5A5E70] hover:text-[#1C1E26]"

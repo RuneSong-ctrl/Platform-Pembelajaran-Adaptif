@@ -158,7 +158,7 @@ export default function ClassMaterialReaderPage() {
             </Link>
 
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black px-3 py-1 rounded-full bg-[#E3DBF8] text-[#4B3B7A] shadow-2xs">
+              <span className="text-mini font-black px-3 py-1 rounded-full bg-[#E3DBF8] text-[#4B3B7A] shadow-2xs">
                 Dokumen Modul Kelas
               </span>
             </div>
@@ -167,10 +167,10 @@ export default function ClassMaterialReaderPage() {
           {/* Material Header Card */}
           <div className="clay-card bg-white p-5 sm:p-7 rounded-3xl border border-black/5 space-y-2 shadow-xs">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D] text-[10px] font-extrabold">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D] text-mini font-extrabold">
                 {classroom?.name || "Kelas Belajar"}
               </span>
-              <span className="text-[10px] text-[#5A5E70] font-bold">
+              <span className="text-mini text-[#5A5E70] font-bold">
                 {classroom?.subject || "Kurikulum"} • Kelas {classroom?.grade || "10"}
               </span>
             </div>
@@ -179,7 +179,7 @@ export default function ClassMaterialReaderPage() {
               {doc.title}
             </h1>
 
-            <div className="flex items-center gap-3 text-[10px] text-[#5A5E70] font-medium pt-1 flex-wrap">
+            <div className="flex items-center gap-3 text-mini text-[#5A5E70] font-medium pt-1 flex-wrap">
               <span className="flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-[#9195A8]" />
                 Diupload: {new Date(doc.uploadedAt).toLocaleDateString("id-ID", {
@@ -259,7 +259,7 @@ export default function ClassMaterialReaderPage() {
                     <FileText className="w-4 h-4" />
                     <span>Dokumen Asli Guru (PDF Viewer)</span>
                   </span>
-                  <span className="text-[10px] text-[#5A5E70] font-normal hidden sm:inline">
+                  <span className="text-mini text-[#5A5E70] font-normal hidden sm:inline">
                     Gunakan scroll &amp; zoom internal untuk membaca
                   </span>
                 </div>
@@ -301,7 +301,7 @@ export default function ClassMaterialReaderPage() {
                   <BookOpen className="w-4 h-4" />
                   <span className="font-black">Naskah Bacaan Lengkap</span>
                 </span>
-                <span className="text-[10px] bg-[#F0EEF6] text-[#4B3B7A] px-2.5 py-0.5 rounded-full font-bold">
+                <span className="text-mini bg-[#F0EEF6] text-[#4B3B7A] px-2.5 py-0.5 rounded-full font-bold">
                   Format Teks Digital
                 </span>
               </div>
@@ -332,7 +332,7 @@ export default function ClassMaterialReaderPage() {
           <div className="pt-3 pb-2">
             <div className="clay-card bg-[#1C1E26] text-white p-5 sm:p-6 rounded-3xl shadow-md flex flex-col sm:flex-row items-center justify-between gap-4 border border-white/10">
               <div className="text-center sm:text-left space-y-1">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#FFE299] block">
+                <span className="text-mini font-extrabold uppercase tracking-wider text-[#FFE299] block">
                   Belajar Lebih Dalam
                 </span>
                 <h3 className="text-sm sm:text-base font-black text-white">

@@ -86,9 +86,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         </div>
 
         {error ? (
-          <p className="text-[11px] font-bold text-[#ba1a1a]">{error}</p>
+          <p className="text-mini font-bold text-[#ba1a1a]">{error}</p>
         ) : helperText ? (
-          <p className="text-[11px] text-[#5A5E70]">{helperText}</p>
+          <p className="text-mini text-[#5A5E70]">{helperText}</p>
         ) : null}
       </div>
     );
@@ -136,9 +136,9 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         />
 
         {error ? (
-          <p className="text-[11px] font-bold text-[#ba1a1a]">{error}</p>
+          <p className="text-mini font-bold text-[#ba1a1a]">{error}</p>
         ) : helperText ? (
-          <p className="text-[11px] text-[#5A5E70]">{helperText}</p>
+          <p className="text-mini text-[#5A5E70]">{helperText}</p>
         ) : null}
       </div>
     );
@@ -195,9 +195,9 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         </select>
 
         {error ? (
-          <p className="text-[11px] font-bold text-[#ba1a1a]">{error}</p>
+          <p className="text-mini font-bold text-[#ba1a1a]">{error}</p>
         ) : helperText ? (
-          <p className="text-[11px] text-[#5A5E70]">{helperText}</p>
+          <p className="text-mini text-[#5A5E70]">{helperText}</p>
         ) : null}
       </div>
     );
@@ -229,9 +229,9 @@ export function FormField({
       )}
       {children}
       {error ? (
-        <p className="text-[11px] font-bold text-[#ba1a1a]">{error}</p>
+        <p className="text-mini font-bold text-[#ba1a1a]">{error}</p>
       ) : helperText ? (
-        <p className="text-[11px] text-[#5A5E70]">{helperText}</p>
+        <p className="text-mini text-[#5A5E70]">{helperText}</p>
       ) : null}
     </div>
   );

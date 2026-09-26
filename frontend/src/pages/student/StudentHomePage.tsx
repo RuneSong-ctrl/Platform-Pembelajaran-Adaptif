@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import { levelLabel } from "@/lib/utils";
+import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
-import { ApiService } from "@/services/apiClient";
-import type { LearningStyleAnalytics } from "@/types";
 import {
   Eye,
   Headphones,
@@ -49,63 +48,9 @@ export default function StudentHomePage() {
 
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
   const homeAudioRef = useRef<HTMLAudioElement | null>(null);
-  const [styleData, setStyleData] = useState<LearningStyleAnalytics | null>(null);
 
   const style = currentUser?.learningStyle || "VISUAL";
   const userGrade = currentUser?.grade ? `Kelas ${currentUser.grade}` : "Kelas 10";
-
-  // Dynamic backend synchronization for style analytics
-  const fetchStyleAnalytics = async () => {
-    if (!currentUser?.id) return;
-    try {
-      const res = await ApiService.getStyleAnalytics(currentUser.id);
-      if (res) {
-        setStyleData({
-          studentId: res.student_id,
-          learningStyle: res.learning_style,
-          currentDDALevel: res.current_dda_level,
-          xpTotal: res.xp_total,
-          accuracyAvgPct: res.accuracy_avg_pct,
-          visualParams: {
-            spatialRetentionPct: res.visual_params.spatial_retention_pct,
-            scanSpeedSecPerNode: res.visual_params.scan_speed_sec_per_node,
-            infographicAccuracyPct: res.visual_params.infographic_accuracy_pct,
-            mindmapExploredCount: res.visual_params.mindmap_explored_count,
-            mindmapTotalCount: res.visual_params.mindmap_total_count,
-            visualProgressPct: res.visual_params.visual_progress_pct,
-            statusLabel: res.visual_params.status_label,
-          },
-          auditoryParams: {
-            totalListeningMinutes: res.auditory_params.total_listening_minutes,
-            targetListeningMinutes: res.auditory_params.target_listening_minutes,
-            verbalRetentionPct: res.auditory_params.verbal_retention_pct,
-            focusStabilityPct: res.auditory_params.focus_stability_pct,
-            idealPlaybackSpeed: res.auditory_params.ideal_playback_speed,
-            sessionsCompleted: res.auditory_params.sessions_completed,
-            audioProgressPct: res.auditory_params.audio_progress_pct,
-            statusLabel: res.auditory_params.status_label,
-          },
-          kinestheticParams: {
-            labAccuracyPct: res.kinesthetic_params.lab_accuracy_pct,
-            trialErrorIterations: res.kinesthetic_params.trial_error_iterations,
-            missionSpeedMinutes: res.kinesthetic_params.mission_speed_minutes,
-            ddaProblemSolvingLevel: res.kinesthetic_params.dda_problem_solving_level,
-            missionsCompleted: res.kinesthetic_params.missions_completed,
-            missionsTotal: res.kinesthetic_params.missions_total,
-            practiceProgressPct: res.kinesthetic_params.practice_progress_pct,
-            statusLabel: res.kinesthetic_params.status_label,
-          },
-          updatedAt: res.updated_at,
-        });
-      }
-    } catch (e) {
-      console.warn("Using local context fallback for style analytics", e);
-    }
-  };
-
-  useEffect(() => {
-    fetchStyleAnalytics();
-  }, [currentUser?.id, currentUser?.learningProgress]);
 
   // Dynamic active learning topic from student's enrolled classrooms
   const myClassrooms = classrooms.filter(
@@ -312,30 +257,60 @@ export default function StudentHomePage() {
   const audioDoneSchedules = studentSchedules.filter((s) => s.format === "Audio" && s.completed).length;
   const practiceDoneSchedules = studentSchedules.filter((s) => (s.format === "Praktik" || s.format === "Kuis") && s.completed).length;
 
-  const totalClassDocs = documents.length > 0 ? documents.length : 6;
-  const totalClassTasks = tasks.length > 0 ? tasks.length : 5;
+  const pct = (done: number, total: number) => (total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0);
+  const myDocs = documents.filter((d) => myClassrooms.some((c) => c.id === d.classroomId));
+  const mySubmissions = submissions.filter((s) => s.studentId === currentUser?.id);
+  const myCredentials = credentials.filter((c) => c.studentId === currentUser?.id);
 
-  const visualTotal = Math.max(lp?.visualTotal || 0, totalClassDocs, 4);
-  const visualCompleted = Math.min(visualTotal, lp?.visualCompleted ?? (visualDoneSchedules + (hasActiveContent ? 1 : 0)));
-  const visualProgress = lp?.visual !== undefined ? lp.visual : Math.round((visualCompleted / visualTotal) * 100);
+  const visualTotal = Math.max(lp?.visualTotal || 0, myDocs.length);
+  const visualCompleted = Math.min(visualTotal, lp?.visualCompleted ?? visualDoneSchedules);
+  const visualProgress = lp?.visual ?? pct(visualCompleted, visualTotal);
 
-  const audioMinutes = lp?.audioMinutes ?? Math.max(audioDoneSchedules * 15, isPlayingAudio ? 5 : 0);
-  const audioCompleted = lp?.audioCompleted ?? audioDoneSchedules;
   const audioTargetMinutes = 45;
-  const audioProgress = lp?.audio !== undefined ? lp.audio : Math.min(100, Math.round((audioMinutes / audioTargetMinutes) * 100));
+  const audioMinutes = lp?.audioMinutes ?? audioDoneSchedules * 15;
+  const audioProgress = lp?.audio ?? pct(audioMinutes, audioTargetMinutes);
 
-  const practiceTotal = Math.max(lp?.practiceTotal || 0, totalClassTasks, 4);
-  const practiceCompleted = Math.min(practiceTotal, lp?.practiceCompleted ?? (submissions.length + practiceDoneSchedules + (credentials.length > 0 ? 1 : 0)));
-  const practiceProgress = lp?.practice !== undefined ? lp.practice : Math.round((practiceCompleted / practiceTotal) * 100);
+  const practiceTotal = Math.max(lp?.practiceTotal || 0, myTasks.length);
+  const practiceCompleted = Math.min(practiceTotal, lp?.practiceCompleted ?? Math.max(mySubmissions.length, practiceDoneSchedules));
+  const practiceProgress = lp?.practice ?? pct(practiceCompleted, practiceTotal);
 
-  // Dynamic Modality Accuracy from actual credentials & submissions
-  const currentModalityAccuracy =
-    credentials.length > 0
-      ? Math.round(credentials.reduce((acc, c) => acc + (c.score || 0), 0) / credentials.length)
-      : (currentUser?.currentDDALevel === "MASTERY" ? 95 : currentUser?.currentDDALevel === "CHALLENGING" ? 85 : currentUser?.currentDDALevel === "MEDIUM" ? 75 : 65);
+  // Rata-rata nilai riil: sertifikat kuis dulu, lalu tugas yang sudah dinilai. null = belum ada nilai.
+  const gradedScores = myCredentials.length > 0
+    ? myCredentials.map((c) => c.score || 0)
+    : mySubmissions.flatMap((s) => (s.grade == null ? [] : [s.grade]));
+  const currentModalityAccuracy = gradedScores.length > 0
+    ? Math.round(gradedScores.reduce((a, b) => a + b, 0) / gradedScores.length)
+    : null;
 
   const completedSchedulesCount = studentSchedules.filter((s) => s.completed).length;
   const totalSchedulesCount = studentSchedules.length;
+
+  const modality = {
+    VISUAL: {
+      label: "Visual",
+      desc: "Materi kelasmu disajikan lewat peta konsep, diagram, dan infografis.",
+      progressLabel: "Materi visual dipelajari",
+      progressText: `${visualCompleted}/${visualTotal} materi`,
+      progress: visualProgress,
+      score: currentUser?.modalityScores?.visual,
+    },
+    AUDITORI: {
+      label: "Auditori",
+      desc: "Materi kelasmu disajikan lewat narasi suara dan penjelasan lisan.",
+      progressLabel: "Waktu mendengar materi",
+      progressText: `${audioMinutes}/${audioTargetMinutes} menit`,
+      progress: audioProgress,
+      score: currentUser?.modalityScores?.audio,
+    },
+    KINESTETIK: {
+      label: "Kinestetik",
+      desc: "Materi kelasmu disajikan lewat simulasi, praktik, dan tantangan langsung.",
+      progressLabel: "Misi praktik diselesaikan",
+      progressText: `${practiceCompleted}/${practiceTotal} misi`,
+      progress: practiceProgress,
+      score: currentUser?.modalityScores?.practice,
+    },
+  }[style];
   const scheduleProgressPercent = totalSchedulesCount > 0 ? Math.round((completedSchedulesCount / totalSchedulesCount) * 100) : 0;
 
   return (
@@ -364,10 +339,10 @@ export default function StudentHomePage() {
                 <div className="flex items-start justify-between gap-3 relative z-10">
                   <div>
                     <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className="clay-pill clay-white px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#1C1E26]">
+                      <span className="clay-pill clay-white px-2.5 py-0.5 text-mini font-extrabold uppercase tracking-wide text-[#1C1E26]">
                         {userGrade}
                       </span>
-                      <span className={`px-2.5 py-0.5 text-[10px] font-extrabold ${styleConfig.heroBadgeBg}`}>
+                      <span className={`px-2.5 py-0.5 text-mini font-extrabold ${styleConfig.heroBadgeBg}`}>
                         Modalitas {styleConfig.modalityLabel}
                       </span>
                     </div>
@@ -391,15 +366,15 @@ export default function StudentHomePage() {
                       <Flame className="w-3.5 h-3.5 fill-[#785308]" />
                       <span>{currentUser?.streakDays || 0} Hari</span>
                     </div>
-                    <span className={`text-[9px] ${styleConfig.heroSubColor} font-extrabold block mt-0.5`}>Streak Aktif</span>
+                    <span className={`text-mini ${styleConfig.heroSubColor} font-extrabold block mt-0.5`}>Streak Aktif</span>
                   </div>
 
                   <div className="clay-pill clay-white p-2.5 text-center flex flex-col items-center justify-center shadow-2xs">
                     <div className="flex items-center justify-center gap-1 text-[#1D5E4D] font-black text-xs">
                       <Sparkles className="w-3.5 h-3.5" />
-                      <span>{currentModalityAccuracy}%</span>
+                      <span>{currentModalityAccuracy === null ? "–" : `${currentModalityAccuracy}%`}</span>
                     </div>
-                    <span className={`text-[9px] ${styleConfig.heroSubColor} font-extrabold block mt-0.5`}>Akurasi DDA</span>
+                    <span className={`text-mini ${styleConfig.heroSubColor} font-extrabold block mt-0.5`}>Jawaban Benar</span>
                   </div>
 
                   <div className="clay-pill clay-white p-2.5 text-center flex flex-col items-center justify-center shadow-2xs">
@@ -407,7 +382,7 @@ export default function StudentHomePage() {
                       <Star className="w-3.5 h-3.5 fill-[#21518A]" />
                       <span>{currentUser?.xpTotal || 0} XP</span>
                     </div>
-                    <span className={`text-[9px] ${styleConfig.heroSubColor} font-extrabold block mt-0.5`}>Total XP</span>
+                    <span className={`text-mini ${styleConfig.heroSubColor} font-extrabold block mt-0.5`}>Total XP</span>
                   </div>
                 </div>
 
@@ -424,7 +399,7 @@ export default function StudentHomePage() {
                     }}
                     className={`clay-btn clay-btn-white w-full py-2.5 px-4 text-xs font-black ${styleConfig.btnColor} flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-98`}
                   >
-                    <span>{hasActiveContent ? "Lanjutkan Eksplorasi Materi Adaptif" : "Gabung ke Ruang Kelas Guru"}</span>
+                    <span>{hasActiveContent ? "Lanjut Belajar" : "Gabung ke Kelas"}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -441,7 +416,7 @@ export default function StudentHomePage() {
                       <h2 className={`text-xs sm:text-sm font-black ${cal.textColor} truncate tracking-tight`}>
                         Jadwal Belajar Pekanan
                       </h2>
-                      <p className={`text-[10px] sm:text-[11px] ${cal.subTextColor} font-bold truncate`}>
+                      <p className={`text-mini sm:text-mini ${cal.subTextColor} font-bold truncate`}>
                         {totalSchedulesCount > 0
                           ? `${completedSchedulesCount} dari ${totalSchedulesCount} Misi Selesai`
                           : "Belum ada agenda belajar terjadwal di database"}
@@ -450,7 +425,7 @@ export default function StudentHomePage() {
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`${cal.targetBadge} text-[11px] sm:text-xs font-black px-3 py-1 shadow-2xs`}>
+                    <span className={`${cal.targetBadge} text-mini sm:text-xs font-black px-3 py-1 shadow-2xs`}>
                       {scheduleProgressPercent}% Target
                     </span>
                     <Link
@@ -487,7 +462,7 @@ export default function StudentHomePage() {
                         }`}
                       >
                         <span
-                          className={`text-[9px] sm:text-[10px] uppercase font-black tracking-wide ${
+                          className={`text-mini sm:text-mini uppercase font-black tracking-wide ${
                             isSelected
                               ? cal.activeDayLabel
                               : item.completed
@@ -545,10 +520,10 @@ export default function StudentHomePage() {
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className={`clay-pill ${cal.missionTag1} text-[9px] font-extrabold px-2 py-0.5`}>
+                            <span className={`clay-pill ${cal.missionTag1} text-mini font-extrabold px-2 py-0.5`}>
                               {activeDaySchedule.day} • {activeDaySchedule.time}
                             </span>
-                            <span className={`clay-pill ${cal.missionTag2} text-[9px] font-bold px-2 py-0.5`}>
+                            <span className={`clay-pill ${cal.missionTag2} text-mini font-bold px-2 py-0.5`}>
                               {activeDaySchedule.format}
                             </span>
                           </div>
@@ -569,7 +544,7 @@ export default function StudentHomePage() {
                           audioSynth.playClickSound();
                           navigate("/student/schedule");
                         }}
-                        className="text-[10px] font-bold text-[#595F72] hover:text-[#1C1E26] underline shrink-0 cursor-pointer"
+                        className="text-mini font-bold text-[#595F72] hover:text-[#1C1E26] underline shrink-0 cursor-pointer"
                       >
                         Detail
                       </button>
@@ -580,7 +555,7 @@ export default function StudentHomePage() {
                         <span className={`font-bold ${cal.textColor} block`}>
                           {selectedDayObj.fullDay}, {selectedDayObj.date} {selectedDayObj.monthName}
                         </span>
-                        <span className={`text-[10px] ${cal.subTextColor}`}>
+                        <span className={`text-mini ${cal.subTextColor}`}>
                           Belum ada jadwal khusus hari ini
                         </span>
                       </div>
@@ -589,7 +564,7 @@ export default function StudentHomePage() {
                           audioSynth.playClickSound();
                           navigate("/student/schedule");
                         }}
-                        className={`clay-pill bg-white ${cal.subTextColor} text-[10px] font-black px-2.5 py-1 flex items-center gap-1 shadow-2xs hover:scale-105 transition-transform shrink-0 cursor-pointer`}
+                        className={`clay-pill bg-white ${cal.subTextColor} text-mini font-black px-2.5 py-1 flex items-center gap-1 shadow-2xs hover:scale-105 transition-transform shrink-0 cursor-pointer`}
                       >
                         <Plus className="w-3 h-3" />
                         <span>Tambah</span>
@@ -606,9 +581,9 @@ export default function StudentHomePage() {
                     <BookOpen className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-[#1C1E26]">Belum Ada Modul atau Tugas Aktif</h3>
+                    <h3 className="text-sm font-black text-[#1C1E26]">Belum ada materi</h3>
                     <p className="text-xs text-[#595F72] mt-1 max-w-md mx-auto leading-relaxed">
-                      Guru di kelasmu belum mengunggah modul pembelajaran atau materi RAG. Kamu dapat bergabung ke kelas guru menggunakan kode kelas atau mulai berdiskusi mandiri bersama AI Tutor.
+                      Masukkan kode kelas dari gurumu, atau tanya AI Tutor dulu.
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
@@ -643,7 +618,7 @@ export default function StudentHomePage() {
                         </div>
                         <Link
                           to="/student/learn"
-                          className="text-[11px] font-bold text-[#1D5E4D] hover:underline"
+                          className="text-mini font-bold text-[#1D5E4D] hover:underline"
                         >
                           Buka Semua Modul
                         </Link>
@@ -663,10 +638,10 @@ export default function StudentHomePage() {
                               <Eye className="w-5 h-5 text-[#124B3D]" />
                             </div>
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="clay-pill clay-mint text-[10px] font-extrabold px-2.5 py-0.5 text-[#1D5E4D]">
+                              <span className="clay-pill clay-mint text-mini font-extrabold px-2.5 py-0.5 text-[#1D5E4D]">
                                 Modul Adaptif
                               </span>
-                              <span className="text-[10px] text-[#9195A8] font-semibold flex items-center gap-0.5">
+                              <span className="text-mini text-[#9195A8] font-semibold flex items-center gap-0.5">
                                 <Clock className="w-3 h-3" /> 20 mnt
                               </span>
                             </div>
@@ -701,10 +676,10 @@ export default function StudentHomePage() {
                               <Sparkles className="w-5 h-5 text-[#694503]" />
                             </div>
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="clay-pill clay-white text-[10px] font-extrabold px-2.5 py-0.5 text-[#785308]">
-                                Kuis DDA Visual
+                              <span className="clay-pill clay-white text-mini font-extrabold px-2.5 py-0.5 text-[#785308]">
+                                Kuis Visual
                               </span>
-                              <span className="text-[10px] text-[#785308] font-bold">
+                              <span className="text-mini text-[#785308] font-bold">
                                 +50 XP Capaian
                               </span>
                             </div>
@@ -736,7 +711,7 @@ export default function StudentHomePage() {
                             Audio Studio &amp; Podcast Belajar
                           </h2>
                         </div>
-                        <span className="clay-pill clay-lavender text-[11px] font-bold text-[#4B3B7A] px-2.5 py-0.5">
+                        <span className="clay-pill clay-lavender text-mini font-bold text-[#4B3B7A] px-2.5 py-0.5">
                           Audio Podcast Aktif
                         </span>
                       </div>
@@ -751,10 +726,10 @@ export default function StudentHomePage() {
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                           <div className="space-y-1.5 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#4B3B7A]/80 block">
+                              <span className="text-mini font-extrabold uppercase tracking-wider text-[#4B3B7A]/80 block">
                                 Audio Pembelajaran Adaptif
                               </span>
-                              <span className="clay-pill clay-white text-[10px] font-extrabold text-[#4B3B7A] px-2.5 py-0.5 shadow-2xs">
+                              <span className="clay-pill clay-white text-mini font-extrabold text-[#4B3B7A] px-2.5 py-0.5 shadow-2xs">
                                 Podcast Edukasi Lengkap
                               </span>
                             </div>
@@ -773,7 +748,7 @@ export default function StudentHomePage() {
                           </div>
                         </div>
 
-                        <div className="pt-3 border-t border-[#4B3B7A]/15 flex items-center justify-between gap-2 text-[11px] font-bold text-[#4B3B7A]">
+                        <div className="pt-3 border-t border-[#4B3B7A]/15 flex items-center justify-between gap-2 text-mini font-bold text-[#4B3B7A]">
                           <span className="flex items-center gap-1.5">
                             <Radio className="w-3.5 h-3.5 animate-pulse" />
                             <span>🎙️ EduVoice AI Audio Studio</span>
@@ -800,10 +775,10 @@ export default function StudentHomePage() {
                               <Sparkles className="w-5 h-5 text-[#694503]" />
                             </div>
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="clay-pill clay-white text-[10px] font-extrabold px-2.5 py-0.5 text-[#785308]">
-                                Kuis DDA Audio
+                              <span className="clay-pill clay-white text-mini font-extrabold px-2.5 py-0.5 text-[#785308]">
+                                Kuis Audio
                               </span>
-                              <span className="text-[10px] text-[#785308] font-bold">
+                              <span className="text-mini text-[#785308] font-bold">
                                 +50 XP Capaian
                               </span>
                             </div>
@@ -835,7 +810,7 @@ export default function StudentHomePage() {
                             Lab Virtual &amp; Misi Praktik
                           </h2>
                         </div>
-                        <span className="clay-pill clay-butter text-[11px] font-bold text-[#785308] px-2.5 py-0.5">
+                        <span className="clay-pill clay-butter text-mini font-bold text-[#785308] px-2.5 py-0.5">
                           Hands-on Active
                         </span>
                       </div>
@@ -843,13 +818,13 @@ export default function StudentHomePage() {
                       <div className="clay-card clay-butter p-4 sm:p-5 text-[#4A3205] space-y-3">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#785308]/80 block">
+                            <span className="text-mini font-extrabold uppercase tracking-wider text-[#785308]/80 block">
                               Tantangan Simulasi Interaktif
                             </span>
                             <h3 className="text-sm sm:text-base font-black text-[#2C1D02] mt-0.5">
                               {currentChapterTitle}
                             </h3>
-                            <p className="text-[11px] text-[#785308] font-medium">
+                            <p className="text-mini text-[#785308] font-medium">
                               Eksperimen studi kasus mandiri dengan interaksi langsung.
                             </p>
                           </div>
@@ -887,10 +862,10 @@ export default function StudentHomePage() {
                               <Sparkles className="w-5 h-5 text-[#694503]" />
                             </div>
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="clay-pill clay-white text-[10px] font-extrabold px-2.5 py-0.5 text-[#785308]">
-                                Kuis DDA Praktik
+                              <span className="clay-pill clay-white text-mini font-extrabold px-2.5 py-0.5 text-[#785308]">
+                                Kuis Praktik
                               </span>
-                              <span className="text-[10px] text-[#785308] font-bold">
+                              <span className="text-mini text-[#785308] font-bold">
                                 +50 XP Capaian
                               </span>
                             </div>
@@ -917,7 +892,29 @@ export default function StudentHomePage() {
             </div>
 
             {/* RIGHT SIDEBAR STREAM (5 cols on lg) */}
-            <div className="lg:col-span-5 flex flex-col gap-4 sm:gap-5">
+            {/* Stats stay one tap away so the first screen shows only today's task */}
+            <details className="lg:col-span-5 group">
+              <summary className="clay-card clay-white p-3.5 sm:p-4 flex items-center gap-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D5E4D]/40">
+                <span className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                  style === "KINESTETIK"
+                    ? "bg-[#FEE7B3] text-[#785308]"
+                    : style === "VISUAL"
+                    ? "bg-[#D1EBE1] text-[#1D5E4D]"
+                    : "bg-[#E3DBF8] text-[#4B3B7A]"
+                }`}>
+                  <TrendingUp className="w-5 h-5" />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-black text-[#1C1E26]">Lihat perkembanganku</span>
+                  <span className="block text-xs text-[#5A5E70] font-medium truncate">
+                    Progres {modality.progress}% · {completedSchedulesCount}/{totalSchedulesCount} jadwal selesai
+                  </span>
+                </span>
+                <span className="w-9 h-9 rounded-full bg-[#F4F5F8] group-open:bg-[#1C1E26] group-open:text-white text-[#595F72] flex items-center justify-center shrink-0 transition-colors">
+                  <ChevronRight className="w-4 h-4 rotate-90 transition-transform duration-200 group-open:-rotate-90" />
+                </span>
+              </summary>
+            <div className="flex flex-col gap-4 sm:gap-5 mt-4">
               {/* 4. DEDICATED COGNITIVE ANALYTICS PER ACTIVE LEARNING STYLE */}
               <section className={`clay-card p-5 sm:p-6 space-y-4 shadow-xs ${
                 style === "KINESTETIK"
@@ -929,32 +926,24 @@ export default function StudentHomePage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-1.5 mb-1">
-                      <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+                      <span className={`text-mini font-black px-2.5 py-0.5 rounded-full ${
                         style === "KINESTETIK"
                           ? "bg-[#FEE7B3] text-[#785308]"
                           : style === "VISUAL"
                           ? "bg-[#D1EBE1] text-[#1D5E4D]"
                           : "bg-[#E3DBF8] text-[#4B3B7A]"
                       }`}>
-                        Analitik Gaya Belajar Utama
+                        Gaya Belajar Utama
                       </span>
-                      <span className="bg-white/80 text-[10px] font-black px-2 py-0.5 rounded-full border border-black/5">
-                        Level: {currentUser?.currentDDALevel || "BASIC"}
+                      <span className="bg-white/80 text-mini font-black px-2 py-0.5 rounded-full border border-black/5">
+                        Level: {levelLabel(currentUser?.currentDDALevel)}
                       </span>
                     </div>
                     <h3 className="text-base sm:text-lg font-black leading-tight">
-                      {style === "KINESTETIK"
-                        ? "Analitik Modalitas Kinestetik"
-                        : style === "VISUAL"
-                        ? "Analitik Modalitas Visual"
-                        : "Analitik Modalitas Auditori"}
+                      Belajar ala {modality.label}
                     </h3>
-                    <p className="text-[11px] font-medium opacity-80 mt-0.5">
-                      {style === "KINESTETIK"
-                        ? "Parameter penguasaan kognitif berbasis simulasi lab & tantangan hands-on."
-                        : style === "VISUAL"
-                        ? "Parameter penguasaan kognitif berbasis diagram alir & infografis."
-                        : "Parameter penguasaan kognitif berbasis podcast materi & narasi suara."}
+                    <p className="text-mini font-medium opacity-80 mt-0.5">
+                      {modality.desc}
                     </p>
                   </div>
 
@@ -974,20 +963,8 @@ export default function StudentHomePage() {
                 {/* Primary Progress Bar */}
                 <div className="bg-white p-3.5 rounded-2xl border border-black/5 space-y-2">
                   <div className="flex justify-between text-xs font-bold">
-                    <span>
-                      {style === "KINESTETIK"
-                        ? "Progres Misi & Eksperimen Lab"
-                        : style === "VISUAL"
-                        ? "Progres Modul Bagan & Peta Konsep"
-                        : "Progres Durasi Mendengar Audio"}
-                    </span>
-                    <span className="font-black">
-                      {style === "KINESTETIK"
-                        ? `${practiceProgress}% (${practiceCompleted}/${practiceTotal} Misi)`
-                        : style === "VISUAL"
-                        ? `${visualProgress}% (${visualCompleted}/${visualTotal} Modul)`
-                        : `${audioProgress}% (${audioMinutes} / 45 mnt)`}
-                    </span>
+                    <span>{modality.progressLabel}</span>
+                    <span className="font-black">{modality.progress}% ({modality.progressText})</span>
                   </div>
                   <div className="w-full bg-[#F0EEF6] h-3 rounded-full overflow-hidden">
                     <div
@@ -999,13 +976,7 @@ export default function StudentHomePage() {
                           : "bg-[#4B3B7A]"
                       }`}
                       style={{
-                        width: `${
-                          style === "KINESTETIK"
-                            ? Math.max(10, practiceProgress)
-                            : style === "VISUAL"
-                            ? Math.max(10, visualProgress)
-                            : Math.max(10, audioProgress)
-                        }%`,
+                        width: `${modality.progress}%`,
                       }}
                     />
                   </div>
@@ -1013,68 +984,17 @@ export default function StudentHomePage() {
 
                 {/* 4 Dedicated Parameter Metric Chips */}
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  {style === "KINESTETIK" && (
-                    <>
-                      <div className="bg-white p-2.5 rounded-xl border border-[#FEE7B3]">
-                        <span className="text-[10px] text-[#785308] font-bold block">Akurasi Lab Hands-on</span>
-                        <span className="text-sm font-black text-[#010105]">{styleData?.kinestheticParams.labAccuracyPct ?? currentModalityAccuracy}% Presisi</span>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-[#FEE7B3]">
-                        <span className="text-[10px] text-[#785308] font-bold block">Efisiensi Trial-Error</span>
-                        <span className="text-sm font-black text-[#785308]">{styleData?.kinestheticParams.trialErrorIterations ?? 1.4} Iterasi/Kasus</span>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-[#FEE7B3]">
-                        <span className="text-[10px] text-[#785308] font-bold block">Kecepatan Misi</span>
-                        <span className="text-sm font-black text-[#010105]">{styleData?.kinestheticParams.missionSpeedMinutes ?? 3.2} Menit/Misi</span>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-[#FEE7B3]">
-                        <span className="text-[10px] text-[#785308] font-bold block">Problem Solving DDA</span>
-                        <span className="text-sm font-black text-[#1D5E4D]">Level: {styleData?.kinestheticParams.ddaProblemSolvingLevel ?? (currentUser?.currentDDALevel || "BASIC")}</span>
-                      </div>
-                    </>
-                  )}
-
-                  {style === "VISUAL" && (
-                    <>
-                      <div className="bg-white p-2.5 rounded-xl border border-[#D1EBE1]">
-                        <span className="text-[10px] text-[#1D5E4D] font-bold block">Retensi Pola Spasial</span>
-                        <span className="text-sm font-black text-[#1D5E4D]">{styleData?.visualParams.spatialRetentionPct ?? currentModalityAccuracy}% Indeks</span>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-[#D1EBE1]">
-                        <span className="text-[10px] text-[#1D5E4D] font-bold block">Kecepatan Pindai</span>
-                        <span className="text-sm font-black text-[#010105]">{styleData?.visualParams.scanSpeedSecPerNode ?? 1.5} Detik/Node</span>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-[#D1EBE1]">
-                        <span className="text-[10px] text-[#1D5E4D] font-bold block">Pemahaman Infografis</span>
-                        <span className="text-sm font-black text-[#010105]">{styleData?.visualParams.infographicAccuracyPct ?? 92}% Akurat</span>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-[#D1EBE1]">
-                        <span className="text-[10px] text-[#1D5E4D] font-bold block">Eksplorasi Mindmap</span>
-                        <span className="text-sm font-black text-[#1D5E4D]">{visualCompleted} dari {visualTotal} Bagan</span>
-                      </div>
-                    </>
-                  )}
-
-                  {style === "AUDITORI" && (
-                    <>
-                      <div className="bg-white p-2.5 rounded-xl border border-[#E3DBF8]">
-                        <span className="text-[10px] text-[#4B3B7A] font-bold block">Total Waktu Dengar</span>
-                        <span className="text-sm font-black text-[#4B3B7A]">{styleData?.auditoryParams.totalListeningMinutes ?? audioMinutes} Menit</span>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-[#E3DBF8]">
-                        <span className="text-[10px] text-[#4B3B7A] font-bold block">Retensi Narasi</span>
-                        <span className="text-sm font-black text-[#010105]">{styleData?.auditoryParams.verbalRetentionPct ?? currentModalityAccuracy}% Daya Ingat</span>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-[#E3DBF8]">
-                        <span className="text-[10px] text-[#4B3B7A] font-bold block">Stabilitas Fokus</span>
-                        <span className="text-sm font-black text-[#1D5E4D]">{styleData?.auditoryParams.focusStabilityPct ?? 90}% Optimal</span>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-[#E3DBF8]">
-                        <span className="text-[10px] text-[#4B3B7A] font-bold block">Tempo Putar Ideal</span>
-                        <span className="text-sm font-black text-[#4B3B7A]">{styleData?.auditoryParams.idealPlaybackSpeed ?? 1.25}x Normal</span>
-                      </div>
-                    </>
-                  )}
+                  {[
+                    ["Kecocokan Gaya (Asesmen)", modality.score == null ? "Belum asesmen" : `${modality.score}%`],
+                    ["Rata-rata Nilai", currentModalityAccuracy === null ? "Belum ada nilai" : `${currentModalityAccuracy}/100`],
+                    ["Tugas Dikumpulkan", `${mySubmissions.length} dari ${myTasks.length}`],
+                    ["Jadwal Belajar Selesai", `${completedSchedulesCount} dari ${totalSchedulesCount}`],
+                  ].map(([label, value]) => (
+                    <div key={label} className={`bg-white p-2.5 rounded-xl border ${style === "KINESTETIK" ? "border-[#FEE7B3]" : style === "VISUAL" ? "border-[#D1EBE1]" : "border-[#E3DBF8]"}`}>
+                      <span className={`text-mini font-bold block ${style === "KINESTETIK" ? "text-[#785308]" : style === "VISUAL" ? "text-[#1D5E4D]" : "text-[#4B3B7A]"}`}>{label}</span>
+                      <span className="text-sm font-black text-[#010105]">{value}</span>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Quick Interactive Modality Action */}
@@ -1087,7 +1007,7 @@ export default function StudentHomePage() {
                     className="w-full py-2.5 px-3 rounded-xl bg-[#785308] text-white text-xs font-black hover:bg-[#5E4006] transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>+ Jalankan Simulasi Lab Praktik</span>
+                    <span>Mulai Praktik Materi</span>
                   </button>
                 )}
 
@@ -1100,7 +1020,7 @@ export default function StudentHomePage() {
                     className="w-full py-2.5 px-3 rounded-xl bg-[#1D5E4D] text-white text-xs font-black hover:bg-[#154639] transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs"
                   >
                     <Eye className="w-3.5 h-3.5" />
-                    <span>+ Buka Diagram Peta Konsep</span>
+                    <span>Buka Peta Konsep Materi</span>
                   </button>
                 )}
 
@@ -1113,7 +1033,7 @@ export default function StudentHomePage() {
                     className="w-full py-2.5 px-3 rounded-xl bg-[#4B3B7A] text-white text-xs font-black hover:bg-[#3B2D62] transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs"
                   >
                     <Headphones className="w-3.5 h-3.5" />
-                    <span>Buka Podcast Lengkap Modul</span>
+                    <span>Dengarkan Materi</span>
                   </button>
                 )}
 
@@ -1131,15 +1051,15 @@ export default function StudentHomePage() {
               <section className="clay-card clay-white p-5 sm:p-6 space-y-4 shadow-xs">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#9195A8] block">
+                    <span className="text-mini font-extrabold uppercase tracking-wider text-[#9195A8] block">
                       Peta Jalur Belajar
                     </span>
                     <h2 className="text-sm sm:text-base font-black text-[#010105]">
                       Jalur Petualangan Belajar
                     </h2>
                   </div>
-                  <span className="clay-pill clay-mint px-3 py-1 text-[#1D5E4D] text-[10px] font-extrabold shadow-2xs">
-                    Level {currentUser?.currentDDALevel || "Aktif"}
+                  <span className="clay-pill clay-mint px-3 py-1 text-[#1D5E4D] text-mini font-extrabold shadow-2xs">
+                    Level {levelLabel(currentUser?.currentDDALevel, "Aktif")}
                   </span>
                 </div>
 
@@ -1158,7 +1078,7 @@ export default function StudentHomePage() {
                       <Check className="w-6 h-6 stroke-[3]" />
                     </div>
                     <div className="text-left">
-                      <span className="text-[10px] font-bold text-[#1D5E4D] uppercase block">
+                      <span className="text-mini font-bold text-[#1D5E4D] uppercase block">
                         Langkah 1 • Terkalibrasi
                       </span>
                       <p className="text-xs font-extrabold text-[#010105]">
@@ -1170,7 +1090,7 @@ export default function StudentHomePage() {
                   {/* Step 2 - Current Active (Pulsing) */}
                   <div className="flex items-center gap-4 w-full max-w-xs justify-end">
                     <div className="text-right">
-                      <span className="text-[10px] font-bold text-[#4B3B7A] uppercase block">
+                      <span className="text-mini font-bold text-[#4B3B7A] uppercase block">
                         Langkah 2 • Tantangan Aktif
                       </span>
                       <p className="text-xs font-extrabold text-[#010105]">
@@ -1199,7 +1119,7 @@ export default function StudentHomePage() {
                       <Lock className="w-5 h-5" />
                     </div>
                     <div className="text-left">
-                      <span className="text-[10px] font-bold text-[#9195A8] uppercase block">
+                      <span className="text-mini font-bold text-[#9195A8] uppercase block">
                         Langkah 3 • Terkunci
                       </span>
                       <p className="text-xs font-bold text-[#5A5E70]">
@@ -1221,7 +1141,7 @@ export default function StudentHomePage() {
                         <Award className="w-5 h-5 text-[#FEE7B3]" />
                       </div>
                       <div className="text-left">
-                        <span className="text-[10px] font-extrabold text-[#FEE7B3] uppercase block">
+                        <span className="text-mini font-extrabold text-[#FEE7B3] uppercase block">
                           Target Akhir Modul
                         </span>
                         <p className="text-xs font-bold text-white">
@@ -1234,6 +1154,7 @@ export default function StudentHomePage() {
                 </div>
               </section>
             </div>
+            </details>
           </div>
         </main>
       </div>

@@ -33,7 +33,7 @@ export default function BottomNav() {
           >
             <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
           </div>
-          <span className="text-[10px] font-bold mt-0.5">Home</span>
+          <span className="text-mini font-bold mt-0.5">Home</span>
         </Link>
 
         {/* Tab 2: Kelas */}
@@ -53,7 +53,7 @@ export default function BottomNav() {
           >
             <School className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
           </div>
-          <span className="text-[10px] font-bold mt-0.5">Kelas</span>
+          <span className="text-mini font-bold mt-0.5">Kelas</span>
         </Link>
 
         {/* Center Raised Floating 3D AI Assistant Button */}
@@ -87,7 +87,7 @@ export default function BottomNav() {
           >
             <Layers className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
           </div>
-          <span className="text-[10px] font-bold mt-0.5">Materi</span>
+          <span className="text-mini font-bold mt-0.5">Materi</span>
         </Link>
 
         {/* Tab 5: Profil */}
@@ -107,7 +107,7 @@ export default function BottomNav() {
           >
             <UserCircle className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
           </div>
-          <span className="text-[10px] font-bold mt-0.5">Profil</span>
+          <span className="text-mini font-bold mt-0.5">Profil</span>
         </Link>
       </nav>
     </div>

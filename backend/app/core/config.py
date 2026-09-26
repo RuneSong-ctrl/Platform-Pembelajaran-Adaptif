@@ -22,6 +22,9 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000"
     ]
     
+    # Public base URL of the web app, used for certificate verification links (QR codes)
+    FRONTEND_URL: str = "http://localhost:3000"
+
     GENESIS_PREVIOUS_HASH: str = "0000000000000000000000000000000000000000000000000000000000000000"
 
     # Universal / 9router AI Gateway Configuration (Semua dimuat murni dari .env)

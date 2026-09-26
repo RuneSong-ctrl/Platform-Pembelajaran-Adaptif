@@ -167,7 +167,7 @@ export default function ClassDetailPage() {
               <span>Semua Kelas</span>
             </Link>
 
-            <span className="text-[11px] font-mono font-black px-3 py-1 rounded-full bg-white border border-[rgba(28,30,38,0.08)] text-[#4B3B7A] shadow-2xs">
+            <span className="text-mini font-mono font-black px-3 py-1 rounded-full bg-white border border-[rgba(28,30,38,0.08)] text-[#4B3B7A] shadow-2xs">
               KODE: {classroom.joinCode}
             </span>
           </div>
@@ -182,10 +182,10 @@ export default function ClassDetailPage() {
 
             <div className="relative z-10 space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-extrabold tracking-wide border border-white/15">
+                <span className="px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-mini font-extrabold tracking-wide border border-white/15">
                   Kelas {classroom.grade}-A
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-[#D1EBE1]/25 backdrop-blur-md text-[#D1EBE1] text-[10px] font-extrabold border border-[#D1EBE1]/20">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#D1EBE1]/25 backdrop-blur-md text-[#D1EBE1] text-mini font-extrabold border border-[#D1EBE1]/20">
                   {classroom.subject}
                 </span>
               </div>
@@ -201,7 +201,7 @@ export default function ClassDetailPage() {
                 <span className="font-bold">Pengajar: {classroom.teacherName}</span>
               </span>
 
-              <span className="text-[10px] text-white/70 hidden sm:inline-block font-mono">
+              <span className="text-mini text-white/70 hidden sm:inline-block font-mono">
                 {classDocuments.length} Modul • {classTasks.length} Aktivitas
               </span>
             </div>
@@ -226,7 +226,7 @@ export default function ClassDetailPage() {
                     audioSynth.playClickSound();
                     setActiveTab(tab.key as any);
                   }}
-                  className={`flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-3 rounded-xl text-[11px] sm:text-xs font-black transition-all cursor-pointer truncate ${
+                  className={`flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-3 rounded-xl text-mini sm:text-xs font-black transition-all cursor-pointer truncate ${
                     isActive
                       ? "bg-[#1C1E26] text-white shadow-xs"
                       : "text-[#5A5E70] hover:bg-[#F0EEF6]/70 hover:text-[#1C1E26]"
@@ -275,7 +275,7 @@ export default function ClassDetailPage() {
                           <span className="text-xs sm:text-sm font-black text-[#1C1E26] block truncate">
                             {ann.authorName}
                           </span>
-                          <span className="text-[10px] text-[#5A5E70] font-medium flex items-center gap-1 mt-0.5">
+                          <span className="text-mini text-[#5A5E70] font-medium flex items-center gap-1 mt-0.5">
                             <Clock className="w-3 h-3 text-[#9195A8]" />
                             {new Date(ann.createdAt).toLocaleDateString("id-ID", {
                               day: "numeric",
@@ -292,7 +292,7 @@ export default function ClassDetailPage() {
 
                       {ann.referenceTitle && (
                         <div className="pt-2 border-t border-black/5">
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#F0EEF6] text-[11px] font-bold text-[#4B3B7A]">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#F0EEF6] text-mini font-bold text-[#4B3B7A]">
                             <Layers className="w-3.5 h-3.5" />
                             <span>Terkait: {ann.referenceTitle}</span>
                           </div>
@@ -314,7 +314,7 @@ export default function ClassDetailPage() {
                 <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#9195A8]">
                   Modul Materi Kurikulum ({classDocuments.length})
                 </h2>
-                <span className="text-[10px] font-bold text-[#5A5E70]">
+                <span className="text-mini font-bold text-[#5A5E70]">
                   Klik modul untuk membaca
                 </span>
               </div>
@@ -346,14 +346,14 @@ export default function ClassDetailPage() {
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#E3DBF8] text-[#4B3B7A]">
+                            <span className="text-mini font-black px-2 py-0.5 rounded-full bg-[#E3DBF8] text-[#4B3B7A]">
                               BAB {idx + 1}
                             </span>
                           </div>
                           <h3 className="text-xs sm:text-sm font-black text-[#1C1E26] truncate group-hover:text-[#4B3B7A] transition-colors">
                             {doc.title}
                           </h3>
-                          <p className="text-[10px] text-[#5A5E70] font-medium truncate mt-0.5">
+                          <p className="text-mini text-[#5A5E70] font-medium truncate mt-0.5">
                             {doc.summary ? doc.summary.slice(0, 90) + "..." : "Klik untuk membaca dokumen modul materi"}
                           </p>
                         </div>
@@ -421,11 +421,11 @@ export default function ClassDetailPage() {
 
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-black/5 text-[#5A5E70]">
+                              <span className="text-mini font-extrabold uppercase px-2 py-0.5 rounded-full bg-black/5 text-[#5A5E70]">
                                 {task.type}
                               </span>
                               {task.sourceReference && (
-                                <span className="text-[10px] text-[#5A5E70] font-medium truncate">
+                                <span className="text-mini text-[#5A5E70] font-medium truncate">
                                   • {task.sourceReference}
                                 </span>
                               )}
@@ -439,11 +439,11 @@ export default function ClassDetailPage() {
                         {/* Action Buttons */}
                         <div className="flex items-center gap-2 shrink-0">
                           {mySub ? (
-                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#EBF6F2] text-[#1D5E4D]">
+                            <span className="text-mini font-bold px-2.5 py-1 rounded-full bg-[#EBF6F2] text-[#1D5E4D]">
                               {mySub.status === "Graded" ? `Nilai: ${mySub.grade}` : "Dikumpul"}
                             </span>
                           ) : (
-                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#FDF0EF] text-[#852C28] hidden sm:inline-block">
+                            <span className="text-mini font-bold px-2.5 py-1 rounded-full bg-[#FDF0EF] text-[#852C28] hidden sm:inline-block">
                               Belum
                             </span>
                           )}
@@ -493,7 +493,7 @@ export default function ClassDetailPage() {
                     <span className="text-xs sm:text-sm font-black text-[#1C1E26] block truncate">
                       {classroom.teacherName}
                     </span>
-                    <span className="text-[10px] text-[#4B3B7A] font-bold flex items-center gap-1 mt-0.5">
+                    <span className="text-mini text-[#4B3B7A] font-bold flex items-center gap-1 mt-0.5">
                       <GraduationCap className="w-3 h-3" />
                       Guru Mata Pelajaran
                     </span>
@@ -520,8 +520,8 @@ export default function ClassDetailPage() {
                           <span className="text-xs font-bold text-[#1C1E26] block truncate">
                             {st.name} {String(st.id) === String(currentUser?.id) && "(Kamu)"}
                           </span>
-                          <span className="text-[10px] text-[#5A5E70]">
-                            Gaya Belajar: {st.learningStyle || "Belum Asesmen"}
+                          <span className="text-mini text-[#5A5E70]">
+                            Gaya Belajar: {st.learningStyle || "Belum tes"}
                           </span>
                         </div>
                       </div>
@@ -581,11 +581,11 @@ export default function ClassDetailPage() {
             </div>
 
             <div className="p-2.5 rounded-xl bg-[#F0EEF6] flex items-center justify-between text-xs font-medium text-[#5A5E70] border border-white">
-              <span className="flex items-center gap-1.5 text-[11px] font-bold text-[#4B3B7A]">
+              <span className="flex items-center gap-1.5 text-mini font-bold text-[#4B3B7A]">
                 <UploadCloud className="w-3.5 h-3.5 text-[#4B3B7A]" />
                 Lampiran Catatan
               </span>
-              <span className="text-[10px] font-mono font-bold bg-white px-2 py-0.5 rounded-md text-[#1C1E26] shadow-2xs">
+              <span className="text-mini font-mono font-bold bg-white px-2 py-0.5 rounded-md text-[#1C1E26] shadow-2xs">
                 Tugas_Catatan_Mandiri.pdf
               </span>
             </div>

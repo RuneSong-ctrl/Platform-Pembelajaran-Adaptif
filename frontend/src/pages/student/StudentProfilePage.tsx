@@ -1,5 +1,6 @@
+import { levelLabel } from "@/lib/utils";
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
@@ -24,6 +25,7 @@ import {
   RefreshCw,
   LogOut,
   ChevronRight,
+  Award,
   Edit3,
   Camera,
   Check,
@@ -33,7 +35,8 @@ import {
 
 export default function StudentProfilePage() {
   const navigate = useNavigate();
-  const { currentUser, updateCurrentUserProfile, logout } = useApp();
+  const { currentUser, updateCurrentUserProfile, logout, credentials } = useApp();
+  const certCount = credentials.filter((c) => c.studentId === currentUser.id).length;
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -173,7 +176,7 @@ export default function StudentProfilePage() {
       <div className="flex flex-1 overflow-hidden w-full">
         <StudentSidebar />
 
-        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5 min-w-0 flex flex-col gap-5 pb-24 md:pb-8">
+        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5 min-w-0 flex flex-col gap-5 pb-24 md:pb-8 [&>*]:shrink-0">
         {/* 1. PROFILE HEADER CARD WITH EDIT & AVATAR UPLOAD */}
         <section className="clay-card p-5 sm:p-6 flex items-center justify-between gap-4 relative overflow-hidden bg-white">
           <div className="flex items-center gap-4 min-w-0">
@@ -197,19 +200,25 @@ export default function StudentProfilePage() {
                   audioSynth.playClickSound();
                   setShowAvatarModal(true);
                 }}
-                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#1C1E26] text-white flex items-center justify-center shadow-xs hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+                className="group/cam absolute -bottom-3 -right-3 flex items-end justify-end p-2 cursor-pointer"
                 title="Ganti Foto Profil"
+                aria-label="Ganti foto profil"
               >
-                <Camera className="w-3 h-3" />
+                {/* Tombol tetap 44px (area sentuh global), lingkaran visualnya kecil */}
+                <span className="w-6 h-6 rounded-full bg-[#1C1E26] text-white flex items-center justify-center border-2 border-white shadow-xs group-hover/cam:scale-110 group-active/cam:scale-95 transition-transform">
+                  <Camera className="w-3 h-3" />
+                </span>
               </button>
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="px-2 py-0.5 rounded-full bg-[#EBF6F2] text-[#1D5E4D] text-[10px] font-extrabold">
-                  Kelas {currentUser.grade || 10}-A
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-[#F0EEF6] text-[#5A5E70] text-[10px] font-bold">
+                {currentUser.grade && (
+                  <span className="px-2 py-0.5 rounded-full bg-[#EBF6F2] text-[#1D5E4D] text-mini font-extrabold">
+                    Kelas {currentUser.grade}
+                  </span>
+                )}
+                <span className="px-2 py-0.5 rounded-full bg-[#F0EEF6] text-[#5A5E70] text-mini font-bold">
                   Siswa
                 </span>
               </div>
@@ -233,21 +242,39 @@ export default function StudentProfilePage() {
           </button>
         </section>
 
+        {/* Paspor Belajar shortcut */}
+        <Link
+          to="/passport"
+          onClick={() => audioSynth.playClickSound()}
+          className="clay-card bg-white p-4 sm:p-5 flex items-center gap-3.5 hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D5E4D]/40 group"
+        >
+          <div className="w-11 h-11 rounded-2xl bg-[#D1EBE1] text-[#1D5E4D] flex items-center justify-center shrink-0">
+            <Award className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-sm font-black text-[#010105]">Paspor Belajar</h2>
+            <p className="text-xs text-[#5A5E70] font-medium truncate">
+              {certCount > 0 ? `${certCount} sertifikat kompetensi tercatat` : "Belum ada sertifikat, selesaikan kuis untuk mendapatkannya"}
+            </p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-[#9195A8] shrink-0 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+
         {/* 2. LEARNING STYLE ASSESSMENT RESULTS */}
         <section className="clay-card p-5 sm:p-6 space-y-4 bg-white">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#9195A8] block">
-                Hasil Diagnostik AI
+              <span className="text-mini font-extrabold uppercase tracking-wider text-[#9195A8] block">
+                Cara Belajarmu
               </span>
               <h2 className="text-sm sm:text-base font-extrabold text-[#010105]">
                 Profil Gaya Belajar
               </h2>
             </div>
 
-            <span className={`px-2.5 py-1 rounded-full ${styleBadge.badgeBg} text-[10px] font-extrabold flex items-center gap-1`}>
+            <span className={`px-2.5 py-1 rounded-full ${styleBadge.badgeBg} text-mini font-extrabold flex items-center gap-1`}>
               <StyleIcon className="w-3 h-3" />
-              <span>Modalitas {styleBadge.label}</span>
+              <span>Dominan: {styleBadge.label}</span>
             </span>
           </div>
 
@@ -257,7 +284,7 @@ export default function StudentProfilePage() {
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-bold">
                 <span className="flex items-center gap-1 text-[#1D5E4D]">
-                  <Eye className="w-3.5 h-3.5" /> Visual (Diagram &amp; Bagan)
+                  <Eye className="w-3.5 h-3.5" /> Visual · gambar &amp; diagram
                 </span>
                 <span className="text-[#1D5E4D]">{scores.visual}%</span>
               </div>
@@ -273,7 +300,7 @@ export default function StudentProfilePage() {
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-bold">
                 <span className="flex items-center gap-1 text-[#4B3B7A]">
-                  <Headphones className="w-3.5 h-3.5" /> Auditori (Podcast &amp; Narasi)
+                  <Headphones className="w-3.5 h-3.5" /> Auditori · suara &amp; penjelasan
                 </span>
                 <span className="text-[#4B3B7A]">{scores.audio}%</span>
               </div>
@@ -289,7 +316,7 @@ export default function StudentProfilePage() {
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-bold">
                 <span className="flex items-center gap-1 text-[#785308]">
-                  <FlaskConical className="w-3.5 h-3.5" /> Kinestetik (Lab &amp; Hands-on)
+                  <FlaskConical className="w-3.5 h-3.5" /> Kinestetik · praktik langsung
                 </span>
                 <span className="text-[#785308]">{scores.practice}%</span>
               </div>
@@ -303,10 +330,19 @@ export default function StudentProfilePage() {
           </div>
 
           <div className="pt-2 border-t border-[rgba(28,30,38,0.06)] flex items-center justify-between text-xs">
-            <span className="text-[#5A5E70] font-medium">Kecepatan Pemrosesan</span>
-            <span className="font-extrabold text-[#010105] bg-[#F4F6FA] px-2.5 py-0.5 rounded-full">
-              {currentUser.processingSpeed || "MODERATE (Sedang)"}
+            <span className="text-[#5A5E70] font-medium">
+              Kecepatan belajar:{" "}
+              <strong className="text-[#010105]">
+                {currentUser.processingSpeed === "FAST" ? "Cepat" : currentUser.processingSpeed === "DELIBERATE" ? "Teliti & perlahan" : "Sedang"}
+              </strong>
             </span>
+            <Link
+              to="/assessment"
+              onClick={() => audioSynth.playClickSound()}
+              className="font-bold text-[#4B3B7A] bg-[#F0EEF6] hover:bg-[#E3DBF8] px-3 py-1.5 rounded-full transition-colors"
+            >
+              Ulangi asesmen
+            </Link>
           </div>
         </section>
 
@@ -323,7 +359,7 @@ export default function StudentProfilePage() {
                 <Star className="w-5 h-5 fill-[#21518A]" />
               </div>
               <div>
-                <span className="text-[10px] text-[#5A5E70] font-bold block">Total XP</span>
+                <span className="text-mini text-[#5A5E70] font-bold block">Total XP</span>
                 <span className="text-sm font-black text-[#010105]">{currentUser.xpTotal || 450}</span>
               </div>
             </div>
@@ -334,7 +370,7 @@ export default function StudentProfilePage() {
                 <Flame className="w-5 h-5 fill-[#785308]" />
               </div>
               <div>
-                <span className="text-[10px] text-[#5A5E70] font-bold block">Streak Hari</span>
+                <span className="text-mini text-[#5A5E70] font-bold block">Streak Hari</span>
                 <span className="text-sm font-black text-[#010105]">{currentUser.streakDays || 14} Hari</span>
               </div>
             </div>
@@ -345,8 +381,8 @@ export default function StudentProfilePage() {
                 <TrendingUp className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[10px] text-[#5A5E70] font-bold block">Level DDA</span>
-                <span className="text-sm font-black text-[#010105]">{currentUser.currentDDALevel || "MEDIUM"}</span>
+                <span className="text-mini text-[#5A5E70] font-bold block">Level</span>
+                <span className="text-sm font-black text-[#010105]">{levelLabel(currentUser.currentDDALevel, "MEDIUM")}</span>
               </div>
             </div>
 
@@ -356,7 +392,7 @@ export default function StudentProfilePage() {
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[10px] text-[#5A5E70] font-bold block">Nyawa Latihan</span>
+                <span className="text-mini text-[#5A5E70] font-bold block">Nyawa Latihan</span>
                 <span className="text-sm font-black text-[#010105]">{currentUser.hearts || 5}/5</span>
               </div>
             </div>
@@ -379,9 +415,9 @@ export default function StudentProfilePage() {
               </div>
               <div>
                 <h3 className="text-xs sm:text-sm font-extrabold text-[#010105]">
-                  Asesmen Ulang Gaya Belajar
+                  Tes Ulang Cara Belajar
                 </h3>
-                <p className="text-[11px] text-[#5A5E70]">
+                <p className="text-mini text-[#5A5E70]">
                   Uji ulang profil modalitas untuk kalibrasi dashboard
                 </p>
               </div>
@@ -507,7 +543,7 @@ export default function StudentProfilePage() {
               <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-[rgba(28,30,38,0.15)] rounded-2xl hover:bg-[#F8F9FD] transition-colors cursor-pointer text-center">
                 <UploadCloud className="w-7 h-7 text-[#4B3B7A] mb-1" />
                 <span className="text-xs font-bold text-[#010105]">Pilih Berkas Foto</span>
-                <span className="text-[10px] text-[#9195A8]">PNG, JPG, WEBP maks 1MB</span>
+                <span className="text-mini text-[#9195A8]">PNG, JPG, WEBP maks 1MB</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -567,7 +603,7 @@ export default function StudentProfilePage() {
 
             <div className="text-center space-y-1.5">
               <h3 className="text-base font-black text-[#010105]">
-                Mulai Asesmen Ulang?
+                Mulai tes ulang?
               </h3>
               <p className="text-xs text-[#5A5E70] leading-relaxed">
                 Tampilan dashboard adaptif dan rekomendasi materi akan disesuaikan kembali berdasarkan hasil diagnostik baru.
@@ -593,7 +629,7 @@ export default function StudentProfilePage() {
                 }}
                 className="clay-btn clay-btn-dark flex-1 py-2.5 text-xs font-bold text-white cursor-pointer"
               >
-                Ya, Mulai Asesmen
+                Ya, Mulai Tes
               </button>
             </div>
           </div>

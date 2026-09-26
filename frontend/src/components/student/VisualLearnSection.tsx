@@ -83,7 +83,7 @@ export default function VisualLearnSection({ doc }: VisualLearnSectionProps) {
             <h2 className="text-sm sm:text-base font-black text-[#1C1E26]">
               Studio Pembelajaran Visual
             </h2>
-            <p className="text-[11px] text-[#5A5E70]">
+            <p className="text-mini text-[#5A5E70]">
               Eksplorasi konsep melalui diagram alir interaktif dan infografis visual beresolusi tinggi.
             </p>
           </div>

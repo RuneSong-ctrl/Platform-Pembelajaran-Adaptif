@@ -63,7 +63,7 @@ export default function PWAInstallPrompt() {
               <h4 className="text-xs font-black tracking-tight">Pasang Aplikasi EduAdapt</h4>
               <span className="w-1.5 h-1.5 rounded-full bg-[#34D399]"></span>
             </div>
-            <p className="text-[10px] text-white/70 font-medium leading-tight mt-0.5">
+            <p className="text-mini text-white/70 font-medium leading-tight mt-0.5">
               Akses cepat tanpa browser &amp; belajar offline
             </p>
           </div>

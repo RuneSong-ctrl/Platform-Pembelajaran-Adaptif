@@ -101,7 +101,7 @@ export default function TeacherHeaderNav() {
           {menuOpen && (
             <div className="absolute right-0 mt-2 w-64 bg-white rounded-3xl p-3 shadow-2xl border-2 border-white z-50 animate-in fade-in zoom-in-95 space-y-2">
               <div className="px-2 py-1 border-b border-black/5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-[#9195A8] block">
+                <span className="text-mini font-black uppercase tracking-wider text-[#9195A8] block">
                   Rombel Aktif
                 </span>
                 <div className="flex items-center gap-2 mt-1">
@@ -152,7 +152,7 @@ export default function TeacherHeaderNav() {
                 </Link>
               </div>
 
-              <div className="clay-pill clay-mint p-2 text-[10px] font-extrabold text-[#1D5E4D] flex items-center gap-1.5">
+              <div className="clay-pill clay-mint p-2 text-mini font-extrabold text-[#1D5E4D] flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
                 <span>RAG Grounding Aktif</span>
               </div>

@@ -136,7 +136,7 @@ export default function AdaptiveLearnPage() {
                 <h1 className="text-xs sm:text-sm font-black text-[#1C1E26] truncate">
                   {activeDoc?.title || (selectedClassId ? currentClassroom?.name : "Pusat Materi Adaptif")}
                 </h1>
-                <span className="text-[10px] text-[#5A5E70] font-medium block truncate">
+                <span className="text-mini text-[#5A5E70] font-medium block truncate">
                   {activeDoc
                     ? activeClassroom?.name || "Modul Adaptif"
                     : selectedClassId
@@ -170,7 +170,7 @@ export default function AdaptiveLearnPage() {
             <div className="space-y-3">
               <div>
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#E3DBF8] text-[#4B3B7A]">
+                  <span className="text-mini font-extrabold px-2 py-0.5 rounded-full bg-[#E3DBF8] text-[#4B3B7A]">
                     Langkah 1 dari 2
                   </span>
                 </div>
@@ -216,17 +216,17 @@ export default function AdaptiveLearnPage() {
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 mb-0.5">
-                              <span className="px-2 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D] text-[10px] font-extrabold">
+                              <span className="px-2 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D] text-mini font-extrabold">
                                 Kelas {cls.grade}-A
                               </span>
-                              <span className="text-[10px] text-[#5A5E70] font-mono">
+                              <span className="text-mini text-[#5A5E70] font-mono">
                                 {docCount} Modul
                               </span>
                             </div>
                             <h3 className="text-xs sm:text-sm font-black text-[#1C1E26] truncate">
                               {cls.name}
                             </h3>
-                            <p className="text-[10px] text-[#5A5E70] font-medium truncate flex items-center gap-1 mt-0.5">
+                            <p className="text-mini text-[#5A5E70] font-medium truncate flex items-center gap-1 mt-0.5">
                               <GraduationCap className="w-3 h-3" />
                               <span>{cls.teacherName}</span>
                             </p>
@@ -251,7 +251,7 @@ export default function AdaptiveLearnPage() {
             <div className="space-y-3">
               <div>
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D]">
+                  <span className="text-mini font-extrabold px-2 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D]">
                     Langkah 2 dari 2
                   </span>
                 </div>
@@ -297,17 +297,17 @@ export default function AdaptiveLearnPage() {
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-[#E3DBF8] text-[#4B3B7A]">
+                            <span className="text-mini font-black px-1.5 py-0.5 rounded bg-[#E3DBF8] text-[#4B3B7A]">
                               BAB {idx + 1}
                             </span>
-                            <span className="text-[10px] font-extrabold text-[#1D5E4D] bg-[#D1EBE1] px-1.5 py-0.5 rounded">
+                            <span className="text-mini font-extrabold text-[#1D5E4D] bg-[#D1EBE1] px-1.5 py-0.5 rounded">
                               Mode {studentStyle} Siap
                             </span>
                           </div>
                           <h3 className="text-xs sm:text-sm font-black text-[#1C1E26] truncate">
                             {doc.title}
                           </h3>
-                          <p className="text-[10px] text-[#5A5E70] font-medium truncate mt-0.5">
+                          <p className="text-mini text-[#5A5E70] font-medium truncate mt-0.5">
                             {doc.summary || "Klik untuk memulai pengalaman belajar multimodal"}
                           </p>
                         </div>

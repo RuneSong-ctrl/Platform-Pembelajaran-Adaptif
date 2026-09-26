@@ -6,9 +6,6 @@ import { audioSynth } from "@/services/audioSynth";
 import confetti from "canvas-confetti";
 import {
   Sparkles,
-  Timer,
-  Brain,
-  Sliders,
   ArrowRight,
   CheckCircle2,
   Eye,
@@ -31,94 +28,70 @@ interface AssessmentQuestion {
   }[];
 }
 
+// Kuesioner gaya belajar VAK: tiap situasi punya satu pilihan per modalitas, bobot sama (10 poin).
+const vak = (id: number, title: string, prompt: string, [visual, auditori, kinestetik]: [string, string, string]): AssessmentQuestion => ({
+  id,
+  type: "MODALITY",
+  title,
+  prompt,
+  options: [
+    { text: visual, modalityBias: "VISUAL", visualScore: 10, audioScore: 0, practiceScore: 0 },
+    { text: auditori, modalityBias: "AUDITORI", visualScore: 0, audioScore: 10, practiceScore: 0 },
+    { text: kinestetik, modalityBias: "KINESTETIK", visualScore: 0, audioScore: 0, practiceScore: 10 },
+  ],
+});
+
 const ASSESSMENT_QUESTIONS: AssessmentQuestion[] = [
-  {
-    id: 1,
-    type: "MODALITY",
-    title: "Kuesioner Preferensi Modalitas",
-    prompt: "Ketika guru menjelaskan materi baru yang belum pernah kamu ketahui, apa yang paling membantumu memahami lebih cepat?",
-    options: [
-      {
-        text: "Melihat diagram alur terstruktur, bagan konsep, atau infografis visual.",
-        modalityBias: "VISUAL",
-        visualScore: 30,
-        audioScore: 5,
-        practiceScore: 5,
-      },
-      {
-        text: "Mendengarkan penjelasan lisan, analogi cerita suara, atau podcast materi.",
-        modalityBias: "AUDITORI",
-        visualScore: 5,
-        audioScore: 30,
-        practiceScore: 5,
-      },
-      {
-        text: "Langsung mencoba simulasi interaktif, membongkar studi kasus, atau membuat sketsa praktis.",
-        modalityBias: "KINESTETIK",
-        visualScore: 5,
-        audioScore: 5,
-        practiceScore: 30,
-      },
-    ],
-  },
-  {
-    id: 2,
-    type: "PATTERN",
-    title: "Uji Pengenalan Pola Logika",
-    prompt: "Perhatikan deret pola logika: [Bentuk A, Bentuk B, Bentuk C, Bentuk A, Bentuk B, ...]. Komponen manakah berikutnya?",
-    options: [
-      {
-        text: "Bentuk C (Mengulang siklus periodik 3-komponen).",
-        modalityBias: "VISUAL",
-        visualScore: 25,
-        audioScore: 10,
-        practiceScore: 15,
-      },
-      {
-        text: "Bentuk A ganda.",
-        modalityBias: "AUDITORI",
-        visualScore: 5,
-        audioScore: 10,
-        practiceScore: 10,
-      },
-      {
-        text: "Bentuk B ekstra.",
-        modalityBias: "KINESTETIK",
-        visualScore: 5,
-        audioScore: 5,
-        practiceScore: 15,
-      },
-    ],
-  },
-  {
-    id: 3,
-    type: "SPEED",
-    title: "Uji Kecepatan Pemrosesan",
-    prompt: "Ketika menemui soal menantang yang membutuhkan penalaran multi-langkah, kamu lebih menyukai:",
-    options: [
-      {
-        text: "Membaca kembali rangkuman visual dan diagram langkah pengerjaan.",
-        modalityBias: "VISUAL",
-        visualScore: 25,
-        audioScore: 10,
-        practiceScore: 10,
-      },
-      {
-        text: "Mendengarkan petunjuk tutor bertahap via audio.",
-        modalityBias: "AUDITORI",
-        visualScore: 10,
-        audioScore: 25,
-        practiceScore: 10,
-      },
-      {
-        text: "Melakukan simulasi uji-coba langsung dengan variabel interaktif.",
-        modalityBias: "KINESTETIK",
-        visualScore: 10,
-        audioScore: 10,
-        practiceScore: 25,
-      },
-    ],
-  },
+  vak(1, "Memahami Materi Baru", "Saat guru menjelaskan materi yang belum pernah kamu pelajari, apa yang paling membantumu cepat paham?", [
+    "Melihat gambar, diagram, atau bagan yang ditunjukkan guru.",
+    "Mendengarkan penjelasan guru dengan saksama, lalu bertanya jika belum jelas.",
+    "Langsung mencoba contoh soal atau praktik sambil dijelaskan.",
+  ]),
+  vak(2, "Persiapan Ujian", "Ketika belajar untuk ulangan atau ujian, cara apa yang paling sering kamu lakukan?", [
+    "Membaca ulang catatan, memberi warna/stabilo, atau membuat peta konsep.",
+    "Membaca materi dengan suara keras atau berdiskusi dengan teman.",
+    "Mengerjakan banyak latihan soal atau menulis ulang rangkuman sendiri.",
+  ]),
+  vak(3, "Menggunakan Hal Baru", "Kamu baru mendapat aplikasi atau alat yang belum pernah dipakai. Bagaimana kamu mempelajarinya?", [
+    "Melihat gambar panduan atau menonton video tutorial.",
+    "Meminta seseorang menjelaskan cara memakainya.",
+    "Langsung mencoba-coba sendiri sampai bisa.",
+  ]),
+  vak(4, "Mengingat Informasi", "Bagaimana kamu biasanya mengingat informasi penting, misalnya rumus atau istilah?", [
+    "Membayangkan tulisan atau letaknya di buku/papan tulis.",
+    "Mengucapkannya berulang-ulang atau membuat lagu/jembatan keledai.",
+    "Menuliskannya berkali-kali atau mempraktikkannya langsung.",
+  ]),
+  vak(5, "Memberi Petunjuk", "Temanmu bertanya arah menuju rumahmu. Apa yang kamu lakukan?", [
+    "Menggambar denah atau mengirim peta lokasi.",
+    "Menjelaskan rutenya secara lisan, belok kiri-kanan dan patokannya.",
+    "Mengajaknya berangkat bersama atau menunjukkan jalannya langsung.",
+  ]),
+  vak(6, "Menjelaskan ke Teman", "Saat menjelaskan suatu konsep kepada teman, kamu cenderung:", [
+    "Membuat coretan, sketsa, atau gambar agar mudah dipahami.",
+    "Menjelaskan dengan kata-kata dan contoh cerita.",
+    "Memperagakan atau memakai benda di sekitar sebagai contoh.",
+  ]),
+  vak(7, "Konsentrasi Belajar", "Hal apa yang paling mengganggu konsentrasimu saat belajar?", [
+    "Meja berantakan atau banyak gerakan di sekitarku.",
+    "Suara bising atau orang mengobrol di dekatku.",
+    "Harus duduk diam terlalu lama tanpa bergerak.",
+  ]),
+  vak(8, "Mengingat Pengalaman", "Saat mengingat kegiatan sekolah yang berkesan, apa yang paling mudah kamu ingat?", [
+    "Suasana, tempat, dan wajah orang-orang di sana.",
+    "Percakapan, suara, atau musik yang terdengar saat itu.",
+    "Kegiatan yang kamu lakukan dan rasanya saat melakukannya.",
+  ]),
+  vak(9, "Kegiatan Kelas Favorit", "Kegiatan kelas mana yang paling kamu sukai?", [
+    "Presentasi dengan slide, video, atau infografis.",
+    "Diskusi kelompok, tanya jawab, atau mendengarkan cerita guru.",
+    "Eksperimen, praktikum, permainan, atau proyek membuat sesuatu.",
+  ]),
+  vak(10, "Waktu Luang", "Di waktu luang, kegiatan apa yang paling kamu nikmati?", [
+    "Menonton film, membaca komik, atau menggambar.",
+    "Mendengarkan musik, podcast, atau mengobrol dengan teman.",
+    "Berolahraga, bermain game, atau membuat kerajinan tangan.",
+  ]),
 ];
 
 export default function AssessmentPage() {
@@ -183,7 +156,7 @@ export default function AssessmentPage() {
         });
         setIsCompleted(true);
         audioSynth.playLevelUpSound();
-        confetti({ particleCount: 80, spread: 70 });
+        confetti({ disableForReducedMotion: true, particleCount: 80, spread: 70 });
       } catch (error) {
         setSaveError(error instanceof Error ? error.message : "Hasil belum tersimpan. Silakan coba lagi.");
       } finally { setIsSaving(false); }
@@ -219,7 +192,7 @@ export default function AssessmentPage() {
         {!hasStarted && (
           <div className="space-y-5 animate-in fade-in duration-200">
             <div className="flex items-center justify-between pb-1 border-b border-black/5">
-              <span className="text-[11px] font-black uppercase tracking-wider text-[#595F72]">
+              <span className="text-mini font-black uppercase tracking-wider text-[#595F72]">
                 Asesmen Diagnostik Awal
               </span>
               <span className="text-xs font-black text-[#1C1E26] tracking-tight">
@@ -238,47 +211,47 @@ export default function AssessmentPage() {
 
             {/* 3 Rich Claymorphic Dimension Cards */}
             <div className="space-y-3 pt-1">
-              {/* Card 1: Speed (Mint Clay) */}
+              {/* Card 1: Visual (Mint Clay) */}
               <div className="clay-card clay-mint p-4 sm:p-5 flex items-center gap-3.5 transition-transform hover:scale-[1.01]">
                 <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white text-[#1D5E4D] flex items-center justify-center shadow-xs shrink-0">
-                  <Timer className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <Eye className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
                   <h3 className="text-xs sm:text-sm font-black text-[#0E3D31]">
-                    Uji Kecepatan Pemrosesan
+                    Gaya Visual
                   </h3>
-                  <p className="text-[11px] sm:text-xs text-[#1D5E4D] font-bold mt-0.5">
-                    Visual Reaction &amp; Dynamic Pacing
+                  <p className="text-mini sm:text-xs text-[#1D5E4D] font-bold mt-0.5">
+                    Belajar lewat gambar, diagram, dan video
                   </p>
                 </div>
               </div>
 
-              {/* Card 2: Pattern (Lavender Clay) */}
+              {/* Card 2: Auditori (Lavender Clay) */}
               <div className="clay-card clay-lavender p-4 sm:p-5 flex items-center gap-3.5 transition-transform hover:scale-[1.01]">
                 <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white text-[#4B3B7A] flex items-center justify-center shadow-xs shrink-0">
-                  <Brain className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <Headphones className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
                   <h3 className="text-xs sm:text-sm font-black text-[#2D2152]">
-                    Uji Pengenalan Pola Logika
+                    Gaya Auditori
                   </h3>
-                  <p className="text-[11px] sm:text-xs text-[#4B3B7A] font-bold mt-0.5">
-                    Logical Pattern Recognition &amp; Schema
+                  <p className="text-mini sm:text-xs text-[#4B3B7A] font-bold mt-0.5">
+                    Belajar lewat penjelasan lisan dan diskusi
                   </p>
                 </div>
               </div>
 
-              {/* Card 3: Modality (Butter Clay) */}
+              {/* Card 3: Kinestetik (Butter Clay) */}
               <div className="clay-card clay-butter p-4 sm:p-5 flex items-center gap-3.5 transition-transform hover:scale-[1.01]">
                 <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white text-[#785308] flex items-center justify-center shadow-xs shrink-0">
-                  <Sliders className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <FlaskConical className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
                   <h3 className="text-xs sm:text-sm font-black text-[#4A3205]">
-                    Kuesioner Preferensi Modalitas
+                    Gaya Kinestetik
                   </h3>
-                  <p className="text-[11px] sm:text-xs text-[#785308] font-bold mt-0.5">
-                    Visual, Auditori, atau Praktik Kinestetik
+                  <p className="text-mini sm:text-xs text-[#785308] font-bold mt-0.5">
+                    Belajar lewat praktik, gerak, dan mencoba langsung
                   </p>
                 </div>
               </div>
@@ -296,8 +269,8 @@ export default function AssessmentPage() {
                 <span>Mulai Asesmen &amp; Kalibrasi Profil AI</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-              <p className="text-[10px] text-[#9195A8] font-semibold">
-                Estimasi waktu pengerjaan: 1–2 menit • Hasil dapat dikalibrasi ulang kapan saja
+              <p className="text-mini text-[#9195A8] font-semibold">
+                Estimasi waktu pengerjaan: 2–3 menit (10 soal) • Hasil dapat dikalibrasi ulang kapan saja
               </p>
             </div>
           </div>
@@ -309,10 +282,10 @@ export default function AssessmentPage() {
             {/* Header Steps Bar */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="clay-pill clay-lavender text-[10px] font-extrabold text-[#4B3B7A] px-2.5 py-1 shadow-2xs shrink-0">
+                <span className="clay-pill clay-lavender text-mini font-extrabold text-[#4B3B7A] px-2.5 py-1 shadow-2xs shrink-0">
                   Soal {currentIndex + 1} dari {ASSESSMENT_QUESTIONS.length}
                 </span>
-                <span className="text-[11px] font-bold text-[#5A5E70] truncate">
+                <span className="text-mini font-bold text-[#5A5E70] truncate">
                   {currentQ.title}
                 </span>
               </div>
@@ -406,7 +379,7 @@ export default function AssessmentPage() {
         {isCompleted && (
           <div className="space-y-5 animate-in zoom-in-95 duration-200">
             <div className="text-center space-y-1">
-              <span className="clay-pill clay-mint text-[10px] font-extrabold text-[#1D5E4D] px-3 py-1 inline-flex items-center gap-1.5 shadow-2xs">
+              <span className="clay-pill clay-mint text-mini font-extrabold text-[#1D5E4D] px-3 py-1 inline-flex items-center gap-1.5 shadow-2xs">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Analisis AI Berhasil</span>
               </span>
@@ -421,7 +394,7 @@ export default function AssessmentPage() {
             <div className="clay-card clay-white p-5 sm:p-6 rounded-[28px] border border-white shadow-sm space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-black/5">
                 <div>
-                  <span className="text-[10px] font-bold text-[#9195A8] uppercase tracking-wider block">
+                  <span className="text-mini font-bold text-[#9195A8] uppercase tracking-wider block">
                     Modalitas Dominan
                   </span>
                   <h3 className="text-base font-black text-[#1C1E26]">

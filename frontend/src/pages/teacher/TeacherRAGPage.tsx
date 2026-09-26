@@ -246,7 +246,7 @@ export default function TeacherRAGPage() {
                   <h4 className="text-xs font-black text-[#4B3B7A]">
                     Strict School Grounding Lock
                   </h4>
-                  <p className="text-[10px] text-[#4B3B7A]/80 font-medium">
+                  <p className="text-mini text-[#4B3B7A]/80 font-medium">
                     AI dilarang mengambil informasi di luar dokumen modul yang diunggah
                   </p>
                 </div>
@@ -334,10 +334,10 @@ export default function TeacherRAGPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="clay-pill clay-mint text-[10px] font-extrabold px-2.5 py-0.5 text-[#1D5E4D]">
+                          <span className="clay-pill clay-mint text-mini font-extrabold px-2.5 py-0.5 text-[#1D5E4D]">
                             {doc.status}
                           </span>
-                          <span className="clay-pill clay-dark text-[10px] font-mono font-bold px-2 py-0.5">
+                          <span className="clay-pill clay-dark text-mini font-mono font-bold px-2 py-0.5">
                             {doc.vectorId}
                           </span>
                         </div>
@@ -421,7 +421,7 @@ export default function TeacherRAGPage() {
                     <p className="text-xs font-black text-[#1D5E4D]">
                       {isExtracting ? "Mengekstrak Teks dari PDF..." : "Pilih File PDF / Dokumen Modul Ajar"}
                     </p>
-                    <p className="text-[10px] text-[#5A5E70] mt-0.5">
+                    <p className="text-mini text-[#5A5E70] mt-0.5">
                       Mendukung format .pdf, .txt, .md (Teks otomatis diekstrak ke formulir di bawah)
                     </p>
                   </div>
@@ -435,7 +435,7 @@ export default function TeacherRAGPage() {
                       <span className="text-xs font-bold text-[#1C1E26] truncate">
                         {selectedFile.name}
                       </span>
-                      <span className="text-[10px] text-[#5A5E70] font-mono shrink-0">
+                      <span className="text-mini text-[#5A5E70] font-mono shrink-0">
                         ({(selectedFile.size / 1024).toFixed(1)} KB)
                       </span>
                     </div>
@@ -451,14 +451,14 @@ export default function TeacherRAGPage() {
                 )}
 
                 {extractMsg && (
-                  <div className="p-2 rounded-xl bg-[#EBF6F2] text-[#1D5E4D] text-[11px] font-bold flex items-center gap-1.5 animate-in fade-in">
+                  <div className="p-2 rounded-xl bg-[#EBF6F2] text-[#1D5E4D] text-mini font-bold flex items-center gap-1.5 animate-in fade-in">
                     <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                     <span>{extractMsg}</span>
                   </div>
                 )}
 
                 {extractError && (
-                  <div className="p-2 rounded-xl bg-[#FDE8E8] text-[#9B1C1C] text-[11px] font-bold flex items-center gap-1.5 animate-in fade-in">
+                  <div className="p-2 rounded-xl bg-[#FDE8E8] text-[#9B1C1C] text-mini font-bold flex items-center gap-1.5 animate-in fade-in">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                     <span>{extractError}</span>
                   </div>

@@ -192,7 +192,7 @@ export default function AuditoryLearnSection({
     setCompletedEpIds(nextCompleted);
 
     if (nextCompleted.size === episodes.length) {
-      confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+      confetti({ disableForReducedMotion: true, particleCount: 90, spread: 70, origin: { y: 0.6 } });
     }
 
     // Auto advance to next episode
@@ -276,10 +276,10 @@ export default function AuditoryLearnSection({
           {/* Show Meta Info */}
           <div className="flex-1 text-center md:text-left space-y-2">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white border border-white/15">
+              <span className="text-mini font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white border border-white/15">
                 Spotify-Style Podcast
               </span>
-              <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D]">
+              <span className="text-mini font-extrabold px-2.5 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D]">
                 Solo Narrator HD
               </span>
             </div>
@@ -372,13 +372,13 @@ export default function AuditoryLearnSection({
                     >
                       {ep.title}
                     </h4>
-                    <p className="text-[11px] text-[#5A5E70] truncate">{ep.description}</p>
+                    <p className="text-mini text-[#5A5E70] truncate">{ep.description}</p>
                   </div>
                 </div>
 
                 {/* Right: Duration & Action */}
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-[11px] font-mono font-bold text-[#5A5E70] hidden sm:inline">
+                  <span className="text-mini font-mono font-bold text-[#5A5E70] hidden sm:inline">
                     {formatTime(ep.durationSec || 45)}
                   </span>
                   <button
@@ -419,7 +419,7 @@ export default function AuditoryLearnSection({
               <Headphones className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <span className="text-[10px] font-mono font-bold text-[#4B3B7A] uppercase">
+              <span className="text-mini font-mono font-bold text-[#4B3B7A] uppercase">
                 Memutar: Episode {currentEpisode.order} dari {episodes.length}
               </span>
               <h4 className="text-xs sm:text-sm font-black text-[#1C1E26] truncate">
@@ -432,7 +432,7 @@ export default function AuditoryLearnSection({
           <button
             type="button"
             onClick={() => setShowScriptModal(true)}
-            className="px-3 py-1.5 rounded-xl bg-[#F4F0FD] text-[#4B3B7A] hover:bg-[#E3DBF8] text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+            className="px-3 py-1.5 rounded-xl bg-[#F4F0FD] text-[#4B3B7A] hover:bg-[#E3DBF8] text-mini font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
           >
             <BookOpen className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Lihat Naskah</span>
@@ -455,7 +455,7 @@ export default function AuditoryLearnSection({
             }}
             className="w-full h-1.5 bg-[#EFEFF4] rounded-lg appearance-none cursor-pointer accent-[#4B3B7A]"
           />
-          <div className="flex items-center justify-between text-[10px] font-mono font-bold text-[#5A5E70]">
+          <div className="flex items-center justify-between text-mini font-mono font-bold text-[#5A5E70]">
             <span>{formatTime(audioCurrentTime)}</span>
             <span>{formatTime(audioDuration || currentEpisode.durationSec || 45)}</span>
           </div>

@@ -129,11 +129,11 @@ export default function PracticeBoard({ stage, sources, onComplete }: Props) {
       <div className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] ${levelStyle[stage.level]}`}>Level {stage.level}</span>
+            <span className={`text-mini font-bold uppercase tracking-wider px-2.5 py-1 rounded-[8px] ${levelStyle[stage.level]}`}>Level {stage.level}</span>
             <h3 className="text-[18px] leading-[26px] font-bold text-[#1C1E26] mt-2 break-words">{stage.title}</h3>
             <p className="text-[13px] leading-[18px] text-[#475569]">{stage.instruction} Seret kartu, atau ketuk kartu lalu ketuk tempatnya.</p>
           </div>
-          <p className="text-[11px] font-semibold text-[#595F72]" aria-live="polite">{locked.size}/{slots.length} tepat · percobaan salah {wrongChecks} · petunjuk {hints}</p>
+          <p className="text-mini font-semibold text-[#595F72]" aria-live="polite">{locked.size}/{slots.length} tepat · percobaan salah {wrongChecks} · petunjuk {hints}</p>
         </div>
 
         {!done && (

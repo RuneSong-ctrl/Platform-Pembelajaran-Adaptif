@@ -153,7 +153,7 @@ export default function AuthGatePage() {
               <span className="font-extrabold text-[#010105] text-lg sm:text-xl tracking-tight block leading-tight">
                 EduAdapt
               </span>
-              <p className="text-[11px] text-[#595F72] hidden sm:block font-medium">
+              <p className="text-mini text-[#595F72] hidden sm:block font-medium">
                 Platform Pembelajaran Adaptif K-12 Berbasis AI Brain &amp; Blockchain Vault
               </p>
             </div>
@@ -563,7 +563,7 @@ export default function AuthGatePage() {
                 />
               </div>
 
-              <div className="clay-card clay-mint p-3.5 text-[11px] font-semibold leading-relaxed">
+              <div className="clay-card clay-mint p-3.5 text-mini font-semibold leading-relaxed">
                 💡 Masuk dengan kode kelas akan otomatis menghubungkan akun siswa Anda ke kelas guru dan membuka asesmen adaptif.
               </div>
 

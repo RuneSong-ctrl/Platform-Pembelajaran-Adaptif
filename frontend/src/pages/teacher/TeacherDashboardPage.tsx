@@ -121,7 +121,7 @@ export default function TeacherDashboardPage() {
                 </div>
               </div>
               <p className="text-3xl font-black text-[#010105]">{totalStudents}</p>
-              <span className="clay-pill clay-mint text-[10px] font-extrabold px-2.5 py-0.5 text-[#1D5E4D] inline-block">
+              <span className="clay-pill clay-mint text-mini font-extrabold px-2.5 py-0.5 text-[#1D5E4D] inline-block">
                 {classrooms.length} Rombel Terhubung
               </span>
             </div>
@@ -136,7 +136,7 @@ export default function TeacherDashboardPage() {
                 </div>
               </div>
               <p className="text-3xl font-black text-[#010105]">{documents.length}</p>
-              <span className="clay-pill clay-lavender text-[10px] font-extrabold px-2.5 py-0.5 text-[#4B3B7A] inline-block">
+              <span className="clay-pill clay-lavender text-mini font-extrabold px-2.5 py-0.5 text-[#4B3B7A] inline-block">
                 {documents.reduce((acc, d) => acc + (d.chunksCount || 1), 0)} Vektor Tersemat
               </span>
             </div>
@@ -151,7 +151,7 @@ export default function TeacherDashboardPage() {
                 </div>
               </div>
               <p className="text-3xl font-black text-[#010105]">{submissions.length}</p>
-              <span className="clay-pill clay-butter text-[10px] font-extrabold px-2.5 py-0.5 text-[#785308] inline-block">
+              <span className="clay-pill clay-butter text-mini font-extrabold px-2.5 py-0.5 text-[#785308] inline-block">
                 {submissions.filter((s) => !s.grade).length} Menunggu Review
               </span>
             </div>
@@ -168,7 +168,7 @@ export default function TeacherDashboardPage() {
               <p className="text-3xl font-black text-[#010105]">
                 {classrooms.reduce((acc, c) => acc + (c.tasksCount || 0), 0)}
               </p>
-              <span className="clay-pill clay-sky text-[10px] font-extrabold px-2.5 py-0.5 text-[#21518A] inline-block">
+              <span className="clay-pill clay-sky text-mini font-extrabold px-2.5 py-0.5 text-[#21518A] inline-block">
                 Diterbitkan Guru
               </span>
             </div>
@@ -210,7 +210,7 @@ export default function TeacherDashboardPage() {
                     </div>
 
                     <div className="text-right">
-                      <span className="text-[10px] text-[#9195A8] font-bold block uppercase">
+                      <span className="text-mini text-[#9195A8] font-bold block uppercase">
                         Kode Gabung
                       </span>
                       <span className="clay-pill clay-dark px-3 py-1 font-mono text-xs font-black tracking-widest inline-block mt-0.5">
@@ -256,7 +256,7 @@ export default function TeacherDashboardPage() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`clay-pill text-[10px] font-extrabold px-2.5 py-0.5 ${
+                        className={`clay-pill text-mini font-extrabold px-2.5 py-0.5 ${
                           sub.status === "Graded"
                             ? "clay-mint text-[#1D5E4D]"
                             : "clay-butter text-[#785308]"

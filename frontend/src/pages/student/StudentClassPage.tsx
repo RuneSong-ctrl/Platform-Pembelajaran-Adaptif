@@ -82,7 +82,7 @@ export default function StudentClassPage() {
           {/* Page Title */}
           <div>
             <div className="flex items-center gap-1.5 mb-1">
-              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#E3DBF8] text-[#4B3B7A]">
+              <span className="text-mini font-extrabold px-2 py-0.5 rounded-full bg-[#E3DBF8] text-[#4B3B7A]">
                 Rombel &amp; Pembelajaran
               </span>
             </div>
@@ -151,10 +151,10 @@ export default function StudentClassPage() {
 
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                              <span className="px-2 py-0.5 rounded-full bg-white/90 text-[#4B3B7A] text-[10px] font-extrabold font-mono border border-[rgba(28,30,38,0.06)]">
+                              <span className="px-2 py-0.5 rounded-full bg-white/90 text-[#4B3B7A] text-mini font-extrabold font-mono border border-[rgba(28,30,38,0.06)]">
                                 KODE: {cls.joinCode}
                               </span>
-                              <span className="px-2 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D] text-[10px] font-extrabold">
+                              <span className="px-2 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D] text-mini font-extrabold">
                                 Kelas {cls.grade}-A
                               </span>
                             </div>
@@ -180,7 +180,7 @@ export default function StudentClassPage() {
                           <span className="font-black text-[#010105] block">
                             {cls.documentsCount || 0} Modul
                           </span>
-                          <span className="text-[10px] text-[#5A5E70] font-medium">
+                          <span className="text-mini text-[#5A5E70] font-medium">
                             Materi Belajar
                           </span>
                         </div>
@@ -189,7 +189,7 @@ export default function StudentClassPage() {
                           <span className="font-black text-[#010105] block">
                             {cls.tasksCount || 0} Aktivitas
                           </span>
-                          <span className="text-[10px] text-[#5A5E70] font-medium">
+                          <span className="text-mini text-[#5A5E70] font-medium">
                             Tugas &amp; Kuis
                           </span>
                         </div>
@@ -197,11 +197,11 @@ export default function StudentClassPage() {
 
                       {/* Card Footer Callout */}
                       <div className="flex items-center justify-between text-xs font-bold text-[#4B3B7A] pt-1">
-                        <span className="flex items-center gap-1 text-[11px]">
+                        <span className="flex items-center gap-1 text-mini">
                           <BookOpen className="w-3.5 h-3.5" />
                           <span>Buka Ruang Belajar</span>
                         </span>
-                        <span className="text-[10px] bg-white px-2 py-0.5 rounded-md font-mono border border-black/5">
+                        <span className="text-mini bg-white px-2 py-0.5 rounded-md font-mono border border-black/5">
                           Masuk &rarr;
                         </span>
                       </div>

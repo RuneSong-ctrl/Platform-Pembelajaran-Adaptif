@@ -13,10 +13,13 @@ class BlockchainCredential(Base):
     classroom_name = Column(String(255), nullable=False)
     competency_title = Column(String(255), nullable=False)
     score = Column(Float, nullable=False)
-    block_index = Column(Integer, nullable=False)
+    task_id = Column(String(64), nullable=True, index=True)  # quiz that earned it; null for teacher-issued
+    block_index = Column(Integer, nullable=False, unique=True)
     previous_hash = Column(String(64), nullable=False)
     block_hash = Column(String(64), nullable=False, index=True)
     transaction_id = Column(String(64), nullable=False, index=True)
     issued_at = Column(String(64), nullable=False)
     qr_verification_url = Column(String(512), nullable=False)
     is_verified = Column(Boolean, default=True)
+    # 1 = legacy payload (score only); 2 = also seals competency title, class and student name. NULL on old rows = 1.
+    hash_version = Column(Integer, nullable=True, default=2)

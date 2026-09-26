@@ -70,11 +70,11 @@ function ConceptNodeCard({ data, selected }: { data: any; selected?: boolean }) 
 
       {/* Node Header */}
       <div className="flex items-center justify-between mb-2">
-        <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${badgeBg}`}>
+        <span className={`text-mini font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${badgeBg}`}>
           {data.category || "Konsep Inti"}
         </span>
         {data.isCompleted && (
-          <span className="flex items-center gap-1 text-[10px] font-bold text-[#1D5E4D]">
+          <span className="flex items-center gap-1 text-mini font-bold text-[#1D5E4D]">
             <CheckCircle2 className="w-3 h-3" />
             <span>Dipahami</span>
           </span>
@@ -92,7 +92,7 @@ function ConceptNodeCard({ data, selected }: { data: any; selected?: boolean }) 
       </p>
 
       {/* Bottom Hint */}
-      <div className="flex items-center justify-between pt-2 border-t border-black/5 text-[11px] font-bold text-[#1D5E4D]">
+      <div className="flex items-center justify-between pt-2 border-t border-black/5 text-mini font-bold text-[#1D5E4D]">
         <span className="flex items-center gap-1">
           <Eye className="w-3 h-3" />
           <span>Buka Detail & Analogi</span>
@@ -267,7 +267,7 @@ export default function InteractiveConceptMap({ doc }: InteractiveConceptMapProp
   // Mark node as understood
   const handleMarkUnderstood = (nodeId: string) => {
     audioSynth.playLevelUpSound();
-    confetti({ particleCount: 75, spread: 60, origin: { y: 0.6 } });
+    confetti({ disableForReducedMotion: true, particleCount: 75, spread: 60, origin: { y: 0.6 } });
     setCompletedNodeIds((prev) => {
       const next = new Set(prev);
       next.add(nodeId);
@@ -302,7 +302,7 @@ export default function InteractiveConceptMap({ doc }: InteractiveConceptMapProp
             <span className="text-xs font-black text-[#1C1E26]">
               {completedNodeIds.size} / {parsedNodesData.length} Simpul Dipelajari
             </span>
-            <span className="text-[11px] font-bold text-[#1D5E4D] bg-[#D1EBE1] px-2 py-0.5 rounded-full">
+            <span className="text-mini font-bold text-[#1D5E4D] bg-[#D1EBE1] px-2 py-0.5 rounded-full">
               {progressPct}%
             </span>
           </div>
@@ -343,7 +343,7 @@ export default function InteractiveConceptMap({ doc }: InteractiveConceptMapProp
         </ReactFlow>
 
         {/* Floating Helper Notice on Canvas */}
-        <div className="absolute top-3 left-3 pointer-events-none bg-white/90 backdrop-blur-xs px-3 py-1.5 rounded-xl border border-black/5 shadow-2xs text-[11px] font-bold text-[#5A5E70] flex items-center gap-1.5">
+        <div className="absolute top-3 left-3 pointer-events-none bg-white/90 backdrop-blur-xs px-3 py-1.5 rounded-xl border border-black/5 shadow-2xs text-mini font-bold text-[#5A5E70] flex items-center gap-1.5">
           <Brain className="w-3.5 h-3.5 text-[#1D5E4D]" />
           <span>Geser &amp; perbesar kanvas bebas</span>
         </div>
@@ -354,7 +354,7 @@ export default function InteractiveConceptMap({ doc }: InteractiveConceptMapProp
             {/* Side-Panel Header */}
             <div className="p-4 sm:p-5 border-b border-black/5 flex items-center justify-between bg-gradient-to-r from-[#F8F9FD] to-white">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D] border border-[#9DE1CA]">
+                <span className="text-mini font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D] border border-[#9DE1CA]">
                   {selectedNode.category || "Konsep Terpilih"}
                 </span>
               </div>
@@ -453,7 +453,7 @@ export default function InteractiveConceptMap({ doc }: InteractiveConceptMapProp
                     {selectedNode.practicalApplications.map((app, aIdx) => (
                       <span
                         key={aIdx}
-                        className="text-[11px] font-bold text-[#1E429F] bg-[#EBF3FF] px-2.5 py-1 rounded-xl border border-[#C3D9FF]"
+                        className="text-mini font-bold text-[#1E429F] bg-[#EBF3FF] px-2.5 py-1 rounded-xl border border-[#C3D9FF]"
                       >
                         {app}
                       </span>

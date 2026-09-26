@@ -75,11 +75,11 @@ function DraggableReactorItem({
         </div>
         <div className="min-w-0">
           <h5 className="text-xs font-black text-[#1C1E26] truncate">{comp.label}</h5>
-          <p className="text-[10px] text-[#5A5E70] truncate">{comp.hint}</p>
+          <p className="text-mini text-[#5A5E70] truncate">{comp.hint}</p>
         </div>
       </div>
       <div className="flex items-center gap-1.5 shrink-0 pointer-events-none">
-        <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-black/5 text-[#5A5E70]">
+        <span className="text-mini font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-black/5 text-[#5A5E70]">
           {comp.type}
         </span>
       </div>
@@ -123,20 +123,20 @@ function DroppableReactorSlot({
       }`}
     >
       <div className="flex items-center justify-between pointer-events-none">
-        <span className="text-[10px] font-mono font-bold text-[#5A5E70]">
+        <span className="text-mini font-mono font-bold text-[#5A5E70]">
           Soket #{index + 1}
         </span>
         {isOccupied ? (
-          <span className="flex items-center gap-1 text-[10px] font-bold text-[#1D5E4D]">
+          <span className="flex items-center gap-1 text-mini font-bold text-[#1D5E4D]">
             <Check className="w-3 h-3" />
             <span>Terkunci ✓</span>
           </span>
         ) : isOver ? (
-          <span className="text-[10px] font-black text-[#785308] bg-[#FFE299] px-2 py-0.5 rounded-full animate-bounce">
+          <span className="text-mini font-black text-[#785308] bg-[#FFE299] px-2 py-0.5 rounded-full animate-bounce">
             Lepaskan Di Sini!
           </span>
         ) : (
-          <span className="text-[10px] font-bold text-[#785308] bg-[#FFF4DC] px-2 py-0.5 rounded-full">
+          <span className="text-mini font-bold text-[#785308] bg-[#FFF4DC] px-2 py-0.5 rounded-full">
             Soket Target
           </span>
         )}
@@ -146,11 +146,11 @@ function DroppableReactorSlot({
         <h5 className="text-xs font-extrabold text-[#1C1E26] leading-snug">
           {slot.name}
         </h5>
-        <p className="text-[10px] text-[#5A5E70] line-clamp-1">{slot.description}</p>
+        <p className="text-mini text-[#5A5E70] line-clamp-1">{slot.description}</p>
       </div>
 
       {isOccupied && placedComponent ? (
-        <div className="pt-1.5 border-t border-[#9DE1CA]/50 flex items-center justify-between text-[11px] font-black text-[#1D5E4D]">
+        <div className="pt-1.5 border-t border-[#9DE1CA]/50 flex items-center justify-between text-mini font-black text-[#1D5E4D]">
           <span className="truncate">{placedComponent.label}</span>
           <button
             type="button"
@@ -158,13 +158,13 @@ function DroppableReactorSlot({
               e.stopPropagation();
               onUnplug();
             }}
-            className="text-[9px] text-[#BA1A1A] font-bold hover:underline ml-1 cursor-pointer"
+            className="text-mini text-[#BA1A1A] font-bold hover:underline ml-1 cursor-pointer"
           >
             Lepas
           </button>
         </div>
       ) : (
-        <div className="pt-1 border-t border-black/5 text-[10px] text-black/40 italic pointer-events-none">
+        <div className="pt-1 border-t border-black/5 text-mini text-black/40 italic pointer-events-none">
           {isOver ? "Lepaskan komponen sekarang!" : "Tarik komponen ke sini"}
         </div>
       )}
@@ -393,7 +393,7 @@ export default function KinestheticLearnSection({ doc }: KinestheticLearnSection
       nextCompleted.add(currentFib.id);
       setFibCompletedIds(nextCompleted);
       if (nextCompleted.size === fibChallenges.length) {
-        confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+        confetti({ disableForReducedMotion: true, particleCount: 80, spread: 60, origin: { y: 0.6 } });
       }
     } else {
       setFibIsCorrect(false);
@@ -459,7 +459,7 @@ export default function KinestheticLearnSection({ doc }: KinestheticLearnSection
       setReactorFeedbackMsg(`Bagus! Komponen berhasil terpasang di ${slot.name}!`);
 
       if (Object.keys(nextMap).length === reactorConfig.slots.length) {
-        confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+        confetti({ disableForReducedMotion: true, particleCount: 100, spread: 80, origin: { y: 0.6 } });
         setReactorFeedbackMsg("Selamat! Seluruh komponen reaktor berhasil dirakit secara presisi 100%!");
       }
     } else {
@@ -554,7 +554,7 @@ export default function KinestheticLearnSection({ doc }: KinestheticLearnSection
     if (isExact) {
       setSortingResult(true);
       audioSynth.playLevelUpSound();
-      confetti({ particleCount: 85, spread: 70, origin: { y: 0.6 } });
+      confetti({ disableForReducedMotion: true, particleCount: 85, spread: 70, origin: { y: 0.6 } });
       const nextCompleted = new Set(completedSortingIds);
       nextCompleted.add(currentSorting.id);
       setCompletedSortingIds(nextCompleted);
@@ -687,10 +687,10 @@ export default function KinestheticLearnSection({ doc }: KinestheticLearnSection
               {/* Left Column: Components Inventory Pool */}
               <div className="lg:col-span-5 space-y-2.5 bg-[#F8F9FD] p-3.5 rounded-3xl border border-black/5">
                 <div className="flex items-center justify-between px-1">
-                  <span className="text-[11px] font-black text-[#1C1E26] uppercase">
+                  <span className="text-mini font-black text-[#1C1E26] uppercase">
                     Inventori Komponen ({availableComponents.length})
                   </span>
-                  <span className="text-[10px] text-[#785308] font-black">
+                  <span className="text-mini text-[#785308] font-black">
                     🖐️ Drag ke Soket Kanan
                   </span>
                 </div>
@@ -728,7 +728,7 @@ export default function KinestheticLearnSection({ doc }: KinestheticLearnSection
                   <span className="text-xs font-black text-[#1C1E26] uppercase">
                     Soket Reaktor Target ({reactorConfig.slots.length} Unit)
                   </span>
-                  <span className="text-[10px] text-[#5A5E70]">Lepaskan komponen tepat di soket</span>
+                  <span className="text-mini text-[#5A5E70]">Lepaskan komponen tepat di soket</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -772,10 +772,10 @@ export default function KinestheticLearnSection({ doc }: KinestheticLearnSection
                   </div>
                   <div className="min-w-0">
                     <h5 className="text-xs font-black text-[#1C1E26] truncate">{activeDragData.label}</h5>
-                    <p className="text-[10px] text-[#5A5E70] truncate">{activeDragData.hint}</p>
+                    <p className="text-mini text-[#5A5E70] truncate">{activeDragData.hint}</p>
                   </div>
                 </div>
-                <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-black/5 text-[#5A5E70]">
+                <span className="text-mini font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-black/5 text-[#5A5E70]">
                   {activeDragData.type}
                 </span>
               </div>
@@ -833,7 +833,7 @@ export default function KinestheticLearnSection({ doc }: KinestheticLearnSection
               </div>
 
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold text-[#5A5E70] mr-1">Tantangan:</span>
+                <span className="text-mini font-bold text-[#5A5E70] mr-1">Tantangan:</span>
                 {sortingChallenges.map((_, idx) => (
                   <button
                     key={idx}
@@ -852,7 +852,7 @@ export default function KinestheticLearnSection({ doc }: KinestheticLearnSection
               </div>
             </div>
 
-            <div className="text-center text-[11px] text-[#4B3B7A] font-bold bg-[#F4F0FD] p-2 rounded-2xl border border-[#D0C4F7]">
+            <div className="text-center text-mini text-[#4B3B7A] font-bold bg-[#F4F0FD] p-2 rounded-2xl border border-[#D0C4F7]">
               🖐️ Tarik (drag) kotak langkah ke atas atau bawah untuk menyusun urutan logis.
             </div>
 
@@ -974,7 +974,7 @@ export default function KinestheticLearnSection({ doc }: KinestheticLearnSection
               </div>
 
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold text-[#5A5E70] mr-1">Tantangan:</span>
+                <span className="text-mini font-bold text-[#5A5E70] mr-1">Tantangan:</span>
                 {fibChallenges.map((_, idx) => (
                   <button
                     key={idx}
@@ -1023,7 +1023,7 @@ export default function KinestheticLearnSection({ doc }: KinestheticLearnSection
 
               {/* Options Pill Pool */}
               <div className="pt-3 space-y-2">
-                <span className="text-[11px] text-[#1D5E4D] font-bold block">
+                <span className="text-mini text-[#1D5E4D] font-bold block">
                   🖐️ Seret salah satu kata ke kotak kalimat:
                 </span>
                 <div className="flex flex-wrap items-center justify-center gap-2.5">
