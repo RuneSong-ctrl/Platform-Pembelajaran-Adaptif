@@ -87,7 +87,7 @@ def own_conversation(conversation_id: str, db: Session, user: User) -> AIConvers
     return conv
 
 def conversation_summary(c: AIConversation) -> Dict[str, Any]:
-    return {"id": c.id, "title": c.title, "document_id": c.document_id, "updated_at": c.updated_at}
+    return {"id": c.id, "title": c.title, "classroom_id": c.classroom_id, "document_id": c.document_id, "updated_at": c.updated_at}
 
 @router.get("/conversations")
 def list_conversations(db: Session = Depends(get_db), user: User = Depends(current_user)):
@@ -165,6 +165,7 @@ def ai_chat_endpoint(payload: ChatRequest, db: Session = Depends(get_db), user: 
             id=f"conv_{uuid.uuid4().hex[:12]}",
             user_id=user.id,
             title=title[:60] + ("…" if len(title) > 60 else ""),
+            classroom_id=payload.classroom_id,
             document_id=payload.document_id,
             messages=[],
             created_at=now,

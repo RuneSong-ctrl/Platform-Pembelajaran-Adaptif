@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
-import { School, Loader2 } from "@/components/ui/icons";
+import { Loader2 } from "@/components/ui/icons";
 
 export const PENDING_JOIN_KEY = "eduadapt_pending_join";
 
@@ -75,11 +75,9 @@ export default function JoinClassPage() {
   return (
     <div className="min-h-dvh bg-[#F8F9FD] flex items-center justify-center p-4">
       <div className="clay-card clay-white p-8 max-w-sm w-full text-center space-y-4">
-        <div className="w-14 h-14 rounded-2xl clay-lavender text-[#4B3B7A] flex items-center justify-center mx-auto">
-          <School className="w-7 h-7" />
-        </div>
+        <img src="/brand/logo-256.png" alt="EduAdapt" width={56} height={56} className="w-14 h-14 mx-auto" />
         <div>
-          <h1 className="text-lg font-black text-[#010105]">Gabung ke kelas</h1>
+          <h1 className="text-lg font-black text-[#1C1E26]">Gabung ke kelas</h1>
           <p className="text-xs text-[#9195A8] font-mono tracking-widest mt-0.5">{cleanCode}</p>
         </div>
         <div className="space-y-3 flex flex-col items-center">{body}</div>

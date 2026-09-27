@@ -5,6 +5,7 @@ import { useApp } from "@/contexts/AppContext";
 import ParentCodeCard from "@/components/student/ParentCodeCard";
 import LogoutConfirmDialog from "@/components/common/LogoutConfirmDialog";
 import Navbar from "@/components/layout/Navbar";
+import PullToRefresh from "@/components/common/PullToRefresh";
 import BottomNav from "@/components/layout/BottomNav";
 import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
@@ -37,7 +38,7 @@ import {
 
 export default function StudentProfilePage() {
   const navigate = useNavigate();
-  const { currentUser, updateCurrentUserProfile, credentials } = useApp();
+  const { currentUser, updateCurrentUserProfile, credentials, submissions } = useApp();
   const [confirmLogout, setConfirmLogout] = useState(false);
   const certCount = credentials.filter((c) => c.studentId === currentUser.id).length;
 
@@ -172,13 +173,14 @@ export default function StudentProfilePage() {
   };
 
   return (
-    <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
+    <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden w-full">
         <StudentSidebar />
 
-        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5 min-w-0 flex flex-col gap-5 pb-24 md:pb-8 [&>*]:shrink-0">
+        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5 min-w-0 flex flex-col gap-5 app-main md:pb-8 [&>*]:shrink-0">
+          <PullToRefresh />
         {/* 1. PROFILE HEADER CARD WITH EDIT & AVATAR UPLOAD */}
         <section className="clay-card p-5 sm:p-6 flex items-center justify-between gap-4 relative overflow-hidden bg-white">
           <div className="flex items-center gap-4 min-w-0">
@@ -225,7 +227,7 @@ export default function StudentProfilePage() {
                 </span>
               </div>
 
-              <h1 className="text-lg sm:text-xl font-black text-[#010105] truncate">
+              <h1 className="text-lg sm:text-xl font-black text-[#1C1E26] truncate">
                 {currentUser.name}
               </h1>
               <p className="text-xs text-[#5A5E70] truncate font-medium">
@@ -254,7 +256,7 @@ export default function StudentProfilePage() {
             <Award className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-black text-[#010105]">Paspor Belajar</h2>
+            <h2 className="text-sm font-black text-[#1C1E26]">Paspor Belajar</h2>
             <p className="text-xs text-[#5A5E70] font-medium truncate">
               {certCount > 0 ? `${certCount} sertifikat kompetensi tercatat` : "Belum ada sertifikat, selesaikan kuis untuk mendapatkannya"}
             </p>
@@ -269,7 +271,7 @@ export default function StudentProfilePage() {
               <span className="text-mini font-extrabold uppercase tracking-wider text-[#9195A8] block">
                 Cara Belajarmu
               </span>
-              <h2 className="text-sm sm:text-base font-extrabold text-[#010105]">
+              <h2 className="text-sm sm:text-base font-extrabold text-[#1C1E26]">
                 Profil Gaya Belajar
               </h2>
             </div>
@@ -334,23 +336,16 @@ export default function StudentProfilePage() {
           <div className="pt-2 border-t border-[rgba(28,30,38,0.06)] flex items-center justify-between text-xs">
             <span className="text-[#5A5E70] font-medium">
               Kecepatan belajar:{" "}
-              <strong className="text-[#010105]">
+              <strong className="text-[#1C1E26]">
                 {currentUser.processingSpeed === "FAST" ? "Cepat" : currentUser.processingSpeed === "DELIBERATE" ? "Teliti & perlahan" : "Sedang"}
               </strong>
             </span>
-            <Link
-              to="/assessment"
-              onClick={() => audioSynth.playClickSound()}
-              className="font-bold text-[#4B3B7A] bg-[#F0EEF6] hover:bg-[#E3DBF8] px-3 py-1.5 rounded-full transition-colors"
-            >
-              Ulangi asesmen
-            </Link>
           </div>
         </section>
 
         {/* 3. CAPAIAN & STATISTIK BELAJAR */}
         <section className="clay-card p-5 sm:p-6 space-y-3 bg-white">
-          <h2 className="text-sm sm:text-base font-extrabold text-[#010105]">
+          <h2 className="text-sm sm:text-base font-extrabold text-[#1C1E26]">
             Statistik &amp; Capaian Belajar
           </h2>
 
@@ -362,7 +357,7 @@ export default function StudentProfilePage() {
               </div>
               <div>
                 <span className="text-mini text-[#5A5E70] font-bold block">Total XP</span>
-                <span className="text-sm font-black text-[#010105]">{currentUser.xpTotal || 450}</span>
+                <span className="text-sm font-black text-[#1C1E26]">{currentUser.xpTotal ?? 0}</span>
               </div>
             </div>
 
@@ -373,7 +368,7 @@ export default function StudentProfilePage() {
               </div>
               <div>
                 <span className="text-mini text-[#5A5E70] font-bold block">Streak Hari</span>
-                <span className="text-sm font-black text-[#010105]">{currentUser.streakDays || 14} Hari</span>
+                <span className="text-sm font-black text-[#1C1E26]">{currentUser.streakDays ?? 0} Hari</span>
               </div>
             </div>
 
@@ -384,18 +379,20 @@ export default function StudentProfilePage() {
               </div>
               <div>
                 <span className="text-mini text-[#5A5E70] font-bold block">Level</span>
-                <span className="text-sm font-black text-[#010105]">{levelLabel(currentUser.currentDDALevel, "MEDIUM")}</span>
+                <span className="text-sm font-black text-[#1C1E26]">{levelLabel(currentUser.currentDDALevel)}</span>
               </div>
             </div>
 
-            {/* Stat 4: Nyawa Belajar */}
+            {/* Stat 4: work actually handed in */}
             <div className="bg-[#F8F9FD] p-3 rounded-2xl border border-[rgba(28,30,38,0.05)] flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl clay-card clay-lavender flex items-center justify-center text-[#4B3B7A] shrink-0">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-mini text-[#5A5E70] font-bold block">Nyawa Latihan</span>
-                <span className="text-sm font-black text-[#010105]">{currentUser.hearts || 5}/5</span>
+                <span className="text-mini text-[#5A5E70] font-bold block">Tugas Dikumpulkan</span>
+                <span className="text-sm font-black text-[#1C1E26]">
+                  {submissions.filter((s) => s.studentId === currentUser.id && s.status !== "InProgress").length}
+                </span>
               </div>
             </div>
           </div>
@@ -418,15 +415,15 @@ export default function StudentProfilePage() {
                 <RefreshCw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-300" />
               </div>
               <div>
-                <h3 className="text-xs sm:text-sm font-extrabold text-[#010105]">
+                <h3 className="text-xs sm:text-sm font-extrabold text-[#1C1E26]">
                   Tes Ulang Cara Belajar
                 </h3>
                 <p className="text-mini text-[#5A5E70]">
-                  Uji ulang profil modalitas untuk kalibrasi dashboard
+                  Ulangi tes gaya belajar
                 </p>
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-[#9195A8] group-hover:text-[#010105] transition-colors" />
+            <ChevronRight className="w-4 h-4 text-[#9195A8] group-hover:text-[#1C1E26] transition-colors" />
           </button>
 
           {/* Logout Button */}
@@ -446,7 +443,7 @@ export default function StudentProfilePage() {
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent className="max-w-sm p-6 bg-white rounded-3xl">
           <DialogHeader>
-            <DialogTitle className="text-base font-black text-[#010105]">
+            <DialogTitle className="text-base font-black text-[#1C1E26]">
               Edit Data Profil Siswa
             </DialogTitle>
             <DialogDescription className="text-xs text-[#5A5E70]">
@@ -456,7 +453,7 @@ export default function StudentProfilePage() {
 
           <div className="space-y-3.5 my-3">
             <div>
-              <label className="block text-xs font-bold text-[#010105] mb-1">
+              <label className="block text-xs font-bold text-[#1C1E26] mb-1">
                 Nama Lengkap
               </label>
               <Input
@@ -468,7 +465,7 @@ export default function StudentProfilePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#010105] mb-1">
+              <label className="block text-xs font-bold text-[#1C1E26] mb-1">
                 Alamat Email
               </label>
               <Input
@@ -481,7 +478,7 @@ export default function StudentProfilePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#010105] mb-1">
+              <label className="block text-xs font-bold text-[#1C1E26] mb-1">
                 Tingkat Jenjang Kelas
               </label>
               <Input
@@ -527,7 +524,7 @@ export default function StudentProfilePage() {
       <Dialog open={showAvatarModal} onOpenChange={setShowAvatarModal}>
         <DialogContent className="max-w-sm p-6 bg-white rounded-3xl">
           <DialogHeader>
-            <DialogTitle className="text-base font-black text-[#010105]">
+            <DialogTitle className="text-base font-black text-[#1C1E26]">
               Pilih Foto Profil
             </DialogTitle>
             <DialogDescription className="text-xs text-[#5A5E70]">
@@ -541,12 +538,12 @@ export default function StudentProfilePage() {
             )}
             {/* Custom Upload Section */}
             <div>
-              <label className="block text-xs font-bold text-[#010105] mb-1.5">
+              <label className="block text-xs font-bold text-[#1C1E26] mb-1.5">
                 Unggah Foto dari Perangkat
               </label>
               <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-[rgba(28,30,38,0.15)] rounded-2xl hover:bg-[#F8F9FD] transition-colors cursor-pointer text-center">
                 <UploadCloud className="w-7 h-7 text-[#4B3B7A] mb-1" />
-                <span className="text-xs font-bold text-[#010105]">Pilih Berkas Foto</span>
+                <span className="text-xs font-bold text-[#1C1E26]">Pilih Berkas Foto</span>
                 <span className="text-mini text-[#9195A8]">PNG, JPG, WEBP maks 1MB</span>
                 <input
                   type="file"
@@ -559,7 +556,7 @@ export default function StudentProfilePage() {
 
             {/* Quick Inisial Presets */}
             <div>
-              <label className="block text-xs font-bold text-[#010105] mb-1.5">
+              <label className="block text-xs font-bold text-[#1C1E26] mb-1.5">
                 Atau Pilih Inisial Avatar
               </label>
               <div className="grid grid-cols-4 gap-2">
@@ -596,9 +593,9 @@ export default function StudentProfilePage() {
 
       {/* MODAL 3: CONFIRMATION MODAL FOR RE-ASSESSMENT */}
       {showConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-in fade-in duration-150">
           <div
-            className="w-full max-w-sm bg-white rounded-3xl p-5 sm:p-6 shadow-[0_20px_50px_rgba(28,30,38,0.25)] border border-[rgba(28,30,38,0.08)] space-y-4 animate-in zoom-in-95 duration-150"
+            className="w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white rounded-3xl p-5 sm:p-6 shadow-[0_20px_50px_rgba(28,30,38,0.25)] border border-[rgba(28,30,38,0.08)] space-y-4 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-12 h-12 rounded-2xl clay-card clay-butter text-[#785308] flex items-center justify-center mx-auto shadow-xs">
@@ -606,11 +603,11 @@ export default function StudentProfilePage() {
             </div>
 
             <div className="text-center space-y-1.5">
-              <h3 className="text-base font-black text-[#010105]">
+              <h3 className="text-base font-black text-[#1C1E26]">
                 Mulai tes ulang?
               </h3>
               <p className="text-xs text-[#5A5E70] leading-relaxed">
-                Tampilan dashboard adaptif dan rekomendasi materi akan disesuaikan kembali berdasarkan hasil diagnostik baru.
+                Rekomendasi materi akan mengikuti hasil tes baru.
               </p>
             </div>
 

@@ -176,18 +176,13 @@ export default function AssessmentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] pb-24 relative overflow-hidden select-none">
-      {/* Soft Ambient Modality Top Gradient */}
-      <div
-        className="absolute top-0 left-0 right-0 h-96 bg-gradient-to-b from-[#E3DBF8]/60 via-[#D1EBE1]/35 to-transparent pointer-events-none"
-        aria-hidden="true"
-      />
-
+    <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col relative overflow-hidden select-none">
       <div className="relative z-10">
         <Navbar />
       </div>
 
-      <main className="max-w-xl mx-auto px-4 pt-6 sm:pt-8 relative z-10">
+      <main className="flex-1 overflow-y-auto w-full relative pb-[calc(6rem+env(safe-area-inset-bottom))]">
+      <div className="max-w-xl mx-auto px-4 pt-6 sm:pt-8 relative z-10">
         {/* VIEW 1: INTRO SCREEN (CLAYMORPHIC) */}
         {!hasStarted && (
           <div className="space-y-5 animate-in fade-in duration-200">
@@ -205,7 +200,7 @@ export default function AssessmentPage() {
                 Temukan Gaya &amp; Ritme Belajarmu
               </h1>
               <p className="text-xs sm:text-sm text-[#5A5E70] mt-1.5 font-medium leading-relaxed">
-                Asesmen ini mengkalibrasi materi pelajaran, format media, dan tingkat kesulitan soal otomatis sesuai kecenderungan kognitifmu.
+                Hasilnya menyesuaikan materi dan tingkat soal untukmu.
               </p>
             </div>
 
@@ -270,7 +265,7 @@ export default function AssessmentPage() {
                 <ArrowRight className="w-4 h-4" />
               </button>
               <p className="text-mini text-[#9195A8] font-semibold">
-                Estimasi waktu pengerjaan: 2–3 menit (10 soal) • Hasil dapat dikalibrasi ulang kapan saja
+                2–3 menit · 10 soal
               </p>
             </div>
           </div>
@@ -387,7 +382,7 @@ export default function AssessmentPage() {
                 Profil Kognitif Selesai!
               </h2>
               <p className="text-xs text-[#5A5E70] font-medium max-w-sm mx-auto">
-                AI telah memetakan kecenderungan sensorik dan merekomendasikan format materi terbaik untukmu.
+                Ini format belajar yang paling cocok untukmu.
               </p>
             </div>
 
@@ -415,12 +410,12 @@ export default function AssessmentPage() {
                       <Eye className="w-3.5 h-3.5 text-[#1D5E4D]" />
                       Visual (Diagram &amp; Bagan)
                     </span>
-                    <span>{currentUser.modalityScores?.visual || 80}%</span>
+                    <span>{currentUser.modalityScores?.visual ?? 0}%</span>
                   </div>
                   <div className="w-full bg-white/70 h-2.5 rounded-full p-0.5 shadow-inner">
                     <div
                       className="bg-[#1D5E4D] h-full rounded-full transition-all duration-700 shadow-xs"
-                      style={{ width: `${currentUser.modalityScores?.visual || 80}%` }}
+                      style={{ width: `${currentUser.modalityScores?.visual ?? 0}%` }}
                     />
                   </div>
                 </div>
@@ -432,12 +427,12 @@ export default function AssessmentPage() {
                       <Headphones className="w-3.5 h-3.5 text-[#4B3B7A]" />
                       Auditori (Podcast &amp; Suara)
                     </span>
-                    <span>{currentUser.modalityScores?.audio || 45}%</span>
+                    <span>{currentUser.modalityScores?.audio ?? 0}%</span>
                   </div>
                   <div className="w-full bg-white/70 h-2.5 rounded-full p-0.5 shadow-inner">
                     <div
                       className="bg-[#4B3B7A] h-full rounded-full transition-all duration-700 shadow-xs"
-                      style={{ width: `${currentUser.modalityScores?.audio || 45}%` }}
+                      style={{ width: `${currentUser.modalityScores?.audio ?? 0}%` }}
                     />
                   </div>
                 </div>
@@ -449,12 +444,12 @@ export default function AssessmentPage() {
                       <FlaskConical className="w-3.5 h-3.5 text-[#785308]" />
                       Kinestetik (Simulasi Praktik)
                     </span>
-                    <span>{currentUser.modalityScores?.practice || 55}%</span>
+                    <span>{currentUser.modalityScores?.practice ?? 0}%</span>
                   </div>
                   <div className="w-full bg-white/70 h-2.5 rounded-full p-0.5 shadow-inner">
                     <div
                       className="bg-[#785308] h-full rounded-full transition-all duration-700 shadow-xs"
-                      style={{ width: `${currentUser.modalityScores?.practice || 55}%` }}
+                      style={{ width: `${currentUser.modalityScores?.practice ?? 0}%` }}
                     />
                   </div>
                 </div>
@@ -484,6 +479,7 @@ export default function AssessmentPage() {
             </div>
           </div>
         )}
+      </div>
       </main>
     </div>
   );

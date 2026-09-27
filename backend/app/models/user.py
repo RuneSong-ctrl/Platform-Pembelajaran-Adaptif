@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Float, Boolean, Text, JSON, DateTime
+from sqlalchemy import Column, String, Integer, Float, Boolean, Text, JSON, DateTime, Date
 from datetime import datetime
 from app.core.database import Base
 
@@ -19,7 +19,8 @@ class User(Base):
     learning_progress = Column(JSON, nullable=True) # {"visual": 0, "audio": 0, "practice": 0, "visual_completed": 0, "audio_minutes": 0, "practice_completed": 0} (Real Learning Activity Progress)
     processing_speed = Column(String(32), nullable=True, default="MODERATE") # "FAST", "MODERATE", "DELIBERATE"
     xp_total = Column(Integer, default=0)
-    streak_days = Column(Integer, default=1)
+    streak_days = Column(Integer, default=0)  # consecutive active days, see services/progress_service.py
+    last_active_on = Column(Date, nullable=True)  # local (STREAK_UTC_OFFSET_HOURS) date of the last learning action
     hearts = Column(Integer, default=5)
     current_dda_level = Column(String(32), default="BASIC") # "BASIC", "MEDIUM", "CHALLENGING", "MASTERY"
     

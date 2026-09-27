@@ -49,6 +49,9 @@ def link_child(data: RedeemIn, db: Session = Depends(get_db), user: User = Depen
     if not child:
         db.commit()
         raise HTTPException(404, "Akun anak tidak ditemukan.")
-    user.children_ids = list(dict.fromkeys([*(user.children_ids or []), child.id]))
+    # Codes change every time the child makes a new one, so a parent may redeem one for a child already linked.
+    already_linked = child.id in (user.children_ids or [])
+    if not already_linked:
+        user.children_ids = [*(user.children_ids or []), child.id]
     db.commit()
-    return {"id": child.id, "name": child.name}
+    return {"id": child.id, "name": child.name, "already_linked": already_linked}

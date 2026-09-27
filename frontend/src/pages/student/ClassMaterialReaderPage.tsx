@@ -10,7 +10,6 @@ import type { GroundedDocument } from "@/types";
 import {
   ArrowLeft,
   BookOpen,
-  Sparkles,
   ArrowRight,
   School,
   FileText,
@@ -20,12 +19,23 @@ import {
   Loader2,
   ExternalLink,
   Download,
+  Eye,
+  Headphones,
+  FlaskConical,
 } from "@/components/ui/icons";
+
+// The "learn deeper" button takes the colour and promise of the student's own learning style.
+const CTA_THEME = {
+  VISUAL: { Icon: Eye, icon: "bg-[#D1EBE1] text-[#1D5E4D]", btn: "clay-btn-mint", hint: "Lewat gambar dan bagan" },
+  AUDITORI: { Icon: Headphones, icon: "bg-[#E3DBF8] text-[#4B3B7A]", btn: "clay-btn-lavender", hint: "Lewat podcast dan audio" },
+  KINESTETIK: { Icon: FlaskConical, icon: "bg-[#FEE7B3] text-[#785308]", btn: "clay-btn-butter", hint: "Lewat simulasi dan praktik" },
+} as const;
 
 export default function ClassMaterialReaderPage() {
   const { classId, docId } = useParams<{ classId: string; docId: string }>();
   const navigate = useNavigate();
-  const { documents, classrooms, isSyncing } = useApp();
+  const { documents, classrooms, isSyncing, currentUser } = useApp();
+  const cta = CTA_THEME[(currentUser.learningStyle || "VISUAL") as keyof typeof CTA_THEME] ?? CTA_THEME.VISUAL;
 
   const [localDoc, setLocalDoc] = useState<GroundedDocument | null>(null);
   const [isLoadingDoc, setIsLoadingDoc] = useState(false);
@@ -71,7 +81,7 @@ export default function ClassMaterialReaderPage() {
   // Loading state while syncing or fetching
   if (!doc && (isSyncing || isLoadingDoc)) {
     return (
-      <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
+      <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
         <Navbar />
         <div className="flex flex-1 overflow-hidden w-full">
           <StudentSidebar />
@@ -90,11 +100,11 @@ export default function ClassMaterialReaderPage() {
   // 404 state only when document is confirmed absent
   if (!doc) {
     return (
-      <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
+      <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
         <Navbar />
         <div className="flex flex-1 overflow-hidden w-full">
           <StudentSidebar />
-          <main className="flex-1 overflow-y-auto flex items-center justify-center p-6 pb-24 md:pb-8">
+          <main className="flex-1 overflow-y-auto flex items-center justify-center p-6 app-main md:pb-8">
             <div className="clay-card bg-white p-8 rounded-3xl text-center space-y-4 max-w-sm w-full shadow-xs">
               <div className="w-14 h-14 rounded-2xl bg-[#FCD9D7] text-[#852C28] flex items-center justify-center mx-auto">
                 <BookOpen className="w-7 h-7" />
@@ -139,13 +149,13 @@ export default function ClassMaterialReaderPage() {
   const targetClassId = classId || classroom?.id || doc.classroomId;
 
   return (
-    <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
+    <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden w-full">
         <StudentSidebar />
 
-        <main className="flex-1 overflow-y-auto w-full px-3.5 sm:px-6 lg:px-8 py-4 sm:py-5 min-w-0 flex flex-col gap-4 pb-28 md:pb-10">
+        <main className="flex-1 overflow-y-auto w-full px-3.5 sm:px-6 lg:px-8 py-4 sm:py-5 min-w-0 flex flex-col gap-4 app-main md:pb-10">
           {/* Top Header & Back Navigation */}
           <div className="flex items-center justify-between">
             <Link
@@ -175,7 +185,7 @@ export default function ClassMaterialReaderPage() {
               </span>
             </div>
 
-            <h1 className="text-lg sm:text-2xl font-black text-[#010105] leading-snug">
+            <h1 className="text-lg sm:text-2xl font-black text-[#1C1E26] leading-snug">
               {doc.title}
             </h1>
 
@@ -326,35 +336,27 @@ export default function ClassMaterialReaderPage() {
             </div>
           )}
 
-          {/* ========================================================= */}
-          {/* CTA BAR: DIRECT LAUNCH TO ADAPTIVE LEARNING (STATIC IN-FLOW) */}
-          {/* ========================================================= */}
-          <div className="pt-3 pb-2">
-            <div className="clay-card bg-[#1C1E26] text-white p-5 sm:p-6 rounded-3xl shadow-md flex flex-col sm:flex-row items-center justify-between gap-4 border border-white/10">
-              <div className="text-center sm:text-left space-y-1">
-                <span className="text-mini font-extrabold uppercase tracking-wider text-[#FFE299] block">
-                  Belajar Lebih Dalam
-                </span>
-                <h3 className="text-sm sm:text-base font-black text-white">
-                  Ingin Mempelajari Materi Ini dengan Gaya Belajarmu?
-                </h3>
-                <p className="text-xs text-white/70">
-                  Akses simulasi interaktif kinestetik, podcast audio naratif, atau peta konsep visual di Halaman Belajar Adaptif.
-                </p>
-              </div>
-
-              <button
-                onClick={() => {
-                  audioSynth.playClickSound();
-                  navigate(`/student/learn?class=${targetClassId}&doc=${doc.id}`);
-                }}
-                className="clay-btn bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] hover:brightness-110 text-white px-5 py-3 rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md cursor-pointer shrink-0 w-full sm:w-auto active:scale-95 transition-all"
-              >
-                <Sparkles className="w-4 h-4 text-[#FFE299]" />
-                <span>Pelajari Secara Adaptif</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+          {/* Continue on the adaptive page, in the student's own learning style */}
+          <div className="clay-card clay-white p-3.5 sm:p-4 flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${cta.icon}`}>
+              <cta.Icon className="w-5 h-5" />
             </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-[#1C1E26] leading-tight">Belajar Lebih Dalam</p>
+              <p className="text-xs text-[#5A5E70] truncate">{cta.hint}</p>
+            </div>
+            <button
+              onClick={() => {
+                audioSynth.playClickSound();
+                navigate(`/student/learn?class=${targetClassId}&doc=${doc.id}`);
+              }}
+              aria-label="Pelajari Secara Adaptif"
+              className={`clay-btn ${cta.btn} px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-1.5 shrink-0 cursor-pointer`}
+            >
+              <span className="sm:hidden">Pelajari</span>
+              <span className="hidden sm:inline">Pelajari Secara Adaptif</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </main>
       </div>

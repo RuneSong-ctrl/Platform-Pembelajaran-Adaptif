@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import datetime
 
 class ScheduleBase(BaseModel):
-    student_id: str
+    student_id: Optional[str] = None
     day: str
     time: str
     duration: str
@@ -16,6 +16,7 @@ class ScheduleCreate(ScheduleBase):
 
 class ScheduleResponse(ScheduleBase):
     id: str
+    student_id: str
 
     model_config = ConfigDict(from_attributes=True)
 

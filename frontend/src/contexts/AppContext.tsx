@@ -15,17 +15,11 @@ import {
   LearningScheduleItem,
 } from "@/types";
 import {
-  MOCK_USERS,
-  MOCK_CLASSROOMS,
-  MOCK_GROUNDED_DOCUMENTS,
-  MOCK_TASKS,
-  MOCK_CREDENTIALS,
-  MOCK_SUBMISSIONS,
-  MOCK_NOTES,
-  MOCK_OFFLINE_PACKAGES,
-} from "@/services/mockData";
-import {
   ApiService,
+  type TaskPayload,
+  ApiError,
+  SESSION_NOTICE_KEY,
+  onSessionExpired,
   normalizeUser,
   normalizeClassroom,
   normalizeDocument,
@@ -69,9 +63,14 @@ interface AppContextType {
 
   // Submissions
   submissions: AssignmentSubmission[];
-  submitAssignment: (taskId: string, content: string, attachmentName?: string) => void;
-  gradeSubmission: (submissionId: string, grade: number, feedback: string) => Promise<void>;
-  gradeAssignmentSubmission: (submissionId: string, grade: number, feedback: string) => Promise<void>;
+  updateTask: (taskId: string, patch: Partial<TaskPayload>) => Promise<GroundedTask>;
+  deleteTask: (taskId: string) => Promise<void>;
+  addTaskAttachments: (taskId: string, files: File[]) => Promise<GroundedTask>;
+  removeTaskAttachment: (taskId: string, fileId: string) => Promise<GroundedTask>;
+  submitAssignment: (taskId: string, content: string, files: File[], keepFileIds: string[]) => Promise<AssignmentSubmission>;
+  recordSubmission: (raw: unknown) => AssignmentSubmission;
+  gradeSubmission: (submissionId: string, grade: { grade?: number; essayScores?: Record<string, number> }, feedback: string) => Promise<void>;
+  gradeAssignmentSubmission: (submissionId: string, grade: { grade?: number; essayScores?: Record<string, number> }, feedback: string) => Promise<void>;
 
   // Blockchain Credentials
   credentials: BlockchainCredential[];
@@ -101,8 +100,8 @@ interface AppContextType {
 
   // Learning Schedule Plans
   learningSchedules: LearningScheduleItem[];
-  addLearningSchedule: (item: Omit<LearningScheduleItem, "id">) => void;
-  deleteLearningSchedule: (id: string) => void;
+  addLearningSchedule: (item: Omit<LearningScheduleItem, "id">) => void | Promise<void>;
+  deleteLearningSchedule: (id: string) => void | Promise<void>;
   toggleLearningSchedule: (id: string) => void;
 
   // Learning Progress & Activity Tracking
@@ -146,7 +145,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setCurrentUserId(user.id);
         localStorage.setItem(STORAGE_KEYS.USER, user.id);
         setIsAuthenticated(true);
-      }).catch(() => { if (isCurrent()) { ApiService.setToken(); setIsAuthenticated(false); } })
+      }).catch((err) => {
+        if (!isCurrent()) return;
+        // Only a server "no" ends the session; being offline must not throw away a 7-day login.
+        if (err instanceof ApiError && err.status === 401) {
+          ApiService.setToken();
+          sessionStorage.setItem(SESSION_NOTICE_KEY, "Sesi berakhir karena lama tidak dipakai. Silakan masuk lagi.");
+        } else {
+          sessionStorage.setItem(SESSION_NOTICE_KEY, "Tidak bisa terhubung ke server. Periksa koneksimu, lalu buka lagi aplikasinya.");
+        }
+        setIsAuthenticated(false);
+      })
         .finally(() => { if (active && version === sessionVersion.current) setIsRestoringSession(false); });
     } else {
       setIsRestoringSession(false);
@@ -165,18 +174,62 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [userMood, setUserMood] = useState<"Great" | "Good" | "Okay" | "Tired" | null>(null);
   const [studyTimeMinutes, setStudyTimeMinutes] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [learningSchedules, setLearningSchedules] = useState<LearningScheduleItem[]>([]);
+  const SCHEDULES_STORAGE_KEY = "eduadapt_learning_schedules";
+  const [learningSchedules, setLearningSchedules] = useState<LearningScheduleItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(SCHEDULES_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
-  const addLearningSchedule = (item: Omit<LearningScheduleItem, "id">) => {
-    const newItem: LearningScheduleItem = {
+  useEffect(() => {
+    try {
+      localStorage.setItem(SCHEDULES_STORAGE_KEY, JSON.stringify(learningSchedules));
+    } catch {
+      // storage unavailable
+    }
+  }, [learningSchedules]);
+
+  const addLearningSchedule = async (item: Omit<LearningScheduleItem, "id">) => {
+    const tempId = `sch_${Date.now()}`;
+    const targetStudentId = item.studentId || currentUserId || activeUserId.current || "student";
+    const optimisticItem: LearningScheduleItem = {
       ...item,
-      id: `sch_${Date.now()}`,
+      studentId: targetStudentId,
+      id: tempId,
     };
-    setLearningSchedules((prev) => [newItem, ...prev]);
+    setLearningSchedules((prev) => [optimisticItem, ...prev]);
+
+    try {
+      const res = await ApiService.createSchedule({
+        student_id: targetStudentId,
+        day: item.day,
+        time: item.time,
+        duration: item.duration,
+        title: item.title,
+        format: item.format,
+        completed: item.completed,
+      });
+      if (res?.id) {
+        const serverItem = normalizeSchedule(res);
+        setLearningSchedules((prev) =>
+          prev.map((s) => (s.id === tempId ? serverItem : s))
+        );
+      }
+    } catch (err) {
+      console.warn("[AppContext] Backend createSchedule error, keeping local state:", err);
+    }
   };
 
-  const deleteLearningSchedule = (id: string) => {
+  const deleteLearningSchedule = async (id: string) => {
     setLearningSchedules((prev) => prev.filter((s) => s.id !== id));
+    try {
+      await ApiService.deleteSchedule(id);
+    } catch (err) {
+      console.warn("[AppContext] Backend deleteSchedule error:", err);
+    }
   };
 
   const trackLearningActivity = async (
@@ -294,7 +347,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (backendCreds !== null) {
           setCredentials(backendCreds.map(normalizeCredential));
         }
-        if (backendSchedules !== null) {
+        if (backendSchedules !== null && backendSchedules.length > 0) {
           setLearningSchedules(backendSchedules.map(normalizeSchedule));
         }
         if (backendSubs !== null) {
@@ -401,17 +454,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     success: false, message: "Masuk atau daftar dengan password dahulu, lalu gabung kelas menggunakan kode dari halaman kelas.",
   });
 
-  const logout = () => {
+  const clearLocalSession = () => {
     sessionVersion.current += 1;
     activeUserId.current = "";
     setIsRestoringSession(false);
-    void ApiService.authenticatedRequest("/auth/logout", { method: "POST" }).catch(() => {});
     ApiService.setToken();
     setIsAuthenticated(false);
     setCurrentUserId("");
     localStorage.removeItem(STORAGE_KEYS.AUTH);
     localStorage.removeItem(STORAGE_KEYS.USER);
   };
+
+  const logout = () => {
+    void ApiService.authenticatedRequest("/auth/logout", { method: "POST" }).catch(() => {});
+    clearLocalSession();
+  };
+
+  const clearSessionRef = useRef(clearLocalSession);
+  clearSessionRef.current = clearLocalSession;
+  useEffect(() => {
+    onSessionExpired(() => {
+      sessionStorage.setItem(SESSION_NOTICE_KEY, "Sesi berakhir. Silakan masuk lagi.");
+      clearSessionRef.current();
+    });
+    return () => onSessionExpired(null);
+  }, []);
 
   const switchUser = (_userId: string) => {
     // Changing identity requires a new authenticated session.
@@ -436,13 +503,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addClassroom = (name: string, grade: number, subject: string): Classroom => {
-    const randomCode = `UDU${Math.floor(100 + Math.random() * 900)}`;
     const newClass: Classroom = {
       id: `cls_${Date.now()}`,
       name,
       grade,
       subject,
-      joinCode: randomCode,
+      joinCode: "", // the server issues the real code
       teacherId: currentUser.id,
       teacherName: currentUser.name,
       studentIds: [],
@@ -504,11 +570,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       classroomId,
       title,
       rawText,
-      chunksCount: chunks,
-      vectorId: `VEC-${Math.floor(100 + Math.random() * 900)}`,
-      status: "READY",
+      chunksCount: 0,
+      vectorId: "",
+      status: "PROCESSING", // the server's reply replaces this with the real document
       uploadedAt: new Date().toISOString(),
-      summary: summary || `Hasil ekstraksi dan semantic chunking (${chunks} potongan vektor) ter-grounding.`,
+      summary: summary || "",
     };
     setDocuments((prev) => [newDoc, ...prev]);
     setClassrooms((prev) =>
@@ -542,7 +608,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       title?.trim() ||
       file.name
         .replace(/\.[^/.]+$/, "")
-        .replace(/[_\-]+/g, " ")
+        .replace(/[_-]+/g, " ")
         .trim();
 
     const tempDoc: GroundedDocument = {
@@ -550,9 +616,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       classroomId,
       title: cleanTitle,
       rawText: "Sedang memproses dan mengekstrak dokumen...",
-      chunksCount: Math.max(1, Math.ceil(file.size / 850)),
-      vectorId: `VEC-${Math.floor(100 + Math.random() * 900)}`,
-      status: "READY",
+      chunksCount: 0,
+      vectorId: "",
+      status: "PROCESSING",
       uploadedAt: new Date().toISOString(),
       summary: summary || `Modul ajar: ${cleanTitle} (Sumber: ${file.name})`,
     };
@@ -600,6 +666,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       is_published: taskData.isPublished,
       due_date: taskData.dueDate,
       content_json: taskData.contentJson,
+      exam_label: taskData.examLabel ?? null,
+      opens_at: taskData.opensAt ?? null,
+      closes_at: taskData.closesAt ?? null,
+      time_limit_minutes: taskData.timeLimitMinutes ?? null,
     });
     const newTask = normalizeTask(res);
     setTasks((prev) => [newTask, ...prev]);
@@ -609,39 +679,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return newTask;
   };
 
-  const submitAssignment = (taskId: string, content: string, attachmentName?: string) => {
+  const replaceTask = (raw: unknown) => {
+    const saved = normalizeTask(raw);
+    setTasks((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
+    return saved;
+  };
+  const updateTask = async (taskId: string, patch: Partial<TaskPayload>) => replaceTask(await ApiService.updateTask(taskId, patch));
+  const addTaskAttachments = async (taskId: string, files: File[]) => replaceTask(await ApiService.uploadTaskAttachments(taskId, files));
+  const removeTaskAttachment = async (taskId: string, fileId: string) => replaceTask(await ApiService.deleteTaskAttachment(taskId, fileId));
+  const deleteTask = async (taskId: string) => {
     const task = tasks.find((t) => t.id === taskId);
-    const newSub: AssignmentSubmission = {
-      id: `sub_${Date.now()}`,
-      taskId,
-      taskTitle: task ? task.title : "Tugas Kelas",
-      studentId: currentUser.id,
-      studentName: currentUser.name,
-      submittedAt: new Date().toISOString(),
-      content,
-      attachmentName: attachmentName || "Dokumen_Tugas.pdf",
-      status: "Submitted",
-    };
-    setSubmissions((prev) => [newSub, ...prev]);
+    await ApiService.deleteTask(taskId);
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    setSubmissions((prev) => prev.filter((s) => s.taskId !== taskId));
+    if (task) {
+      setClassrooms((prev) => prev.map((c) => (c.id === task.classroomId ? { ...c, tasksCount: Math.max(0, c.tasksCount - 1) } : c)));
+    }
+  };
 
-    // Persist to backend
-    ApiService.submitAssignment({
-      task_id: taskId,
-      task_title: newSub.taskTitle,
-      student_id: currentUser.id,
-      student_name: currentUser.name,
-      content,
-      attachment_name: newSub.attachmentName,
-    }).catch(() => {});
+  // One submission per student per task: a newer copy from the server replaces the old one.
+  const recordSubmission = (raw: unknown) => {
+    const saved = normalizeSubmission(raw);
+    setSubmissions((prev) => [saved, ...prev.filter((s) => s.id !== saved.id)]);
+    return saved;
+  };
 
-    // Update practice learning activity progress
-    trackLearningActivity("practice", 1, newSub.taskTitle);
+  // Waits for the server, so "Terkumpul" is only shown for work that really arrived (with its files).
+  const submitAssignment = async (taskId: string, content: string, files: File[], keepFileIds: string[]) => {
+    const saved = recordSubmission(await ApiService.submitAssignment({ task_id: taskId, content, files, keep_file_ids: keepFileIds }));
+    trackLearningActivity("practice", 1, saved.taskTitle);
+    return saved;
   };
 
   // Waits for the server so a grade the teacher sees is a grade the student gets.
-  const gradeSubmission = async (submissionId: string, grade: number, feedback: string) => {
-    const saved = normalizeSubmission(await ApiService.gradeSubmission(submissionId, grade, feedback));
-    setSubmissions((prev) => prev.map((s) => (s.id === submissionId ? saved : s)));
+  const gradeSubmission = async (
+    submissionId: string,
+    grade: { grade?: number; essayScores?: Record<string, number> },
+    feedback: string,
+  ) => {
+    recordSubmission(await ApiService.gradeSubmission(submissionId, { grade: grade.grade, essay_scores: grade.essayScores, feedback }));
   };
 
   const gradeAssignmentSubmission = gradeSubmission;
@@ -742,12 +818,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsSyncing(true);
     try {
       // Background sync with FastAPI backend
-      const [backendClassrooms, backendDocs, backendTasks, backendCreds, backendUsers] = await Promise.all([
+      const [backendClassrooms, backendDocs, backendTasks, backendCreds, backendUsers, backendSubs] = await Promise.all([
         ApiService.getClassrooms(),
         ApiService.getDocuments(),
         ApiService.getTasks(),
         ApiService.getCredentials(),
         ApiService.getUsers(),
+        ApiService.getSubmissions(),
       ]);
 
       // null = request failed (keep what we have); an empty list is a real answer and replaces local data.
@@ -756,11 +833,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (backendTasks) setTasks(backendTasks.map(normalizeTask));
       if (backendCreds) setCredentials(backendCreds.map(normalizeCredential));
       if (backendUsers) setUsers(backendUsers.map(normalizeUser));
+      if (backendSubs) setSubmissions(backendSubs.map(normalizeSubmission));
     } catch {
       // Graceful offline fallback
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
     setOfflinePackages((prev) =>
       prev.map((pkg) => ({ ...pkg, syncStatus: "Synced" }))
     );
@@ -795,7 +872,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         tasks,
         createTask,
         submissions,
+        updateTask,
+        deleteTask,
+        addTaskAttachments,
+        removeTaskAttachment,
         submitAssignment,
+        recordSubmission,
         gradeSubmission,
         gradeAssignmentSubmission,
         credentials,

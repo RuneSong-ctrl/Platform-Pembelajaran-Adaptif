@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
+import { taskDeadline, taskKindLabel, formatWhen } from "@/lib/tasks";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
 import TeacherSidebar from "@/components/layout/TeacherSidebar";
@@ -7,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ApiService, RosterStudent } from "@/services/apiClient";
 import { audioSynth } from "@/services/audioSynth";
-import { ArrowLeft, Copy, Check, Search, Users, BookOpen, FileText, AlertCircle, Lock, MessageSquare, Link2 } from "@/components/ui/icons";
+import { ArrowLeft, Copy, Check, Search, Users, BookOpen, FileText, AlertCircle, Lock, MessageSquare, Link2, Plus, Edit3, Trash2 } from "@/components/ui/icons";
 import AnnouncementFeed from "@/components/common/AnnouncementFeed";
 import MessageThread from "@/components/common/MessageThread";
 import { classJoinLink } from "@/pages/public/JoinClassPage";
@@ -39,12 +40,15 @@ type Tab = "pengumuman" | "siswa" | "materi" | "tugas";
 
 export default function TeacherClassPage() {
   const { classId } = useParams();
-  const { classrooms, documents, tasks, triggerSync } = useApp();
+  const { classrooms, documents, tasks, submissions, deleteTask, triggerSync } = useApp();
+  const [searchParams] = useSearchParams();
+  const [removeTask, setRemoveTask] = useState<{ id: string; title: string } | null>(null);
+  const [removing, setRemoving] = useState(false);
   const index = classrooms.findIndex((c) => c.id === classId);
   const cls = classrooms[index];
   const tone = classTone(index);
 
-  const [tab, setTab] = useState<Tab>("pengumuman");
+  const [tab, setTab] = useState<Tab>(() => (searchParams.get("tab") === "tugas" ? "tugas" : "pengumuman"));
   const [chatWith, setChatWith] = useState<RosterStudent | null>(null);
   const [roster, setRoster] = useState<RosterStudent[] | null>(null);
   const [error, setError] = useState("");
@@ -265,23 +269,73 @@ export default function TeacherClassPage() {
 
       {tab === "tugas" && (
         <section className="space-y-3">
+          <div className="grid grid-cols-3 gap-2">
+            {([["assignment", "Tugas"], ["quiz", "Kuis"], ["exam", "Ujian"]] as const).map(([type, name]) => (
+              <Link key={type} to={`/teacher/class/${cls.id}/tasks/new?type=${type}`}
+                className="clay-pill clay-white py-2.5 text-xs font-extrabold text-[#1C1E26] flex items-center justify-center gap-1.5">
+                <Plus className="w-3.5 h-3.5" /> {name}
+              </Link>
+            ))}
+          </div>
           {classTasks.length === 0 ? (
             <Empty icon={<FileText className="w-6 h-6" />} title="Belum ada tugas">
-              Buat kuis atau tugas di menu <Link to="/teacher/quiz-generator" className="font-bold underline">Buat Kuis</Link>.
+              Buat tugas, kuis, atau ujian dengan tombol di atas.
             </Empty>
           ) : (
             <ul className="clay-card clay-white divide-y divide-[rgba(28,30,38,0.06)]">
-              {classTasks.map((t) => (
-                <li key={t.id} className="px-5 py-3.5 flex items-center gap-3">
-                  <FileText className="w-4 h-4 text-[#21518A] shrink-0" />
-                  <span className="flex-1 text-sm font-bold text-[#010105] truncate">{t.title}</span>
-                  {t.dueDate && <span className="text-xs text-[#9195A8]">Batas {new Date(t.dueDate).toLocaleDateString("id-ID")}</span>}
-                </li>
-              ))}
+              {classTasks.map((t) => {
+                const due = taskDeadline(t);
+                const handedIn = new Set(submissions.filter((s) => s.taskId === t.id && s.status !== "InProgress").map((s) => s.studentId)).size;
+                const toGrade = submissions.filter((s) => s.taskId === t.id && s.status === "Submitted").length;
+                return (
+                  <li key={t.id} className="px-4 sm:px-5 py-3.5 flex items-center gap-3">
+                    <span className={`clay-pill px-2.5 py-0.5 text-mini font-extrabold shrink-0 ${t.type === "exam" ? "clay-coral text-[#852C28]" : t.type === "quiz" ? "clay-sky text-[#21518A]" : "clay-mint text-[#1D5E4D]"}`}>
+                      {taskKindLabel(t)}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-[#1C1E26] truncate">{t.title}</p>
+                      <p className="text-mini text-[#5A5E70]">
+                        {due ? `${t.type === "exam" ? "Tutup" : "Tenggat"} ${formatWhen(due)} · ` : ""}{handedIn}/{cls.studentIds.length} mengumpulkan
+                        {toGrade > 0 && <span className="font-extrabold text-[#785308]"> · {toGrade} perlu dinilai</span>}
+                      </p>
+                    </div>
+                    <Link to={`/teacher/tasks/${t.id}/edit`} aria-label={`Edit ${t.title}`} className="p-2 rounded-xl text-[#4B3B7A] hover:bg-[#F0EEF6]">
+                      <Edit3 className="w-4 h-4" />
+                    </Link>
+                    <button type="button" aria-label={`Hapus ${t.title}`} onClick={() => setRemoveTask({ id: t.id, title: t.title })}
+                      className="p-2 rounded-xl text-[#852C28] hover:bg-[#FCD9D7] cursor-pointer">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
       )}
+
+      <Dialog open={!!removeTask} onOpenChange={(o) => { if (!o) setRemoveTask(null); }}>
+        <DialogContent className="max-w-sm p-6 bg-white rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-black text-[#1C1E26]">Hapus tugas ini?</DialogTitle>
+            <DialogDescription className="text-xs text-[#5A5E70]">
+              &ldquo;{removeTask?.title}&rdquo; beserta semua jawaban dan file siswa akan dihapus permanen.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setRemoveTask(null)} className="clay-pill bg-[#F0EEF6] px-4 py-2 text-xs font-extrabold text-[#4B3B7A] cursor-pointer">Batal</button>
+            <button type="button" disabled={removing}
+              onClick={async () => {
+                if (!removeTask) return;
+                setRemoving(true);
+                try { await deleteTask(removeTask.id); setRemoveTask(null); } finally { setRemoving(false); }
+              }}
+              className="clay-btn bg-[#852C28] text-white px-4 py-2 text-xs font-extrabold cursor-pointer disabled:opacity-60">
+              {removing ? "Menghapus…" : "Hapus"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Student detail */}
       <Dialog open={!!selected} onOpenChange={(o) => { if (!o) { setSelected(null); setConfirmRemove(false); } }}>

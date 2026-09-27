@@ -7,6 +7,7 @@ from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.services import progress_service
 from app.core.auth import current_user, require_class_access
 from app.core.database import get_db
 from app.models.classroom import Classroom
@@ -245,11 +246,15 @@ def finish_practice_stage(document_id: str, payload: StageDone, db: Session = De
     if not record:
         record = PracticeProgress(user_id=user.id, document_id=document_id, completed=[])
         db.add(record)
+    done_before = len(record.completed or [])
     try:
         # Order is enforced here: a harder stage cannot be recorded before every easier stage.
         complete_stage(record, stages, payload.stage, payload.xp)
     except ValueError as exc:
         db.rollback()
         raise HTTPException(409, str(exc))
+    if len(record.completed or []) > done_before:  # first time this stage is finished
+        progress_service.award_xp(user, int(record.completed[-1].get("xp") or 0))
+        progress_service.record_activity(user)
     db.commit()
     return progress_view(record, stages)

@@ -79,41 +79,29 @@ class LearningProgressResponse(BaseModel):
     overall_progress: int
     details: Dict[str, Any]
 
+# Only what the platform actually measures; no estimated "retention" or "speed" figures.
 class VisualAnalyticsParams(BaseModel):
-    spatial_retention_pct: int
-    scan_speed_sec_per_node: float
-    infographic_accuracy_pct: int
     mindmap_explored_count: int
     mindmap_total_count: int
     visual_progress_pct: int
-    status_label: str = "Tinggi"
 
 class AuditoryAnalyticsParams(BaseModel):
     total_listening_minutes: int
-    target_listening_minutes: int = 45
-    verbal_retention_pct: int
-    focus_stability_pct: int
-    ideal_playback_speed: float
+    target_listening_minutes: int
     sessions_completed: int
     audio_progress_pct: int
-    status_label: str = "Optimal"
 
 class KinestheticAnalyticsParams(BaseModel):
-    lab_accuracy_pct: int
-    trial_error_iterations: float
-    mission_speed_minutes: float
-    dda_problem_solving_level: str
     missions_completed: int
     missions_total: int
     practice_progress_pct: int
-    status_label: str = "Sangat Efektif"
 
 class LearningStyleAnalyticsResponse(BaseModel):
     student_id: str
-    learning_style: str # "VISUAL", "AUDITORI", "KINESTETIK"
+    learning_style: Optional[str] = None  # None until the student has taken the assessment
     current_dda_level: str
     xp_total: int
-    accuracy_avg_pct: int
+    accuracy_avg_pct: Optional[int] = None  # None until something has been graded
     visual_params: VisualAnalyticsParams
     auditory_params: AuditoryAnalyticsParams
     kinesthetic_params: KinestheticAnalyticsParams

@@ -58,6 +58,8 @@ from app.core.auth import media_user, require_class_access
 from app.core.database import get_db
 from app.models.classroom import Classroom
 from app.models.document import GroundedDocument
+from app.models.submission import AssignmentSubmission
+from app.models.task import GroundedTask
 from app.models.user import User
 
 # Root Health Check Endpoint
@@ -80,6 +82,9 @@ def serve_upload(path: str, db: Session = Depends(get_db), user: User = Depends(
     file = (root / path).resolve()
     if not file.is_relative_to(root) or not file.is_file():
         raise HTTPException(404, "File tidak ditemukan.")
+    folder = file.relative_to(root).parts
+    if len(folder) == 3 and folder[0] in ("tasks", "submissions"):
+        return serve_task_file(folder, file, db, user)
     # Every stored file is named "<document id>_...", and ids themselves contain "_" (doc_ab12cd34).
     parts = file.name.split("_")
     doc = next((d for i in range(1, len(parts)) if (d := db.get(GroundedDocument, "_".join(parts[:i])))), None)
@@ -87,6 +92,23 @@ def serve_upload(path: str, db: Session = Depends(get_db), user: User = Depends(
         raise HTTPException(404, "File tidak ditemukan.")
     require_class_access(db.get(Classroom, doc.classroom_id), user)
     return FileResponse(file)
+
+def serve_task_file(folder, file: Path, db: Session, user: User):
+    """Assignment attachments are for the whole class; a student's submitted files only for them and the teacher."""
+    display_name = file.name.split("_", 1)[-1]
+    if folder[0] == "tasks":
+        task = db.get(GroundedTask, folder[1])
+        if not task:
+            raise HTTPException(404, "File tidak ditemukan.")
+        require_class_access(db.get(Classroom, task.classroom_id), user)
+    else:
+        sub = db.get(AssignmentSubmission, folder[1])
+        if not sub:
+            raise HTTPException(404, "File tidak ditemukan.")
+        if sub.student_id != user.id:
+            task = db.get(GroundedTask, sub.task_id)
+            require_class_access(db.get(Classroom, task.classroom_id) if task else None, user, teacher=True)
+    return FileResponse(file, filename=display_name, content_disposition_type="inline")
 
 # Mount API v1 Router
 app.include_router(api_router, prefix=settings.API_V1_STR)

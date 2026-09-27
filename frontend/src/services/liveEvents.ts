@@ -3,7 +3,8 @@ import { API_BASE_URL, getMediaTicket } from "@/services/apiClient";
 
 export type LiveEvent =
   | { type: "message"; classroom_id: string; student_id: string; parent_id: string | null }
-  | { type: "announcement"; classroom_id: string };
+  | { type: "announcement"; classroom_id: string }
+  | { type: "refresh" };
 
 type Listener = (e: LiveEvent) => void;
 const listeners = new Set<Listener>();
@@ -35,7 +36,12 @@ function disconnect() {
   source = null;
 }
 
-/** Calls handler whenever the server says a thread or a class feed changed. */
+/** Tells every listener to refetch, e.g. after the student pulls to refresh. */
+export function emitRefresh() {
+  listeners.forEach((fn) => fn({ type: "refresh" }));
+}
+
+/** Calls handler whenever the server says a thread or a class feed changed, or a refresh is requested. */
 export function useLiveEvents(handler: Listener) {
   const ref = useRef(handler);
   ref.current = handler;

@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocation } from "react-router-dom";
-import { LayoutDashboard, Database, Sparkles, Award, MessageSquare } from "@/components/ui/icons";
+import { LayoutDashboard, Database, FileText, Award, MessageSquare } from "@/components/ui/icons";
 import RoleSidebar from "./RoleSidebar";
 
 export default function TeacherSidebar() {
@@ -19,10 +19,10 @@ export default function TeacherSidebar() {
       active: pathname === "/teacher/rag",
     },
     {
-      href: "/teacher/quiz-generator",
-      label: "Buat Kuis",
-      icon: Sparkles,
-      active: pathname === "/teacher/quiz-generator",
+      href: "/teacher/tasks/new",
+      label: "Tugas & Ujian",
+      icon: FileText,
+      active: pathname.startsWith("/teacher/tasks") || pathname.includes("/tasks/new") || pathname === "/teacher/quiz-generator",
     },
     {
       href: "/teacher/asisten",

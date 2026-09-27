@@ -10,3 +10,4 @@ export { default as StudentProfilePage } from "./StudentProfilePage";
 export { default as LearningPathwayStatusPage } from "./LearningPathwayStatusPage";
 export { default as StudentSchedulePage } from "./StudentSchedulePage";
 export { default as StudentPassportPage } from "./StudentPassportPage";
+export { default as ExamPage } from "./ExamPage";

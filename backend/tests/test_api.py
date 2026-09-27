@@ -55,6 +55,34 @@ def test_auth_register_and_login_flow():
         assert update_resp.json()["name"] == "Budi Santoso Updated"
         assert update_resp.json()["grade"] == 12
 
+def test_session_slides_forward_and_ends_after_idle_week():
+    from datetime import datetime, timedelta
+    from app.core.auth import AuthSession, SESSION_IDLE, token_hash
+    from app.core.database import SessionLocal
+    email = f"sess.{uuid.uuid4().hex[:6]}@student.eduadapt.id"
+    with TestClient(app) as client:
+        token = client.post("/api/v1/auth/register", json={"name": "Sesi", "email": email, "role": "SISWA", "password": "secretpassword123"}).json()["token"]
+        auth = {"Authorization": f"Bearer {token}"}
+        db = SessionLocal()
+        try:
+            row = db.get(AuthSession, token_hash(token))
+            assert row.expires_at > datetime.utcnow() + SESSION_IDLE - timedelta(minutes=5)
+
+            # Last used 3 hours ago: any request pushes the 7-day window forward again.
+            row.expires_at = datetime.utcnow() + SESSION_IDLE - timedelta(hours=3)
+            db.commit()
+            assert client.get("/api/v1/auth/me", headers=auth).status_code == 200
+            db.expire_all()
+            assert db.get(AuthSession, token_hash(token)).expires_at > datetime.utcnow() + SESSION_IDLE - timedelta(minutes=5)
+
+            # Unused for 7 days in a row: the student has to log in again.
+            db.get(AuthSession, token_hash(token)).expires_at = datetime.utcnow() - timedelta(seconds=1)
+            db.commit()
+            assert client.get("/api/v1/auth/me", headers=auth).status_code == 401
+        finally:
+            db.close()
+
+
 def test_auth_login_invalid():
     with TestClient(app) as client:
         payload = {
@@ -122,6 +150,41 @@ def test_learning_progress_endpoints():
         assert "visual_params" in style_data
         assert "auditory_params" in style_data
         assert "kinesthetic_params" in style_data
-        assert style_data["visual_params"]["spatial_retention_pct"] > 0
-        assert style_data["kinesthetic_params"]["lab_accuracy_pct"] > 0
-        assert style_data["auditory_params"]["verbal_retention_pct"] > 0
+        assert style_data["visual_params"]["mindmap_explored_count"] >= 2
+        # Nothing graded yet: no accuracy is reported rather than an invented one.
+        assert style_data["accuracy_avg_pct"] is None
+        assert "spatial_retention_pct" not in style_data["visual_params"]
+
+
+def test_streak_counts_consecutive_active_days_only():
+    from datetime import timedelta
+    from app.core.database import SessionLocal
+    from app.models.user import User
+    from app.services.progress_service import local_today
+    email = f"streak.{uuid.uuid4().hex[:6]}@student.eduadapt.id"
+    with TestClient(app) as client:
+        reg = client.post("/api/v1/auth/register", json={"name": "Rajin", "email": email, "role": "SISWA", "password": "secretpassword123"}).json()
+        auth, uid = {"Authorization": f"Bearer {reg['token']}"}, reg["user"]["id"]
+        me = lambda: client.get("/api/v1/auth/me", headers=auth).json()
+        assert me()["streak_days"] == 0  # nothing learned yet
+
+        track = lambda: client.patch(f"/api/v1/users/{uid}/progress", json={"modality_type": "visual", "amount": 1}, headers=auth)
+        assert track().status_code == 200
+        assert me()["streak_days"] == 1
+        track()
+        assert me()["streak_days"] == 1  # same day counts once
+
+        def set_last(days_ago, streak):
+            db = SessionLocal()
+            try:
+                user = db.get(User, uid)
+                user.last_active_on, user.streak_days = local_today() - timedelta(days=days_ago), streak
+                db.commit()
+            finally:
+                db.close()
+
+        set_last(1, 3)  # learned yesterday with a 3-day streak
+        track()
+        assert me()["streak_days"] == 4
+        set_last(3, 4)  # skipped two days
+        assert me()["streak_days"] == 0

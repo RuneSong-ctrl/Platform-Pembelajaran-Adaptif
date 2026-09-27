@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.services.cache_service import check_rate_limit
 from app.core.database import get_db
 from app.models.user import User
+from app.services import progress_service
 from app.core.auth import AuthSession, bearer, create_session, current_user, hash_password, make_media_ticket, token_hash, verify_password, MEDIA_TICKET_TTL
 from app.schemas.user import (
     UserRegister,
@@ -76,7 +77,7 @@ def register_new_account(payload: UserRegister, request: Request, db: Session = 
         modality_scores=None,
         processing_speed="MODERATE" if role == "SISWA" else None,
         xp_total=0,
-        streak_days=1,
+        streak_days=0,
         hearts=5,
         current_dda_level="BASIC" if role == "SISWA" else None,
         children_ids=[] if role == "ORTU" else None,
@@ -138,7 +139,9 @@ def media_ticket(user: User = Depends(current_user)):
 
 
 @router.get("/me", response_model=UserResponse)
-def me(user: User = Depends(current_user)):
+def me(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    if progress_service.settle_streak(user):
+        db.commit()
     return user
 
 

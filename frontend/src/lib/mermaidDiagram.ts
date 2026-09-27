@@ -44,7 +44,7 @@ export function toMermaid(diagram: Diagram): string {
   const lines = ["mindmap"];
   const walk = (node: DiagramNode, depth: number) => {
     const text = clean(node.label);
-    const shape = depth === 1 ? `((\"${text}\"))` : `["${text}"]`;
+    const shape = depth === 1 ? `(("${text}"))` : `["${text}"]`;
     lines.push(`${"  ".repeat(depth)}${nodeId(node.id)}${shape}`);
     for (const child of children.get(node.id) || []) walk(child, depth + 1);
   };

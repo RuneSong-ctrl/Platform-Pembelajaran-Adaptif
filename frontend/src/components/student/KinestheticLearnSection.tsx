@@ -339,7 +339,7 @@ export default function KinestheticLearnSection({ doc }: KinestheticLearnSection
       const p = paras[i];
       const sentences = p.split(/(?<=[.?!])\s+/).filter((s: string) => s.length > 20);
       const targetSentence = sentences[0] || p.slice(0, 100);
-      const words = targetSentence.match(/\b[A-Za-z0-9\-]{5,}\b/g) || [];
+      const words = targetSentence.match(/\b[A-Za-z0-9-]{5,}\b/g) || [];
       const viableWords = words.filter((w: string) => !stopwords.has(w.toLowerCase()));
 
       if (viableWords.length > 0) {

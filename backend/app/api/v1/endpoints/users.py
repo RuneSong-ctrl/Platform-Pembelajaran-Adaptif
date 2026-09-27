@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from app.core.database import get_db
 from app.models.user import User
+from app.services import progress_service
 from app.core.auth import current_user
 from app.services.cache_service import check_rate_limit
 from app.core.scope import visible_classrooms, visible_classroom_ids, visible_student_ids
@@ -26,6 +27,9 @@ from app.schemas.user import (
 )
 
 router = APIRouter(prefix="/users", tags=["Users"])
+
+# Listening goal the audio progress bar counts toward (a target, not a measurement).
+AUDIO_TARGET_MINUTES = 45
 
 def visible_people(actor: User, db: Session) -> list[User]:
     """The signed-in user, their students/children, their classes' teachers, and parents linked to those students."""
@@ -137,7 +141,7 @@ def learning_progress_for(user: User, db: Session) -> LearningProgressResponse:
 
     a_pct = raw_prog.get("audio")
     if a_pct is None:
-        a_target_minutes = 45
+        a_target_minutes = AUDIO_TARGET_MINUTES
         a_pct = min(100, round((a_minutes / a_target_minutes) * 100)) if a_target_minutes > 0 else 0
     a_pct = max(0, min(100, int(a_pct)))
 
@@ -179,6 +183,7 @@ def track_student_learning_activity(
     if actor.id != user_id:
         raise HTTPException(403, "Progres hanya dapat dicatat oleh pemilik akun.")
     user = actor
+    progress_service.record_activity(user)
 
     m_type = payload.modality_type.strip().lower()
     if m_type not in ["visual", "audio", "practice"]:
@@ -202,7 +207,7 @@ def track_student_learning_activity(
     elif m_type == "audio":
         current_prog["audio_minutes"] = (current_prog.get("audio_minutes") or 0) + amount
         current_prog["audio_completed"] = (current_prog.get("audio_completed") or 0) + 1
-        current_prog["audio"] = min(100, round((current_prog["audio_minutes"] / 45) * 100))
+        current_prog["audio"] = min(100, round((current_prog["audio_minutes"] / AUDIO_TARGET_MINUTES) * 100))
     elif m_type == "practice":
         current_prog["practice_completed"] = (current_prog.get("practice_completed") or 0) + amount
         p_total = max(current_prog.get("practice_total") or 0, db_tasks_count, current_prog["practice_completed"])
@@ -226,65 +231,33 @@ def get_student_style_analytics(user_id: str, db: Session = Depends(get_db), act
     credentials = db.query(BlockchainCredential).filter(BlockchainCredential.student_id == user_id).all()
     submissions = db.query(AssignmentSubmission).filter(AssignmentSubmission.student_id == user_id).all()
     
-    # Calculate real accuracy from credentials or graded submissions
+    # Accuracy only from real results: quiz credentials first, otherwise graded work; nothing graded = no number.
     graded_subs = [s.grade for s in submissions if s.grade is not None]
-    if credentials:
-        avg_accuracy = round(sum(c.score or 0 for c in credentials) / len(credentials))
-    elif graded_subs:
-        avg_accuracy = round(sum(graded_subs) / len(graded_subs))
-    else:
-        avg_accuracy = (
-            95 if user.current_dda_level == "MASTERY"
-            else (85 if user.current_dda_level == "CHALLENGING" else 75)
-        )
-
-    speed_is_fast = user.processing_speed == "FAST"
-    dda_lvl = user.current_dda_level or "BASIC"
-
-    # Visual Params computed dynamically
-    visual_params = VisualAnalyticsParams(
-        spatial_retention_pct=avg_accuracy,
-        scan_speed_sec_per_node=1.5 if speed_is_fast else 2.2,
-        infographic_accuracy_pct=min(100, max(70, avg_accuracy + 5)),
-        mindmap_explored_count=prog.visual_completed,
-        mindmap_total_count=prog.visual_total,
-        visual_progress_pct=prog.visual_progress,
-        status_label="Sangat Efektif" if prog.visual_progress >= 70 else "Tinggi"
-    )
-
-    # Auditory Params computed dynamically
-    auditory_params = AuditoryAnalyticsParams(
-        total_listening_minutes=prog.audio_minutes,
-        target_listening_minutes=45,
-        verbal_retention_pct=max(70, avg_accuracy),
-        focus_stability_pct=90 if prog.audio_minutes >= 20 else 85,
-        ideal_playback_speed=1.25 if speed_is_fast else 1.0,
-        sessions_completed=prog.audio_completed,
-        audio_progress_pct=prog.audio_progress,
-        status_label="Optimal" if prog.audio_progress >= 50 else "Sedang Berkembang"
-    )
-
-    # Kinesthetic Params computed dynamically
-    kinesthetic_params = KinestheticAnalyticsParams(
-        lab_accuracy_pct=avg_accuracy,
-        trial_error_iterations=1.2 if dda_lvl == "MASTERY" else (1.4 if dda_lvl == "CHALLENGING" else 1.8),
-        mission_speed_minutes=2.8 if speed_is_fast else 3.2,
-        dda_problem_solving_level=dda_lvl,
-        missions_completed=prog.practice_completed,
-        missions_total=prog.practice_total,
-        practice_progress_pct=prog.practice_progress,
-        status_label="Sangat Efektif" if prog.practice_progress >= 60 else "Aktif Mandiri"
-    )
+    scores = [c.score for c in credentials if c.score is not None] or graded_subs
+    avg_accuracy = round(sum(scores) / len(scores)) if scores else None
 
     return LearningStyleAnalyticsResponse(
         student_id=user.id,
-        learning_style=user.learning_style or "KINESTETIK",
-        current_dda_level=dda_lvl,
+        learning_style=user.learning_style,
+        current_dda_level=user.current_dda_level or "BASIC",
         xp_total=user.xp_total or 0,
         accuracy_avg_pct=avg_accuracy,
-        visual_params=visual_params,
-        auditory_params=auditory_params,
-        kinesthetic_params=kinesthetic_params,
-        updated_at=datetime.utcnow() if hasattr(datetime, 'utcnow') else user.updated_at
+        visual_params=VisualAnalyticsParams(
+            mindmap_explored_count=prog.visual_completed,
+            mindmap_total_count=prog.visual_total,
+            visual_progress_pct=prog.visual_progress,
+        ),
+        auditory_params=AuditoryAnalyticsParams(
+            total_listening_minutes=prog.audio_minutes,
+            target_listening_minutes=AUDIO_TARGET_MINUTES,
+            sessions_completed=prog.audio_completed,
+            audio_progress_pct=prog.audio_progress,
+        ),
+        kinesthetic_params=KinestheticAnalyticsParams(
+            missions_completed=prog.practice_completed,
+            missions_total=prog.practice_total,
+            practice_progress_pct=prog.practice_progress,
+        ),
+        updated_at=datetime.utcnow(),
     )
 

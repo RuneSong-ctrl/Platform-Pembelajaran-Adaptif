@@ -1,11 +1,11 @@
 // Service Worker for EduAdapt PWA
-const CACHE_NAME = "eduadapt-pwa-v1";
+const CACHE_NAME = "eduadapt-pwa-v2";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
   "/manifest.json",
-  "/icon-192.svg",
-  "/icon-512.svg"
+  "/brand/icon-192.png",
+  "/brand/icon-512.png"
 ];
 
 // Install Event: Cache Core Static Assets
@@ -32,58 +32,53 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// API data and private media are per-user; caching them would show one account's data to the next
+const NEVER_CACHE = [/^\/api\//, /^\/uploads\//];
+
 // Fetch Event: Stale-While-Revalidate with SPA Fallback
 self.addEventListener("fetch", (event) => {
-  // Only handle GET requests
-  if (event.request.method !== "GET") return;
+  const request = event.request;
+  if (request.method !== "GET") return;
 
-  const url = new URL(event.request.url);
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+  if (request.headers.has("Authorization") || NEVER_CACHE.some((re) => re.test(url.pathname))) return;
 
   // For HTML navigation requests, try network first, then cache, fallback to index.html for SPA routes
-  if (event.request.mode === "navigate") {
+  if (request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request)
+      fetch(request)
         .then((response) => {
           if (response && response.status === 200) {
             const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
           }
           return response;
         })
-        .catch(() => {
-          return caches.match(event.request).then((cachedResponse) => {
-            return cachedResponse || caches.match("/index.html");
-          });
-        })
+        .catch(() =>
+          caches.match(request)
+            .then((cached) => cached || caches.match("/index.html"))
+            .then((fallback) => fallback || Response.error())
+        )
     );
     return;
   }
 
-  // For static assets and other resources: Stale-While-Revalidate
+  // For static assets: Stale-While-Revalidate
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request)
-        .then((networkResponse) => {
-          if (
-            networkResponse &&
-            networkResponse.status === 200 &&
-            networkResponse.type === "basic"
-          ) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          // If offline and not in cache, fallback gracefully
-          return null;
-        });
-
-      return cachedResponse || fetchPromise;
+    caches.match(request).then((cachedResponse) => {
+      const fetchPromise = fetch(request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseToCache));
+        }
+        return networkResponse;
+      });
+      if (cachedResponse) {
+        fetchPromise.catch(() => {});
+        return cachedResponse;
+      }
+      return fetchPromise;
     })
   );
 });

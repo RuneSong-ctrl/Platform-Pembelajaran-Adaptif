@@ -31,7 +31,7 @@ export default function TeacherDashboardPage() {
 
   const [createClassModalOpen, setCreateClassModalOpen] = useState(false);
   const [classNameInput, setClassNameInput] = useState("");
-  const [subjectInput, setSubjectInput] = useState("Biologi");
+  const [subjectInput, setSubjectInput] = useState("");
   const [gradeInput, setGradeInput] = useState(10);
 
   const [grading, setGrading] = useState<AssignmentSubmission | null>(null);

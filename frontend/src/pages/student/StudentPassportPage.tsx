@@ -72,13 +72,13 @@ export default function StudentPassportPage() {
   };
 
   return (
-    <div className="h-screen bg-[#FBF9F4] text-[#1B1C19] flex flex-col overflow-hidden">
+    <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden w-full">
         <StudentSidebar />
 
-      <main className="flex-1 overflow-y-auto min-w-0 pb-24 md:pb-8">
+      <main className="flex-1 overflow-y-auto min-w-0 app-main md:pb-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 space-y-6">
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs font-bold text-[#5A5E70]">
@@ -97,19 +97,11 @@ export default function StudentPassportPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Badge variant="mint" className="text-xs">
-                SHA-256 Merkle Ledger
-              </Badge>
-              <Badge variant="lavender" className="text-xs">
-                Zero Tamper Proof
-              </Badge>
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-bold text-[#010105]">
+            <h1 className="text-2xl sm:text-4xl font-bold text-[#1C1E26]">
               Blockchain Learning Passport Vault
             </h1>
             <p className="text-xs sm:text-sm text-[#5A5E70] font-medium mt-0.5">
-              Portofolio akademik terdesentralisasi milik <strong>{currentUser.name}</strong> yang terkunci secara permanen.
+              Sertifikat milik <strong>{currentUser.name}</strong>
             </p>
           </div>
 
@@ -130,7 +122,7 @@ export default function StudentPassportPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card className="p-5 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs">
             <span className="text-mini font-bold text-[#9195A8] uppercase">Total Sertifikat Kredensial</span>
-            <p className="text-2xl font-bold text-[#010105] mt-1">{total} Sertifikat</p>
+            <p className="text-2xl font-bold text-[#1C1E26] mt-1">{total} Sertifikat</p>
             <p className="text-mini text-[#1D5E4D] font-medium mt-1">
               {total === 0 ? "Belum ada kredensial" : `${validCount} dari ${total} terverifikasi`}
             </p>
@@ -138,7 +130,7 @@ export default function StudentPassportPage() {
 
           <Card className="p-5 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs">
             <span className="text-mini font-bold text-[#9195A8] uppercase">Rerata Skor Kompetensi</span>
-            <p className="text-2xl font-bold text-[#010105] mt-1">
+            <p className="text-2xl font-bold text-[#1C1E26] mt-1">
               {avgScore === null ? "–" : `${avgScore}%`}
             </p>
             <p className="text-mini text-[#4B3B7A] font-medium mt-1">
@@ -155,7 +147,7 @@ export default function StudentPassportPage() {
 
         {/* Block Credentials List */}
         <div className="space-y-4">
-          <h2 className="text-lg font-bold text-[#010105]">
+          <h2 className="text-lg font-bold text-[#1C1E26]">
             Daftar Blok Transaksi Akademik
           </h2>
 
@@ -164,7 +156,7 @@ export default function StudentPassportPage() {
               <div className="w-12 h-12 mx-auto rounded-2xl bg-[#F0EEF6] text-[#4B3B7A] flex items-center justify-center">
                 <Award className="w-6 h-6" />
               </div>
-              <p className="text-sm font-bold text-[#010105]">Belum ada sertifikat</p>
+              <p className="text-sm font-bold text-[#1C1E26]">Belum ada sertifikat</p>
               <p className="text-xs text-[#5A5E70] max-w-sm mx-auto">
                 Sertifikat kompetensi otomatis tercatat di sini setelah kamu lulus kuis adaptif di kelasmu.
               </p>
@@ -182,9 +174,9 @@ export default function StudentPassportPage() {
                     <Award className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-[#010105]">{cred.competencyTitle}</h3>
+                    <h3 className="text-sm font-bold text-[#1C1E26]">{cred.competencyTitle}</h3>
                     <p className="text-xs text-[#5A5E70] font-medium">
-                      {cred.className} • {formatDate(cred.issuedAt)} • Nilai Capaian: <strong className="text-[#010105]">{cred.score}%</strong>
+                      {cred.className} • {formatDate(cred.issuedAt)} • Nilai Capaian: <strong className="text-[#1C1E26]">{cred.score}%</strong>
                     </p>
                   </div>
                 </div>
@@ -205,14 +197,14 @@ export default function StudentPassportPage() {
               </div>
 
               {/* Cryptographic Details Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-[#FBF9F4] p-4 rounded-2xl border border-[rgba(28,30,38,0.06)] font-mono">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-[#F8F9FD] p-4 rounded-2xl border border-[rgba(28,30,38,0.06)] font-mono">
                 <div>
                   <span className="text-mini uppercase font-bold text-[#9195A8] block">ID Sertifikat</span>
-                  <span className="text-[#010105] font-bold">{cred.certificateId}</span>
+                  <span className="text-[#1C1E26] font-bold">{cred.certificateId}</span>
                 </div>
                 <div>
                   <span className="text-mini uppercase font-bold text-[#9195A8] block">Penerbit &amp; Otoritas</span>
-                  <span className="text-[#010105]">{cred.verifiedBy}</span>
+                  <span className="text-[#1C1E26]">{cred.verifiedBy}</span>
                 </div>
                 <div className="sm:col-span-2 break-all">
                   <span className="text-mini uppercase font-bold text-[#9195A8] block">Block Hash (SHA-256)</span>
@@ -229,7 +221,7 @@ export default function StudentPassportPage() {
                   </div>
                   <button
                     onClick={() => handleCopyTx(cred.transactionId)}
-                    className="p-1.5 rounded-xl bg-white border border-[rgba(28,30,38,0.1)] text-[#010105] hover:bg-[#F0EEE9] transition-colors shrink-0 cursor-pointer"
+                    className="p-1.5 rounded-xl bg-white border border-[rgba(28,30,38,0.1)] text-[#1C1E26] hover:bg-[#F0EEE9] transition-colors shrink-0 cursor-pointer"
                     title="Salin TxID"
                   >
                     <Copy className="w-3.5 h-3.5" />
@@ -238,8 +230,8 @@ export default function StudentPassportPage() {
               </div>
 
               {copiedTx === cred.transactionId && (
-                <p className="text-mini font-bold text-[#1D5E4D] animate-in fade-in">
-                  ✓ TxID disalin ke papan klip!
+                <p className="text-mini font-bold text-[#1D5E4D] animate-in fade-in flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> TxID disalin ke papan klip!
                 </p>
               )}
             </Card>

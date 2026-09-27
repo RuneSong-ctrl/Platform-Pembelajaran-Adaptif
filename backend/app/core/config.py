@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     
     # Public base URL of the web app, used for certificate verification links (QR codes)
     FRONTEND_URL: str = "http://localhost:3000"
+    # Learning-streak days roll over at local midnight; +8 = WITA (Bali). Use +7 for WIB, +9 for WIT.
+    STREAK_UTC_OFFSET_HOURS: int = 8
 
     GENESIS_PREVIOUS_HASH: str = "0000000000000000000000000000000000000000000000000000000000000000"
 

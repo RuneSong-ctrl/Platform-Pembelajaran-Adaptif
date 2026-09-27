@@ -329,17 +329,17 @@ def _chat_with_gemini(
     if relevant_chunks:
         primary_chunk = relevant_chunks[0]["text"]
         return {
-            "text": f"Berdasarkan modul ter-grounding:\n\n{primary_chunk}\n\nTopik ini sangat penting untuk penguasaan konsep kurikulummu.",
-            "citation": " • ".join(citations),
+            "text": "AI tutor sedang tidak tersambung. Ini bagian materi gurumu yang paling cocok dengan pertanyaanmu:" + "\n\n" + primary_chunk,
+            "citation": " | ".join(citations),
             "is_grounded": True,
             "model": "local-rag-fallback"
         }
-    
+
     return {
-        "text": f"Pertanyaan mengenai '{clean_query}' adalah konsep yang menarik! Pastikan gurumu telah mengunggah modul lengkap di kelas ini agar saya dapat merujuk ke bab dan halaman kurikulum resmimu.",
-        "citation": "EduAdapt Kurikulum",
+        "text": "AI tutor sedang tidak tersambung, jadi pertanyaanmu belum bisa dijawab. Coba lagi beberapa saat lagi.",
+        "citation": "",
         "is_grounded": False,
-        "model": "local-fallback"
+        "model": "unavailable"
     }
 
 def generate_ai_quiz(
@@ -520,49 +520,8 @@ Konteks Modul Ajar:
     except Exception as e:
         logger.debug(f"[AdaptiveAssets] Podcast episodes AI generation error: {e}")
 
-    # Fallback substantif mendalam jika AI offline
-    paras = [p.strip() for p in context.split("\n\n") if len(p.strip()) > 60]
-    if not paras:
-        paras = [f"Pembahasan komprehensif mengenai materi {doc_title}."]
-
-    fallback_eps = []
-    titles = [
-        f"Episode 1: Fondasi Filosofis & Hakikat {doc_title}",
-        f"Episode 2: Mekanisme Inti & Interaksi Sistemik",
-        f"Episode 3: Analisis Kasus Nyata & Dinamika Masalah",
-        f"Episode 4: Implementasi Strategis & Sintesis Masa Depan"
-    ]
-    descs = [
-        f"Membedah latar belakang mendasar, ruang lingkup konsep, dan urgensi mempelajari {doc_title}.",
-        f"Menguraikan proses demi proses bagaimana komponen saling terhubung dan bekerja secara nyata.",
-        f"Mempelajari skenario nyata di lapangan, tantangan kritis, dan solusi adaptif yang dapat diterapkan.",
-        f"Menarik benang merah ke penerapan teknologi praktis dan keterampilan abad ke-21."
-    ]
-
-    count = min(4, max(2, len(paras)))
-    for idx in range(count):
-        p_text = paras[idx] if idx < len(paras) else paras[0]
-        script_body = (
-            f"Halo rekan pembelajar adaptif! Selamat datang di episode ke-{idx + 1} dari seri podcast modul {doc_title}. "
-            f"Pada sesi kali ini, fokus utama kita adalah membedah {titles[idx].split(': ')[1]}. "
-            f"Mari kita mulai dari pemahaman mendasar: {p_text}. "
-            f"Ketika kita menelaah konsep ini lebih dalam, kita melihat bahwa setiap unsur memiliki peranan yang sangat krusial dalam menjaga keseimbangan sistem. "
-            f"Bayangkan seperti sebuah mesin presisi tinggi, di mana setiap roda gigi harus selaras agar hasil akhir dapat tercapai secara optimal. "
-            f"Dalam implementasi praktisnya, pemahaman ini memberikan fondasi yang kokoh bagi kita untuk menganalisis berbagai skenario kompleks dan mengambil keputusan berbasis bukti yang tepat. "
-            f"Tetap fokus, renungkan prinsip kuncinya, dan mari kita lanjutkan eksplorasi konsep berikutnya di episode mendatang!"
-        )
-        words = len(script_body.split())
-        est_sec = max(90, min(150, int(words / 2.2)))
-        fallback_eps.append({
-            "id": f"ep_{idx + 1}",
-            "order": idx + 1,
-            "title": titles[idx],
-            "description": descs[idx],
-            "script": script_body,
-            "durationSec": est_sec
-        })
-
-    return fallback_eps
+    # Without AI there is nothing true to narrate; an empty playlist means "podcast not ready yet".
+    return []
 
 def _generate_visual_nodes_metadata(doc_title: str, context: str, mindmap_code: str) -> str:
     """
@@ -1453,6 +1412,10 @@ def generate_document_adaptive_assets(doc_id: str, db: Any) -> Dict[str, Any]:
     if not episodes_data:
         logger.info(f"[AdaptiveAssets] Menyusun playlist podcast multi-episode untuk '{doc.title}'...")
         episodes_data = _generate_podcast_episodes(doc.title, summary_context)
+        if not episodes_data:
+            logger.warning(f"[AdaptiveAssets] Podcast '{doc.title}' belum dibuat: layanan AI tidak tersedia.")
+            return {"podcast_audio_url": doc.podcast_audio_url, "podcast_episodes_json": doc.podcast_episodes_json,
+                    "podcast_script": doc.podcast_script}
         doc.podcast_episodes_json = json.dumps(episodes_data, ensure_ascii=False)
         db.commit()
 

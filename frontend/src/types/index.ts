@@ -384,6 +384,8 @@ export interface GameConfig {
 
 export interface QuizQuestion {
   id: string;
+  kind?: "mcq" | "essay"; // missing on older quizzes = multiple choice
+  points?: number;
   questionText: string;
   options: string[];
   correctIndex: number;
@@ -401,6 +403,12 @@ export interface GroundedTask {
   classroomId: string;
   classroomName: string;
   type: "material" | "quiz" | "exam" | "assignment";
+  examLabel?: "UTS" | "UAS" | "Ulangan";
+  opensAt?: string; // ISO, UTC
+  closesAt?: string; // assignment deadline or end of the exam window
+  timeLimitMinutes?: number;
+  maxAttempts?: number;
+  attachments?: FileRef[];
   title: string;
   chapter?: string;
   sourceReference: string;
@@ -413,6 +421,10 @@ export interface GroundedTask {
     questions?: QuizQuestion[];
     instructions?: string;
     maxScore?: number;
+    // exams, as students see them before starting
+    question_count?: number;
+    total_points?: number;
+    has_essay?: boolean;
     visualDiagramSvg?: string;
     audioChapters?: {
       title: string;
@@ -480,9 +492,23 @@ export interface AssignmentSubmission {
   submittedAt: string;
   content: string;
   attachmentName?: string;
-  status: "Submitted" | "Late" | "Returned" | "Graded";
+  status: "InProgress" | "Submitted" | "Late" | "Returned" | "Graded";
   grade?: number;
   feedback?: string;
+  attachments?: FileRef[];
+  answers?: Record<string, number | string>;
+  essayScores?: Record<string, number>;
+  startedAt?: string;
+  isLate?: boolean;
+}
+
+/** A stored file: open it with mediaUrl(path). */
+export interface FileRef {
+  id: string;
+  name: string;
+  size: number;
+  mime: string;
+  path: string;
 }
 
 export interface ParentTeacherNote {

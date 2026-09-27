@@ -80,8 +80,10 @@ def test_student_claims_credential_graded_on_server():
         assert cred["competency_title"] == "Penguasaan Sel Hewan"
         assert "/verify?cert=" in cred["qr_verification_url"]
 
+        assert client.get("/api/v1/auth/me", headers=student).json()["xp_total"] == 50  # first pass earns XP
         again = client.post("/api/v1/credentials/claim", json={"task_id": task["id"], "answers": _answers(4)}, headers=student).json()
         assert again["certificate_id"] == cred["certificate_id"]  # one credential per quiz
+        assert client.get("/api/v1/auth/me", headers=student).json()["xp_total"] == 50  # not again for a retake
         assert [x["grade"] for x in client.get("/api/v1/submissions", headers=teacher).json()] == [100.0]  # best score kept
 
         # Public verify works without logging in
@@ -185,15 +187,19 @@ def test_students_never_get_the_answer_key():
 
 def test_students_cannot_edit_earned_stats_or_spoof_submissions():
     with TestClient(app) as client:
-        _, student, task = _quiz_setup(client)
+        teacher, student, task = _quiz_setup(client)
         me = client.get("/api/v1/auth/me", headers=student).json()
         client.patch(f"/api/v1/users/{me['id']}", json={"xp_total": 99999, "current_dda_level": "MASTERY"}, headers=student)
         after = client.get("/api/v1/auth/me", headers=student).json()
         assert (after["xp_total"], after["current_dda_level"]) == (me["xp_total"], me["current_dda_level"])
 
-        sub = client.post("/api/v1/submissions", json={"task_id": task["id"], "task_title": "PALSU", "student_id": "x",
+        # Quizzes are graded only through their own endpoints, never through a hand-made submission.
+        assert client.post("/api/v1/submissions", data={"task_id": task["id"], "content": "jawaban"}, headers=student).status_code == 400
+        essay = client.post("/api/v1/tasks", json={"classroom_id": task["classroom_id"], "classroom_name": "x",
+                                                   "type": "assignment", "title": "Esai Sel"}, headers=teacher).json()
+        sub = client.post("/api/v1/submissions", data={"task_id": essay["id"], "task_title": "PALSU", "student_id": "x",
                                                        "student_name": "x", "content": "jawaban"}, headers=student).json()
-        assert sub["task_title"] == "Kuis Sel" and sub["student_id"] == me["id"]
+        assert sub["task_title"] == "Esai Sel" and sub["student_id"] == me["id"]
 
 
 def test_quiz_attempts_are_capped():

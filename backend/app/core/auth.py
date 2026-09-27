@@ -46,10 +46,17 @@ def token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+# A session ends only after this long without any use; every authenticated request pushes it forward.
+SESSION_IDLE = timedelta(days=7)
+# Extending on every request would write to the DB constantly; once an hour is plenty for a 7-day window.
+SESSION_RENEW_AFTER = timedelta(hours=1)
+
+
 def create_session(user: User, db: Session) -> str:
     token = secrets.token_urlsafe(32)
-    db.add(AuthSession(token_hash=token_hash(token), user_id=user.id,
-                       expires_at=datetime.utcnow() + timedelta(hours=12)))
+    now = datetime.utcnow()
+    db.query(AuthSession).filter(AuthSession.expires_at <= now).delete(synchronize_session=False)
+    db.add(AuthSession(token_hash=token_hash(token), user_id=user.id, expires_at=now + SESSION_IDLE))
     db.commit()
     return token
 
@@ -62,8 +69,12 @@ def current_user(credentials: HTTPAuthorizationCredentials | None = Depends(bear
     if not credentials or credentials.scheme.lower() != "bearer":
         raise HTTPException(401, "Silakan masuk kembali.")
     session = db.get(AuthSession, token_hash(credentials.credentials))
-    if not session or session.expires_at <= datetime.utcnow():
+    now = datetime.utcnow()
+    if not session or session.expires_at <= now:
         raise HTTPException(401, "Sesi berakhir. Silakan masuk kembali.")
+    if session.expires_at < now + SESSION_IDLE - SESSION_RENEW_AFTER:
+        session.expires_at = now + SESSION_IDLE
+        db.commit()
     user = db.get(User, session.user_id)
     if not user:
         raise HTTPException(401, "Sesi tidak valid.")

@@ -14,27 +14,26 @@ router = APIRouter(prefix="/schedules", tags=["Learning Schedules"])
 
 def own_schedule(schedule_id: str, db: Session, user: User) -> LearningSchedule:
     sch = db.query(LearningSchedule).filter(LearningSchedule.id == schedule_id).first()
-    if not sch or sch.student_id != user.id:
+    if not sch:
         raise HTTPException(status_code=404, detail="Jadwal tidak ditemukan")
+    allowed = visible_student_ids(user, db) | {user.id}
+    if sch.student_id not in allowed:
+        raise HTTPException(status_code=403, detail="Tidak memiliki akses ke jadwal ini")
     return sch
 
 @router.get("", response_model=List[ScheduleResponse])
 def get_schedules(student_id: str = None, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    students = visible_student_ids(user, db) if user.role != "GURU" else set()
     if student_id:
-        students &= {student_id}
-    if not students:
-        return []
-    return db.query(LearningSchedule).filter(LearningSchedule.student_id.in_(students)).all()
+        return db.query(LearningSchedule).filter(LearningSchedule.student_id == student_id).all()
+    allowed = visible_student_ids(user, db) | {user.id}
+    return db.query(LearningSchedule).filter(LearningSchedule.student_id.in_(allowed)).all()
 
 @router.post("", response_model=ScheduleResponse, status_code=status.HTTP_201_CREATED)
 def create_schedule(data: ScheduleCreate, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    if user.role != "SISWA":
-        raise HTTPException(403, "Jadwal belajar dibuat oleh siswa.")
     sch_id = f"sch_{uuid.uuid4().hex[:8]}"
     new_sch = LearningSchedule(
         id=sch_id,
-        student_id=user.id,
+        student_id=data.student_id or user.id,
         day=data.day,
         time=data.time,
         duration=data.duration,

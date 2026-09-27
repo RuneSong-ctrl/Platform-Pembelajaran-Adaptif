@@ -8,6 +8,8 @@ class AIConversation(Base):
     id = Column(String(64), primary_key=True, index=True)
     user_id = Column(String(64), nullable=False, index=True)
     title = Column(String(255), nullable=False)
+    # classroom without document = "all materials of this subject"; both empty = general, ungrounded chat
+    classroom_id = Column(String(64), nullable=True)
     document_id = Column(String(64), nullable=True)
     # ponytail: messages stored inline as JSON; move to its own table if chats get long enough to need paging
     messages = Column(JSON, nullable=False, default=list)  # [{"sender", "text", "citation", "timestamp"}]

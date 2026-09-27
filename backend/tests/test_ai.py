@@ -111,6 +111,24 @@ def test_teacher_chat_sees_only_own_class_data():
         assert chat.call_args.kwargs["teacher_context"] is None
 
 
+def test_student_chat_scope_is_saved_and_limited_to_own_class():
+    from unittest.mock import patch
+    reply = {"text": "ok", "citation": "", "is_grounded": False, "model": "test"}
+    with TestClient(app) as client, patch("app.api.v1.endpoints.ai.chat_with_gemini", return_value=reply):
+        teacher, student, outsider = login(client, "GURU"), login(client, "SISWA"), login(client, "SISWA")
+        cls = client.post("/api/v1/classrooms", json={"name": "Bio 11", "subject": "Biologi", "teacher_id": "x", "teacher_name": "x"}, headers=teacher).json()
+        client.post("/api/v1/classrooms/join", json={"join_code": cls["join_code"], "student_id": "x"}, headers=student)
+
+        general = client.post("/api/v1/ai/chat", json={"message": "Apa itu atom?"}, headers=student).json()
+        subject = client.post("/api/v1/ai/chat", json={"message": "Ringkas semua materi", "classroom_id": cls["id"]}, headers=student).json()
+        convs = {c["id"]: c for c in client.get("/api/v1/ai/conversations", headers=student).json()}
+        assert convs[general["conversation_id"]]["classroom_id"] is None
+        assert convs[subject["conversation_id"]]["classroom_id"] == cls["id"]
+        assert convs[subject["conversation_id"]]["document_id"] is None
+
+        # "All materials of a subject" still requires being in that class.
+        assert client.post("/api/v1/ai/chat", json={"message": "x", "classroom_id": cls["id"]}, headers=outsider).status_code == 403
+
 def test_student_tutor_retrieval_and_plain_text():
     from app.services.gemini_service import to_plain_text
     index_document("doc_bio_gate", "class_gate", "Sistem Ekskresi",

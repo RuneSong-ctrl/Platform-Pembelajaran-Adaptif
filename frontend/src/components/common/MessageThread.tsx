@@ -55,7 +55,7 @@ export default function MessageThread({
 
   // A student's own thread has no studentId prop; any message event in this class is theirs.
   useLiveEvents((e) => {
-    if (e.type === "message" && e.classroom_id === classroomId && (!studentId || e.student_id === studentId)) loadRef.current();
+    if (e.type === "refresh" || (e.type === "message" && e.classroom_id === classroomId && (!studentId || e.student_id === studentId))) loadRef.current();
     // (the server only sends events for threads this user belongs to; refetching is cheap and access-checked)
   });
 
@@ -128,7 +128,7 @@ export default function MessageThread({
           maxLength={2000}
           placeholder="Tulis pesan..."
           aria-label="Tulis pesan"
-          className="flex-1 resize-none max-h-32 p-3 rounded-2xl border border-[rgba(28,30,38,0.1)] text-sm bg-[#F8F9FD] focus:outline-none focus:border-[#4B3B7A] field-sizing-content"
+          className="flex-1 resize-none max-h-32 p-3 rounded-2xl border border-[rgba(28,30,38,0.1)] max-md:text-base md:text-sm bg-[#F8F9FD] focus:outline-none focus:border-[#4B3B7A] field-sizing-content"
         />
         <button
           type="submit"

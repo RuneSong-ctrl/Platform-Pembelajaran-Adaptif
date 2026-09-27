@@ -37,7 +37,7 @@ export default function ParentCodeCard() {
         <div>
           <h2 className="text-sm sm:text-base font-black text-[#1C1E26]">Hubungkan orang tua</h2>
           <p className="text-xs text-[#5A5E70]">
-            Orang tua bisa melihat perkembanganmu dan berkirim catatan dengan gurumu setelah memasukkan kode ini di akun mereka.
+            Beri kode ini ke orang tuamu agar mereka bisa memantau belajarmu.
           </p>
         </div>
       </div>
@@ -45,7 +45,7 @@ export default function ParentCodeCard() {
       {code ? (
         <div className="rounded-2xl bg-[#F8F9FD] p-4 flex items-center justify-between gap-3">
           <div>
-            <span className="block font-mono text-2xl font-black tracking-[0.2em] text-[#010105]">{code.code}</span>
+            <span className="block font-mono text-2xl font-black tracking-[0.2em] text-[#1C1E26]">{code.code}</span>
             <span className="block text-mini text-[#5A5E70]">
               Sekali pakai · berlaku sampai{" "}
               {utcDate(code.expires_at).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}

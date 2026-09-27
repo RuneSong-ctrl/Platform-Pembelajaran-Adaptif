@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Download, X, Sparkles } from "@/components/ui/icons";
+import { X, Sparkles } from "@/components/ui/icons";
 import { audioSynth } from "@/services/audioSynth";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -52,12 +52,10 @@ export default function PWAInstallPrompt() {
   if (!showPrompt || !deferredPrompt) return null;
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 max-w-sm w-[calc(100%-2rem)] animate-in fade-in slide-in-from-bottom-5 duration-300">
+    <div className="fixed bottom-[calc(var(--bottom-nav-space,4rem)+0.75rem)] md:bottom-6 right-4 md:right-6 z-50 max-w-sm w-[calc(100%-2rem)] animate-in fade-in slide-in-from-bottom-5 duration-300">
       <div className="clay-card clay-dark p-4 rounded-3xl text-white shadow-2xl flex items-center justify-between gap-3 border border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white flex items-center justify-center shrink-0 shadow-md">
-            <Download className="w-5 h-5" />
-          </div>
+          <img src="/brand/logo-96.png" alt="" width={40} height={40} className="w-10 h-10 shrink-0" />
           <div>
             <div className="flex items-center gap-1.5">
               <h4 className="text-xs font-black tracking-tight">Pasang Aplikasi EduAdapt</h4>

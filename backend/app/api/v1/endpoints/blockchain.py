@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
 from app.core.config import settings
+from app.services import progress_service
 from app.core.auth import current_user, require_class_access
 from app.core.scope import visible_classroom_ids, visible_student_ids
 from app.models.credential import BlockchainCredential
@@ -117,6 +118,7 @@ def claim_quiz_credential(data: CredentialClaimRequest, db: Session = Depends(ge
     if existing:
         return existing
 
+    progress_service.award_xp(actor, progress_service.QUIZ_PASS_XP)
     return append_block(
         db,
         student=actor,

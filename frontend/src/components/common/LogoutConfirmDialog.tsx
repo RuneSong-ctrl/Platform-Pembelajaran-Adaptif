@@ -24,7 +24,7 @@ export default function LogoutConfirmDialog({ open, onOpenChange }: { open: bool
           <div className="w-12 h-12 rounded-2xl bg-[#FDE8E8] text-[#852C28] flex items-center justify-center mb-1">
             <LogOut className="w-6 h-6" />
           </div>
-          <DialogTitle className="text-base font-black text-[#010105]">Keluar dari akun?</DialogTitle>
+          <DialogTitle className="text-base font-black text-[#1C1E26]">Keluar dari akun?</DialogTitle>
           <DialogDescription className="text-xs text-[#5A5E70]">
             Anda perlu masuk lagi dengan email dan kata sandi untuk membuka akun ini.
           </DialogDescription>

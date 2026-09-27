@@ -106,7 +106,7 @@ function TestConsumer() {
 
 describe("AppContext Dynamic State & Actions", () => {
   it("stays signed out when a slow session restore finishes after logout", async () => {
-    sessionStorage.setItem("eduadapt_token", "saved-token");
+    localStorage.setItem("eduadapt_token", "saved-token");
     let complete!: (value: unknown) => void;
     vi.stubGlobal("fetch", vi.fn(async (url: string) => ({
       ok: true,
@@ -121,7 +121,7 @@ describe("AppContext Dynamic State & Actions", () => {
   });
 
   it("preserves the visual deep link while restoring a session", async () => {
-    sessionStorage.setItem("eduadapt_token", "saved-token");
+    localStorage.setItem("eduadapt_token", "saved-token");
     let complete!: (value: unknown) => void;
     vi.stubGlobal("fetch", vi.fn(async (url: string) => ({
       ok: true,
@@ -136,6 +136,22 @@ describe("AppContext Dynamic State & Actions", () => {
     expect(await screen.findByText("Visual deep link")).toBeTruthy();
     expect(screen.queryByText("Login gate")).toBeNull();
   });
+  it("keeps the saved login when the server cannot be reached, but drops it when the server rejects it", async () => {
+    localStorage.setItem("eduadapt_token", "saved-token");
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("Failed to fetch"); }));
+    const offline = render(<AppProvider><TestConsumer /></AppProvider>);
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    expect(screen.getByTestId("is-auth").textContent).toBe("NO");
+    expect(localStorage.getItem("eduadapt_token")).toBe("saved-token");
+    offline.unmount();
+
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 401, json: async () => ({ detail: "Sesi berakhir." }) })));
+    render(<AppProvider><TestConsumer /></AppProvider>);
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    expect(localStorage.getItem("eduadapt_token")).toBeNull();
+    expect(sessionStorage.getItem("eduadapt_session_notice")).toContain("Sesi berakhir");
+  });
+
   it("does not authenticate with local flags or failed server login", async () => {
     localStorage.setItem("eduadapt_is_authenticated", "true");
     render(<AppProvider><TestConsumer /></AppProvider>);

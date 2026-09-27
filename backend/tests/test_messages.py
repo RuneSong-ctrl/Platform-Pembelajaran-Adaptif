@@ -124,8 +124,14 @@ def test_parent_links_child_with_one_time_code():
         assert client.post("/api/v1/family/children", json={"code": old}, headers=parent).status_code == 404  # replaced
         assert client.post("/api/v1/family/children", json={"code": code}, headers=student).status_code == 403
         linked = client.post("/api/v1/family/children", json={"code": code.lower()}, headers=parent)
-        assert linked.json() == {"id": s_user["id"], "name": "Budi"}
+        assert linked.json() == {"id": s_user["id"], "name": "Budi", "already_linked": False}
         assert client.post("/api/v1/family/children", json={"code": code}, headers=other_parent).status_code == 404  # single use
+
+        # A fresh code for a child who is already linked says so instead of adding the child twice.
+        again = client.post("/api/v1/family/parent-code", headers=student).json()["code"]
+        assert client.post("/api/v1/family/children", json={"code": again}, headers=parent).json()["already_linked"] is True
+        children = [u for u in client.get("/api/v1/users", headers=parent).json() if u["id"] == s_user["id"]]
+        assert len(children) == 1
 
         # The link is what the rest of the app trusts: the parent now sees the child and can write to the teacher.
         people = {u["id"] for u in client.get("/api/v1/users", headers=parent).json()}

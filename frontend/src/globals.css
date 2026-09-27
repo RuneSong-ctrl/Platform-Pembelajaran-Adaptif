@@ -62,6 +62,11 @@
   min-width: var(--tap);
 }
 
+/* min-width above lets flex items shrink below their content; chips in a sideways-scrolling row must keep their width */
+.overflow-x-auto > :is(button, a, [role="button"]) {
+  flex-shrink: 0;
+}
+
 @theme inline {
   --color-canvas: var(--canvas-bg);
   --color-surface-card: var(--surface-card);
@@ -117,6 +122,29 @@ body {
 
 #root {
   min-height: 100dvh;
+}
+
+/* App-shell pages scroll only inside <main>; the page itself must never move or rubber-band */
+html:has(.app-shell),
+html:has(.app-shell) body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.app-shell {
+  height: 100dvh;
+}
+
+@media (max-width: 767px) {
+  :root {
+    /* floating bottom nav: 12px gap + 74px pill + AI button overhang, above the home indicator */
+    --bottom-nav-space: calc(92px + env(safe-area-inset-bottom));
+  }
+
+  .app-main {
+    padding-bottom: calc(var(--bottom-nav-space) + 16px);
+  }
 }
 
 /* Prevent nested scroll areas from bubbling and bouncing parent window */

@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import TeacherNews from "@/components/student/TeacherNews";
 import Navbar from "@/components/layout/Navbar";
+import PullToRefresh from "@/components/common/PullToRefresh";
 import BottomNav from "@/components/layout/BottomNav";
 import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
@@ -51,7 +52,7 @@ export default function StudentHomePage() {
   const homeAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const style = currentUser?.learningStyle || "VISUAL";
-  const userGrade = currentUser?.grade ? `Kelas ${currentUser.grade}` : "Kelas 10";
+  const userGrade = currentUser?.grade ? `Kelas ${currentUser.grade}` : "";
 
   // Dynamic active learning topic from student's enrolled classrooms
   const myClassrooms = classrooms.filter(
@@ -134,7 +135,6 @@ export default function StudentHomePage() {
           HeroIcon: Headphones,
           modalityLabel: "Auditori",
           btnColor: "text-[#3C2D68]",
-          topBgGradient: "from-[#C4B2F5]/70 via-[#E3DBF8]/40 to-transparent",
           calendarCard: {
             cardBg: "bg-[#EFEAFB]",
             cardBorder: "border-[#D8CDF8]/80",
@@ -172,7 +172,6 @@ export default function StudentHomePage() {
           HeroIcon: FlaskConical,
           modalityLabel: "Kinestetik",
           btnColor: "text-[#694503]",
-          topBgGradient: "from-[#FCD678]/70 via-[#FEE7B3]/40 to-transparent",
           calendarCard: {
             cardBg: "bg-[#FFF4DC]",
             cardBorder: "border-[#FCE0A2]/80",
@@ -211,7 +210,6 @@ export default function StudentHomePage() {
           HeroIcon: Eye,
           modalityLabel: "Visual",
           btnColor: "text-[#124B3D]",
-          topBgGradient: "from-[#9DE1CA]/70 via-[#D1EBE1]/40 to-transparent",
           calendarCard: {
             cardBg: "bg-[#E6F5EE]",
             cardBorder: "border-[#C7EAD9]/80",
@@ -315,13 +313,7 @@ export default function StudentHomePage() {
   const scheduleProgressPercent = totalSchedulesCount > 0 ? Math.round((completedSchedulesCount / totalSchedulesCount) * 100) : 0;
 
   return (
-    <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col relative overflow-hidden">
-      {/* Dynamic Ambient Top Gradient */}
-      <div
-        className={`absolute top-0 left-0 right-0 h-[420px] bg-gradient-to-b ${styleConfig.topBgGradient} pointer-events-none transition-all duration-500`}
-        aria-hidden="true"
-      />
-
+    <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col relative overflow-hidden">
       <div className="relative z-10 shrink-0">
         <Navbar />
       </div>
@@ -331,7 +323,8 @@ export default function StudentHomePage() {
         <StudentSidebar />
 
         {/* Responsive Bento Grid Dashboard */}
-        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5 pb-24 md:pb-8">
+        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5 app-main md:pb-8">
+          <PullToRefresh />
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             {/* LEFT MAIN STREAM (7 cols on lg) */}
             <div className="lg:col-span-7 flex flex-col gap-4 sm:gap-5">
@@ -348,7 +341,7 @@ export default function StudentHomePage() {
                       </span>
                     </div>
                     <h1 className={`text-xl sm:text-2xl font-black tracking-tight ${styleConfig.heroTitleColor}`}>
-                      {currentUser?.name || "Siswa EduAdapt"}
+                      {currentUser?.name}
                     </h1>
                     <p className={`text-xs ${styleConfig.heroSubColor} font-bold mt-0.5`}>
                       {hasActiveContent ? `Target: ${currentChapterTitle}` : "Belum ada target modul aktif dari guru"}
@@ -615,7 +608,7 @@ export default function StudentHomePage() {
                       <div className="flex items-center justify-between px-1">
                         <div className="flex items-center gap-1.5">
                           <Eye className="w-4 h-4 text-[#1D5E4D]" />
-                          <h2 className="text-sm sm:text-base font-extrabold text-[#010105]">
+                          <h2 className="text-sm sm:text-base font-extrabold text-[#1C1E26]">
                             Rencana Belajar Visual Hari Ini
                           </h2>
                         </div>
@@ -644,24 +637,18 @@ export default function StudentHomePage() {
                               <span className="clay-pill clay-mint text-mini font-extrabold px-2.5 py-0.5 text-[#1D5E4D]">
                                 Modul Adaptif
                               </span>
-                              <span className="text-mini text-[#9195A8] font-semibold flex items-center gap-0.5">
-                                <Clock className="w-3 h-3" /> 20 mnt
-                              </span>
                             </div>
                           </div>
 
-                          <div className="clay-btn clay-btn-white w-8 h-8 rounded-full flex items-center justify-center text-[#010105] shrink-0 group-hover:translate-x-0.5 transition-transform">
+                          <div className="clay-btn clay-btn-white w-8 h-8 rounded-full flex items-center justify-center text-[#1C1E26] shrink-0 group-hover:translate-x-0.5 transition-transform">
                             <ChevronRight className="w-4 h-4" />
                           </div>
                         </div>
 
                         <div className="space-y-1">
-                          <h3 className="text-xs sm:text-sm font-black text-[#010105] group-hover:text-[#1D5E4D] transition-colors">
+                          <h3 className="text-xs sm:text-sm font-black text-[#1C1E26] group-hover:text-[#1D5E4D] transition-colors">
                             {currentChapterTitle}
                           </h3>
-                          <p className="text-xs text-[#5A5E70] font-medium leading-relaxed">
-                            Materi pelajaran aktif yang telah dikalibrasi untuk gaya belajar visualmu.
-                          </p>
                         </div>
                       </div>
 
@@ -710,13 +697,10 @@ export default function StudentHomePage() {
                       <div className="flex items-center justify-between px-1">
                         <div className="flex items-center gap-1.5">
                           <Headphones className="w-4 h-4 text-[#4B3B7A]" />
-                          <h2 className="text-sm sm:text-base font-extrabold text-[#010105]">
+                          <h2 className="text-sm sm:text-base font-extrabold text-[#1C1E26]">
                             Audio Studio &amp; Podcast Belajar
                           </h2>
                         </div>
-                        <span className="clay-pill clay-lavender text-mini font-bold text-[#4B3B7A] px-2.5 py-0.5">
-                          Audio Podcast Aktif
-                        </span>
                       </div>
 
                       <div
@@ -754,7 +738,7 @@ export default function StudentHomePage() {
                         <div className="pt-3 border-t border-[#4B3B7A]/15 flex items-center justify-between gap-2 text-mini font-bold text-[#4B3B7A]">
                           <span className="flex items-center gap-1.5">
                             <Radio className="w-3.5 h-3.5 animate-pulse" />
-                            <span>🎙️ EduVoice AI Audio Studio</span>
+                            <span>EduVoice AI Audio Studio</span>
                           </span>
 
                           <span className="flex items-center gap-1 text-[#4B3B7A] group-hover:underline">
@@ -809,13 +793,10 @@ export default function StudentHomePage() {
                       <div className="flex items-center justify-between px-1">
                         <div className="flex items-center gap-1.5">
                           <FlaskConical className="w-4 h-4 text-[#785308]" />
-                          <h2 className="text-sm sm:text-base font-extrabold text-[#010105]">
+                          <h2 className="text-sm sm:text-base font-extrabold text-[#1C1E26]">
                             Lab Virtual &amp; Misi Praktik
                           </h2>
                         </div>
-                        <span className="clay-pill clay-butter text-mini font-bold text-[#785308] px-2.5 py-0.5">
-                          Hands-on Active
-                        </span>
                       </div>
 
                       <div className="clay-card clay-butter p-4 sm:p-5 text-[#4A3205] space-y-3">
@@ -995,7 +976,7 @@ export default function StudentHomePage() {
                   ].map(([label, value]) => (
                     <div key={label} className={`bg-white p-2.5 rounded-xl border ${style === "KINESTETIK" ? "border-[#FEE7B3]" : style === "VISUAL" ? "border-[#D1EBE1]" : "border-[#E3DBF8]"}`}>
                       <span className={`text-mini font-bold block ${style === "KINESTETIK" ? "text-[#785308]" : style === "VISUAL" ? "text-[#1D5E4D]" : "text-[#4B3B7A]"}`}>{label}</span>
-                      <span className="text-sm font-black text-[#010105]">{value}</span>
+                      <span className="text-sm font-black text-[#1C1E26]">{value}</span>
                     </div>
                   ))}
                 </div>
@@ -1043,7 +1024,7 @@ export default function StudentHomePage() {
                 <Link
                   to="/student/status"
                   onClick={() => audioSynth.playClickSound()}
-                  className="w-full py-2 px-3 rounded-xl bg-white text-center text-xs font-extrabold text-[#5A5E70] hover:text-[#010105] border border-black/5 hover:bg-black/5 transition-all flex items-center justify-center gap-1 cursor-pointer block"
+                  className="w-full py-2 px-3 rounded-xl bg-white text-center text-xs font-extrabold text-[#5A5E70] hover:text-[#1C1E26] border border-black/5 hover:bg-black/5 transition-all flex items-center justify-center gap-1 cursor-pointer block"
                 >
                   <span>Buka Analitik Gaya Belajar Lengkap</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -1057,7 +1038,7 @@ export default function StudentHomePage() {
                     <span className="text-mini font-extrabold uppercase tracking-wider text-[#9195A8] block">
                       Peta Jalur Belajar
                     </span>
-                    <h2 className="text-sm sm:text-base font-black text-[#010105]">
+                    <h2 className="text-sm sm:text-base font-black text-[#1C1E26]">
                       Jalur Petualangan Belajar
                     </h2>
                   </div>
@@ -1084,7 +1065,7 @@ export default function StudentHomePage() {
                       <span className="text-mini font-bold text-[#1D5E4D] uppercase block">
                         Langkah 1 • Terkalibrasi
                       </span>
-                      <p className="text-xs font-extrabold text-[#010105]">
+                      <p className="text-xs font-extrabold text-[#1C1E26]">
                         Profil Kognitif &amp; Modalitas
                       </p>
                     </div>
@@ -1096,7 +1077,7 @@ export default function StudentHomePage() {
                       <span className="text-mini font-bold text-[#4B3B7A] uppercase block">
                         Langkah 2 • Tantangan Aktif
                       </span>
-                      <p className="text-xs font-extrabold text-[#010105]">
+                      <p className="text-xs font-extrabold text-[#1C1E26]">
                         {hasActiveContent ? "Kuis Adaptif Bab Aktif" : "Eksplorasi AI Tutor"}
                       </p>
                     </div>

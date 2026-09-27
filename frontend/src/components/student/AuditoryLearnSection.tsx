@@ -8,17 +8,14 @@ import {
   Play,
   Pause,
   RotateCcw,
+  RotateCw,
   Volume2,
   VolumeX,
-  Disc,
   ListMusic,
   CheckCircle2,
   SkipBack,
   SkipForward,
-  Sparkles,
   BookOpen,
-  X,
-  Award,
   Clock,
   Radio,
 } from "@/components/ui/icons";
@@ -41,7 +38,7 @@ export default function AuditoryLearnSection({
           return parsed.map((ep: any, idx: number) => ({
             id: ep.id || `ep_${idx + 1}`,
             order: ep.order ?? idx + 1,
-            title: ep.title || `Episode ${idx + 1}: ${doc.title}`,
+            title: ep.title || `Bagian ${idx + 1}: ${doc.title}`,
             description: ep.description || `Pembedahan sub-topik bagian ${idx + 1}.`,
             script: ep.script || doc.podcastScript || doc.rawText || "",
             durationSec: ep.durationSec || 45,
@@ -53,13 +50,13 @@ export default function AuditoryLearnSection({
       }
     }
 
-    // Programmatic fallback: break paragraphs into 3-4 distinct episodes
+    // Programmatic fallback: break paragraphs into structured educational parts
     const paras = (doc.rawText || doc.summary || "").split("\n\n").filter((p) => p.trim().length > 30);
     const titles = [
-      `Episode 1: Fondasi & Hakikat ${doc.title}`,
-      `Episode 2: Mekanisme & Hubungan Sistemik`,
-      `Episode 3: Analisis Kasus & Dinamika Reaksi`,
-      `Episode 4: Aplikasi Nyata & Sintesis Konsep`,
+      `Bagian 1: Fondasi & Hakikat ${doc.title}`,
+      `Bagian 2: Mekanisme & Hubungan Sistemik`,
+      `Bagian 3: Analisis Kasus & Dinamika Reaksi`,
+      `Bagian 4: Aplikasi Nyata & Sintesis Konsep`,
     ];
     const descs = [
       `Memahami definisi dasar dan komponen kunci dari materi ${doc.title}.`,
@@ -75,7 +72,7 @@ export default function AuditoryLearnSection({
       fallbackList.push({
         id: `ep_${i + 1}`,
         order: i + 1,
-        title: titles[i] || `Episode ${i + 1}: ${doc.title}`,
+        title: titles[i] || `Bagian ${i + 1}: ${doc.title}`,
         description: descs[i] || `Pembahasan konsep bagian ${i + 1}.`,
         script: p,
         durationSec: 45,
@@ -89,7 +86,7 @@ export default function AuditoryLearnSection({
           {
             id: "ep_1",
             order: 1,
-            title: `Episode 1: Fondasi ${doc.title}`,
+            title: `Bagian 1: Fondasi ${doc.title}`,
             description: "Ringkasan konsep pokok materi ter-grounding.",
             script: doc.podcastScript || doc.rawText || doc.summary || "Materi pembelajaran audio.",
             durationSec: 45,
@@ -97,6 +94,9 @@ export default function AuditoryLearnSection({
           },
         ];
   }, [doc.podcastEpisodesJson, doc.rawText, doc.summary, doc.title, doc.id, doc.podcastScript]);
+
+  // Tab State: Pemutar & Naskah vs. Daftar Episode
+  const [activeTab, setActiveTab] = useState<"player" | "playlist">("player");
 
   // Player State
   const [currentEpIndex, setCurrentEpIndex] = useState(0);
@@ -106,7 +106,6 @@ export default function AuditoryLearnSection({
   const [audioCurrentTime, setAudioCurrentTime] = useState<number>(0);
   const [audioDuration, setAudioDuration] = useState<number>(0);
   const [completedEpIds, setCompletedEpIds] = useState<Set<string>>(new Set());
-  const [showScriptModal, setShowScriptModal] = useState(false);
 
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
 
@@ -156,6 +155,7 @@ export default function AuditoryLearnSection({
     setCurrentEpIndex(index);
     setAudioCurrentTime(0);
     setIsPlaying(true);
+    setActiveTab("player");
     setTimeout(() => {
       if (audioElementRef.current) {
         audioElementRef.current.currentTime = 0;
@@ -217,10 +217,8 @@ export default function AuditoryLearnSection({
     return (totalSec / 60).toFixed(1);
   }, [episodes]);
 
-  const progressPct = Math.round((completedEpIds.size / Math.max(1, episodes.length)) * 100);
-
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Hidden Native Audio Element */}
       <audio
         ref={audioElementRef}
@@ -240,314 +238,467 @@ export default function AuditoryLearnSection({
         onPause={() => setIsPlaying(false)}
       />
 
-      {/* 🌟 1. SPOTIFY-STYLE ALBUM HEADER CARD */}
-      <section className="clay-card bg-gradient-to-br from-[#2E2054] via-[#4B3B7A] to-[#1C1E26] text-white p-5 sm:p-7 rounded-3xl shadow-md relative overflow-hidden">
-        {/* Ambient Glows */}
-        <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-[#6A52AB]/30 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute left-1/4 -top-12 w-48 h-48 bg-[#9B82E8]/20 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
-          {/* Animated Vinyl Disc Cover Art */}
-          <div className="relative group shrink-0">
-            <div
-              className={`w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-[#151221] border-4 border-[#5E4B94] flex items-center justify-center shadow-2xl transition-transform duration-700 ${
-                isPlaying ? "animate-spin" : ""
-              }`}
-              style={{ animationDuration: "6s" }}
-            >
-              {/* Disc Grooves */}
-              <div className="w-24 h-24 rounded-full border border-white/10 flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full border border-white/15 flex items-center justify-center bg-[#4B3B7A]">
-                  <Disc className="w-8 h-8 text-white/80" />
-                </div>
-              </div>
-            </div>
-
-            {/* Play Button Overlay on Disc */}
-            <button
-              type="button"
-              onClick={togglePlay}
-              className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-white text-[#4B3B7A] flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer"
-            >
-              {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
-            </button>
-          </div>
-
-          {/* Show Meta Info */}
-          <div className="flex-1 text-center md:text-left space-y-2">
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-              <span className="text-mini font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white border border-white/15">
-                Spotify-Style Podcast
-              </span>
-              <span className="text-mini font-extrabold px-2.5 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D]">
-                Solo Narrator HD
-              </span>
-            </div>
-
-            <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
-              {doc.title}
-            </h2>
-
-            <p className="text-xs text-white/80 font-medium line-clamp-2 max-w-xl">
-              {doc.summary || "Ringkasan audio terstruktur per episode untuk pemahaman konsep maksimal."}
-            </p>
-
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-1 text-xs text-white/70">
-              <span className="font-bold text-white flex items-center gap-1">
-                <Radio className="w-3.5 h-3.5 text-[#D0C4F7]" />
-                <span>{classroomName || "Kelas Adaptif"}</span>
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <ListMusic className="w-3.5 h-3.5" />
-                <span>{episodes.length} Episode Playlist</span>
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
-                <span>~{totalMinutes} Menit Total</span>
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 📋 2. EPISODE TRACKLIST PLAYLIST */}
-      <section className="clay-card bg-white p-4 sm:p-6 rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs space-y-3">
-        <div className="flex items-center justify-between pb-2 border-b border-black/5">
-          <div className="flex items-center gap-2">
-            <ListMusic className="w-4 h-4 text-[#4B3B7A]" />
-            <h3 className="text-sm font-black text-[#1C1E26]">Daftar Episode Podcast ({episodes.length})</h3>
-          </div>
-          <span className="text-xs font-extrabold text-[#4B3B7A] bg-[#F4F0FD] px-2.5 py-1 rounded-full">
-            {completedEpIds.size}/{episodes.length} Selesai
-          </span>
-        </div>
-
-        <div className="space-y-2">
-          {episodes.map((ep, idx) => {
-            const isCurrent = idx === currentEpIndex;
-            const isCompleted = completedEpIds.has(ep.id);
-
-            return (
-              <div
-                key={ep.id}
-                onClick={() => handleSelectEpisode(idx)}
-                className={`group p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center justify-between gap-3 ${
-                  isCurrent
-                    ? "bg-[#F4F0FD] border-[#4B3B7A] shadow-xs"
-                    : "bg-white border-black/5 hover:bg-[#F8F9FD] hover:border-black/10"
+      {/* 🌟 1. HERO CARD: STUDIO PEMBELAJARAN AUDITORI (CLAY PREMIUM) */}
+      <section className="clay-card clay-lavender p-5 sm:p-6 rounded-3xl border border-white/90 shadow-xs relative">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="flex items-start gap-4 min-w-0">
+            {/* Tactile Squircle Icon Box */}
+            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-[20px] clay-card bg-white text-[#4B3B7A] flex flex-col items-center justify-center shrink-0 shadow-2xs border border-white/90">
+              <Headphones className="w-8 h-8 sm:w-9 sm:h-9" strokeWidth={2.2} />
+              {/* Subtle Status Light */}
+              <span
+                className={`w-2 h-2 rounded-full mt-1 transition-colors duration-300 ${
+                  isPlaying ? "bg-[#1D5E4D]" : "bg-[#B8A8E6]"
                 }`}
-              >
-                {/* Left: Track Number / Play Indicator */}
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-mono text-xs font-black transition-colors ${
-                      isCurrent
-                        ? "bg-[#4B3B7A] text-white"
-                        : isCompleted
-                        ? "bg-[#D1EBE1] text-[#1D5E4D]"
-                        : "bg-black/5 text-[#5A5E70] group-hover:bg-[#4B3B7A] group-hover:text-white"
-                    }`}
-                  >
-                    {isCurrent && isPlaying ? (
-                      <span className="flex items-end gap-0.5 h-3.5">
-                        <span className="w-1 bg-white animate-pulse h-3.5" />
-                        <span className="w-1 bg-white animate-pulse h-2" style={{ animationDelay: "150ms" }} />
-                        <span className="w-1 bg-white animate-pulse h-3" style={{ animationDelay: "300ms" }} />
-                      </span>
-                    ) : isCompleted ? (
-                      <CheckCircle2 className="w-4 h-4" />
-                    ) : (
-                      <span>{ep.order}</span>
-                    )}
-                  </div>
+              />
+            </div>
 
-                  {/* Title & Description */}
-                  <div className="min-w-0">
-                    <h4
-                      className={`text-xs sm:text-sm font-extrabold truncate ${
-                        isCurrent ? "text-[#4B3B7A]" : "text-[#1C1E26]"
-                      }`}
-                    >
-                      {ep.title}
-                    </h4>
-                    <p className="text-mini text-[#5A5E70] truncate">{ep.description}</p>
-                  </div>
-                </div>
-
-                {/* Right: Duration & Action */}
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-mini font-mono font-bold text-[#5A5E70] hidden sm:inline">
-                    {formatTime(ep.durationSec || 45)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isCurrent) {
-                        togglePlay();
-                      } else {
-                        handleSelectEpisode(idx);
-                      }
-                    }}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-                      isCurrent && isPlaying
-                        ? "bg-[#4B3B7A] text-white shadow-xs"
-                        : "bg-black/5 text-[#4B3B7A] hover:bg-[#4B3B7A] hover:text-white"
-                    }`}
-                  >
-                    {isCurrent && isPlaying ? (
-                      <Pause className="w-3.5 h-3.5 fill-current" />
-                    ) : (
-                      <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                    )}
-                  </button>
-                </div>
+            {/* Meta & Title */}
+            <div className="min-w-0 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="clay-pill bg-white text-[#4B3B7A] text-mini font-extrabold uppercase tracking-wide px-3 py-0.5 shadow-2xs border border-white">
+                  Modalitas Auditori
+                </span>
+                <span className="clay-pill bg-[#D1EBE1] text-[#1D5E4D] text-mini font-extrabold px-3 py-0.5 shadow-2xs border border-white/60">
+                  Narasi Terverifikasi
+                </span>
+                <span className="clay-pill bg-white/80 text-[#3C2D68] text-mini font-extrabold px-2.5 py-0.5 shadow-2xs border border-white/60">
+                  {completedEpIds.size}/{episodes.length} Selesai
+                </span>
               </div>
-            );
-          })}
-        </div>
-      </section>
 
-      {/* 🎛️ 3. DEDICATED STICKY PLAYER BAR CONTROLLER */}
-      <section className="clay-card bg-white p-4 sm:p-5 rounded-3xl border border-[rgba(28,30,38,0.08)] shadow-md space-y-3">
-        {/* Track Title & Meta */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-[#4B3B7A] text-white flex items-center justify-center shrink-0 shadow-2xs">
-              <Headphones className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-mini font-mono font-bold text-[#4B3B7A] uppercase">
-                Memutar: Episode {currentEpisode.order} dari {episodes.length}
-              </span>
-              <h4 className="text-xs sm:text-sm font-black text-[#1C1E26] truncate">
-                {currentEpisode.title}
-              </h4>
+              <h2 className="text-lg sm:text-xl md:text-2xl font-black text-[#1E143D] tracking-tight leading-snug">
+                {doc.title}
+              </h2>
+
+              <p className="text-xs sm:text-sm text-[#43356E] font-medium leading-relaxed max-w-2xl line-clamp-2">
+                {doc.summary ||
+                  "Pendalaman konsep melalui paparan narasi audio terstruktur per bagian materi pokok."}
+              </p>
+
+              <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-[#524180] font-semibold">
+                <span className="flex items-center gap-1.5 font-bold text-[#1E143D]">
+                  <Radio className="w-3.5 h-3.5 text-[#4B3B7A]" />
+                  <span>{classroomName || "Kelas Adaptif"}</span>
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1.5">
+                  <ListMusic className="w-3.5 h-3.5 text-[#4B3B7A]" />
+                  <span>{episodes.length} Bagian Materi</span>
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-[#4B3B7A]" />
+                  <span>~{totalMinutes} Menit Pembahasan</span>
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Script Modal Trigger */}
-          <button
-            type="button"
-            onClick={() => setShowScriptModal(true)}
-            className="px-3 py-1.5 rounded-xl bg-[#F4F0FD] text-[#4B3B7A] hover:bg-[#E3DBF8] text-mini font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Lihat Naskah</span>
-          </button>
-        </div>
-
-        {/* Scrubber Progress Bar */}
-        <div className="space-y-1">
-          <input
-            type="range"
-            min={0}
-            max={audioDuration || currentEpisode.durationSec || 45}
-            value={audioCurrentTime}
-            onChange={(e) => {
-              const val = Number(e.target.value);
-              setAudioCurrentTime(val);
-              if (audioElementRef.current) {
-                audioElementRef.current.currentTime = val;
-              }
-            }}
-            className="w-full h-1.5 bg-[#EFEFF4] rounded-lg appearance-none cursor-pointer accent-[#4B3B7A]"
-          />
-          <div className="flex items-center justify-between text-mini font-mono font-bold text-[#5A5E70]">
-            <span>{formatTime(audioCurrentTime)}</span>
-            <span>{formatTime(audioDuration || currentEpisode.durationSec || 45)}</span>
-          </div>
-        </div>
-
-        {/* Action Controls */}
-        <div className="flex items-center justify-between pt-1">
-          {/* Speed Selector */}
-          <button
-            type="button"
-            onClick={handleCycleSpeed}
-            className="px-2.5 py-1 rounded-xl bg-black/5 hover:bg-black/10 text-xs font-mono font-bold text-[#1C1E26] transition-colors cursor-pointer"
-          >
-            {playbackSpeed}x Speed
-          </button>
-
-          {/* Core Controls (Prev, Big Play/Pause, Next) */}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleSkipPrev}
-              className="w-9 h-9 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-[#1C1E26] transition-colors cursor-pointer"
-            >
-              <SkipBack className="w-4 h-4" />
-            </button>
-
+          {/* Quick Play CTA */}
+          <div className="shrink-0 flex items-center md:self-center">
             <button
               type="button"
               onClick={togglePlay}
-              className="w-12 h-12 rounded-full bg-[#4B3B7A] text-white flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              className="w-full md:w-auto clay-btn clay-btn-white hover:bg-[#F2EFFC] text-[#3C2D68] px-5 py-3 rounded-2xl font-black text-xs shadow-2xs border border-white flex items-center justify-center gap-2.5 cursor-pointer transition-all active:scale-98"
             >
-              {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSkipNext}
-              className="w-9 h-9 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-[#1C1E26] transition-colors cursor-pointer"
-            >
-              <SkipForward className="w-4 h-4" />
+              {isPlaying ? (
+                <>
+                  <Pause className="w-4 h-4 fill-current text-[#4B3B7A]" />
+                  <span>Jeda Narasi</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 fill-current ml-0.5 text-[#4B3B7A]" />
+                  <span>Putar Bagian {currentEpisode.order}</span>
+                </>
+              )}
             </button>
           </div>
-
-          {/* Mute toggle */}
-          <button
-            type="button"
-            onClick={() => {
-              if (audioElementRef.current) {
-                audioElementRef.current.muted = !isMuted;
-                setIsMuted(!isMuted);
-              }
-            }}
-            className="w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-[#5A5E70] transition-colors cursor-pointer"
-          >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </button>
         </div>
       </section>
 
-      {/* 📖 SCRIPT READING MODAL DIALOG */}
-      {showScriptModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="clay-card bg-white max-w-lg w-full rounded-3xl p-5 sm:p-6 border border-black/10 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-black/5 pb-3">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-[#4B3B7A]" />
-                <h3 className="text-sm font-black text-[#1C1E26]">
-                  Naskah Tuturan: {currentEpisode.title}
-                </h3>
+      {/* 🧭 2. MENU TAB KONSEPTUAL (PEMUTAR & NASKAH VS DAFTAR EPISODE) */}
+      <div className="grid grid-cols-2 gap-3" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "player"}
+          onClick={() => {
+            audioSynth.playClickSound();
+            setActiveTab("player");
+          }}
+          className={`clay-btn ${
+            activeTab === "player" ? "clay-btn-lavender" : "clay-btn-white"
+          } rounded-[20px] p-3 sm:p-4 flex items-center gap-3 text-left`}
+        >
+          <span
+            className={`w-10 h-10 shrink-0 rounded-[12px] flex items-center justify-center text-[#4B3B7A] ${
+              activeTab === "player" ? "bg-white shadow-2xs" : "bg-[#F2EFFC]"
+            }`}
+          >
+            <Headphones className="w-5 h-5" strokeWidth={2.2} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-xs sm:text-sm font-black text-[#1C1E26]">
+              Pemutar &amp; Naskah
+            </span>
+            <span className="block text-mini text-[#5A5E70] truncate">
+              Audio konsol dan intisari bacaan
+            </span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "playlist"}
+          onClick={() => {
+            audioSynth.playClickSound();
+            setActiveTab("playlist");
+          }}
+          className={`clay-btn ${
+            activeTab === "playlist" ? "clay-btn-lavender" : "clay-btn-white"
+          } rounded-[20px] p-3 sm:p-4 flex items-center gap-3 text-left`}
+        >
+          <span
+            className={`w-10 h-10 shrink-0 rounded-[12px] flex items-center justify-center text-[#4B3B7A] ${
+              activeTab === "playlist" ? "bg-white shadow-2xs" : "bg-[#F2EFFC]"
+            }`}
+          >
+            <ListMusic className="w-5 h-5" strokeWidth={2.2} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-xs sm:text-sm font-black text-[#1C1E26]">
+              Daftar Episode ({episodes.length})
+            </span>
+            <span className="block text-mini text-[#5A5E70] truncate">
+              Urutan kurikulum materi
+            </span>
+          </span>
+        </button>
+      </div>
+
+      {/* 🎛️ 3. KONTEN TAB: PEMUTAR & NASKAH */}
+      {activeTab === "player" && (
+        <div className="space-y-4">
+          {/* Audio Player Studio Console */}
+          <div className="clay-card bg-white p-5 sm:p-6 rounded-3xl border border-white/90 shadow-xs space-y-4">
+            {/* Header Track Info */}
+            <div className="flex items-center justify-between gap-3 pb-3 border-b border-black/5">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-2xl clay-card clay-lavender text-[#4B3B7A] flex items-center justify-center shrink-0 shadow-2xs">
+                  <Headphones className="w-5 h-5" strokeWidth={2.2} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-mini font-mono font-bold text-[#6A52AB] uppercase tracking-wide block">
+                    Memutar Bagian {currentEpisode.order} dari {episodes.length}
+                  </span>
+                  <h3 className="text-xs sm:text-sm font-black text-[#1C1E26] truncate">
+                    {currentEpisode.title}
+                  </h3>
+                </div>
               </div>
+
+              {completedEpIds.has(currentEpisode.id) ? (
+                <span className="clay-pill bg-[#D1EBE1] text-[#1D5E4D] text-mini font-extrabold px-3 py-1 flex items-center gap-1 shrink-0">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Selesai</span>
+                </span>
+              ) : (
+                <span className="clay-pill clay-lavender text-[#4B3B7A] text-mini font-extrabold px-3 py-1 shrink-0">
+                  Sedang Dipelajari
+                </span>
+              )}
+            </div>
+
+            {/* Tactile Audio Frequency Monitor */}
+            <div className="flex items-center justify-center gap-1.5 h-11 py-2 px-4 bg-[#F7F5FC] rounded-2xl border border-[#E9E4F5]">
+              {[25, 45, 70, 35, 85, 60, 95, 40, 75, 55, 80, 65, 90, 50, 70, 35, 60, 80, 45, 30].map(
+                (h, i) => (
+                  <span
+                    key={i}
+                    className={`w-1 sm:w-1.5 rounded-full transition-all duration-200 ${
+                      isPlaying ? "bg-[#4B3B7A]" : "bg-[#C4B7EC]"
+                    }`}
+                    style={{
+                      height: isPlaying
+                        ? `${Math.max(20, (h * ((i % 4) + 1.2)) % 100)}%`
+                        : `${Math.max(15, h * 0.3)}%`,
+                      transitionDelay: `${i * 12}ms`,
+                    }}
+                  />
+                )
+              )}
+            </div>
+
+            {/* Scrubber Progress Bar */}
+            <div className="space-y-1.5">
+              <input
+                type="range"
+                min={0}
+                max={audioDuration || currentEpisode.durationSec || 45}
+                value={audioCurrentTime}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setAudioCurrentTime(val);
+                  if (audioElementRef.current) {
+                    audioElementRef.current.currentTime = val;
+                  }
+                }}
+                aria-label="Progres durasi audio materi"
+                className="w-full h-2 bg-[#EBE7F7] rounded-lg appearance-none cursor-pointer accent-[#4B3B7A]"
+              />
+              <div className="flex items-center justify-between text-mini font-mono font-bold text-[#5A5E70]">
+                <span>{formatTime(audioCurrentTime)}</span>
+                <span className="text-[#84889A] font-medium hidden sm:inline truncate max-w-xs">
+                  {currentEpisode.description}
+                </span>
+                <span>{formatTime(audioDuration || currentEpisode.durationSec || 45)}</span>
+              </div>
+            </div>
+
+            {/* Tactile Clay Control Console */}
+            <div className="flex items-center justify-between pt-2 border-t border-black/5">
+              {/* Playback Speed Pill */}
               <button
                 type="button"
-                onClick={() => setShowScriptModal(false)}
-                className="w-7 h-7 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-[#5A5E70] cursor-pointer"
+                onClick={handleCycleSpeed}
+                className="clay-pill bg-[#F2EFFC] hover:bg-[#E3DBF8] text-xs font-mono font-extrabold text-[#4B3B7A] px-3.5 py-1.5 transition-all cursor-pointer border border-[#E3DBF8] shadow-2xs"
+                title="Ubah kecepatan pemutaran narasi"
               >
-                <X className="w-4 h-4" />
+                {playbackSpeed}x Kecepatan
+              </button>
+
+              {/* Core Playback Control Buttons */}
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                {/* Skip -10s */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    audioSynth.playClickSound();
+                    if (audioElementRef.current) {
+                      audioElementRef.current.currentTime = Math.max(0, audioCurrentTime - 10);
+                      setAudioCurrentTime(audioElementRef.current.currentTime);
+                    }
+                  }}
+                  className="w-10 h-10 rounded-2xl clay-btn clay-btn-white text-[#3C2D68] border border-[#E3DBF8] shadow-2xs flex items-center justify-center cursor-pointer transition-all"
+                  title="Mundur 10 Detik"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+
+                {/* Prev Episode */}
+                <button
+                  type="button"
+                  onClick={handleSkipPrev}
+                  className="w-10 h-10 rounded-2xl clay-btn clay-btn-white text-[#3C2D68] border border-[#E3DBF8] shadow-2xs flex items-center justify-center cursor-pointer transition-all"
+                  title="Bagian Sebelumnya"
+                >
+                  <SkipBack className="w-4 h-4" />
+                </button>
+
+                {/* Big Center Play / Pause Button */}
+                <button
+                  type="button"
+                  onClick={togglePlay}
+                  className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl clay-btn clay-btn-lavender text-[#3C2D68] border-2 border-white flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  title={isPlaying ? "Jeda Narasi" : "Putar Narasi"}
+                >
+                  {isPlaying ? (
+                    <Pause className="w-6 h-6 fill-current" />
+                  ) : (
+                    <Play className="w-6 h-6 fill-current ml-0.5" />
+                  )}
+                </button>
+
+                {/* Next Episode */}
+                <button
+                  type="button"
+                  onClick={handleSkipNext}
+                  className="w-10 h-10 rounded-2xl clay-btn clay-btn-white text-[#3C2D68] border border-[#E3DBF8] shadow-2xs flex items-center justify-center cursor-pointer transition-all"
+                  title="Bagian Berikutnya"
+                >
+                  <SkipForward className="w-4 h-4" />
+                </button>
+
+                {/* Skip +10s */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    audioSynth.playClickSound();
+                    if (audioElementRef.current) {
+                      const maxT = audioDuration || currentEpisode.durationSec || 45;
+                      audioElementRef.current.currentTime = Math.min(maxT, audioCurrentTime + 10);
+                      setAudioCurrentTime(audioElementRef.current.currentTime);
+                    }
+                  }}
+                  className="w-10 h-10 rounded-2xl clay-btn clay-btn-white text-[#3C2D68] border border-[#E3DBF8] shadow-2xs flex items-center justify-center cursor-pointer transition-all"
+                  title="Maju 10 Detik"
+                >
+                  <RotateCw className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Mute Toggle */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (audioElementRef.current) {
+                    audioElementRef.current.muted = !isMuted;
+                    setIsMuted(!isMuted);
+                  }
+                }}
+                className="w-10 h-10 rounded-2xl clay-btn clay-btn-white hover:bg-[#F2EFFC] text-[#524180] border border-[#E3DBF8] shadow-2xs flex items-center justify-center cursor-pointer transition-all"
+                title={isMuted ? "Bunyikan Suara" : "Bisukan Suara"}
+              >
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </button>
             </div>
+          </div>
 
-            <div className="flex-1 overflow-y-auto pr-1 text-left space-y-3 text-xs sm:text-sm text-[#33384B] leading-relaxed">
-              <p className="bg-[#F8F9FD] p-4 rounded-2xl border border-black/5 whitespace-pre-line font-normal">
-                {currentEpisode.script}
-              </p>
+          {/* Integrated Naskah Narasi Edukatif (Full Transcript Panel) */}
+          <div className="clay-card bg-white p-5 sm:p-6 rounded-3xl border border-white/90 shadow-xs space-y-3">
+            <div className="flex items-center justify-between pb-3 border-b border-black/5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl clay-card clay-lavender flex items-center justify-center text-[#4B3B7A] shadow-2xs">
+                  <BookOpen className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-black text-[#1C1E26]">
+                    Naskah Narasi: {currentEpisode.title}
+                  </h3>
+                  <p className="text-mini text-[#5A5E70]">
+                    Teks resmi panduan audio untuk memperdalam pemahaman konsep
+                  </p>
+                </div>
+              </div>
+
+              <span className="clay-pill bg-[#F2EFFC] text-[#4B3B7A] text-mini font-extrabold px-3 py-1 border border-[#E3DBF8]">
+                Transkrip Materi
+              </span>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowScriptModal(false)}
-              className="clay-btn clay-btn-dark w-full py-2.5 rounded-2xl text-xs font-black"
-            >
-              Tutup Naskah
-            </button>
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#FAF9FE] border border-[#E9E4F5] text-xs sm:text-sm text-[#261A47] leading-relaxed whitespace-pre-line font-medium">
+              {currentEpisode.script}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📋 4. KONTEN TAB: DAFTAR EPISODE PLAYLIST */}
+      {activeTab === "playlist" && (
+        <div className="clay-card bg-white p-5 sm:p-6 rounded-3xl border border-white/90 shadow-xs space-y-3.5">
+          <div className="flex items-center justify-between pb-3 border-b border-black/5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl clay-card clay-lavender flex items-center justify-center text-[#4B3B7A] shadow-2xs">
+                <ListMusic className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs sm:text-sm font-black text-[#1C1E26]">
+                  Daftar Bagian Pembelajaran ({episodes.length})
+                </h3>
+                <p className="text-mini text-[#5A5E70]">
+                  Pilih bagian materi untuk mendengarkan bahasan secara terstruktur
+                </p>
+              </div>
+            </div>
+
+            <span className="clay-pill clay-lavender text-mini font-extrabold px-3 py-1 text-[#4B3B7A] shadow-2xs">
+              {completedEpIds.size}/{episodes.length} Selesai
+            </span>
+          </div>
+
+          <div className="space-y-2.5">
+            {episodes.map((ep, idx) => {
+              const isCurrent = idx === currentEpIndex;
+              const isCompleted = completedEpIds.has(ep.id);
+
+              return (
+                <div
+                  key={ep.id}
+                  onClick={() => handleSelectEpisode(idx)}
+                  className={`group p-3.5 sm:p-4 rounded-2xl transition-all duration-200 cursor-pointer flex items-center justify-between gap-3 ${
+                    isCurrent
+                      ? "clay-card clay-lavender border-2 border-[#4B3B7A]/40 shadow-xs"
+                      : "clay-card bg-[#FAFAFC] hover:bg-[#F2EFFC]/70 border border-black/5 hover:border-[#D0C4F7] shadow-2xs"
+                  }`}
+                >
+                  {/* Left: Number & Titles */}
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-mono text-xs font-black transition-all ${
+                        isCurrent
+                          ? "clay-btn bg-[#4B3B7A] text-white shadow-2xs"
+                          : isCompleted
+                          ? "clay-pill bg-[#D1EBE1] text-[#1D5E4D]"
+                          : "clay-pill bg-black/5 text-[#5A5E70] group-hover:bg-[#E3DBF8] group-hover:text-[#4B3B7A]"
+                      }`}
+                    >
+                      {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : <span>{ep.order}</span>}
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h4
+                          className={`text-xs sm:text-sm font-extrabold truncate ${
+                            isCurrent ? "text-[#261A47]" : "text-[#1C1E26] group-hover:text-[#4B3B7A]"
+                          }`}
+                        >
+                          {ep.title}
+                        </h4>
+                        {isCurrent && (
+                          <span className="clay-pill bg-white text-[#4B3B7A] text-mini font-black px-2 py-0.5 shadow-2xs">
+                            Aktif
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        className={`text-mini truncate mt-0.5 ${
+                          isCurrent ? "text-[#43356E]" : "text-[#5A5E70]"
+                        }`}
+                      >
+                        {ep.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: Duration & Action Button */}
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span
+                      className={`text-mini font-mono font-bold hidden sm:inline ${
+                        isCurrent ? "text-[#43356E]" : "text-[#5A5E70]"
+                      }`}
+                    >
+                      {formatTime(ep.durationSec || 45)}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isCurrent) {
+                          togglePlay();
+                        } else {
+                          handleSelectEpisode(idx);
+                        }
+                      }}
+                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                        isCurrent
+                          ? "clay-btn clay-btn-white text-[#4B3B7A] border border-white shadow-2xs hover:scale-105 active:scale-95"
+                          : "clay-btn bg-black/5 hover:bg-[#E3DBF8] text-[#5A5E70] group-hover:text-[#4B3B7A]"
+                      }`}
+                    >
+                      {isCurrent && isPlaying ? (
+                        <Pause className="w-3.5 h-3.5 fill-current" />
+                      ) : (
+                        <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { audioSynth } from "@/services/audioSynth";
 import { Download, Eye, Layers, Maximize2, Network, Sparkles, X, ZoomIn, ZoomOut } from "@/components/ui/icons";
 import { renderedLabel, toMermaid, type Diagram, type DiagramNode } from "@/lib/mermaidDiagram";
@@ -180,32 +181,46 @@ export default function VisualMap({ info, sources, art = null }: Props) {
     </div>
   );
 
+  const fullscreenButton = (className: string) => (
+    <button type="button" aria-label="Layar penuh" onClick={() => { audioSynth.playClickSound(); setFull(true); }}
+      className={`p-2.5 sm:px-3 sm:py-2 clay-pill bg-[#F0EEF6] text-[#4B3B7A] text-xs font-bold items-center justify-center gap-1.5 cursor-pointer shrink-0 ${className}`}>
+      <Maximize2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Layar penuh</span>
+    </button>
+  );
+
+  // Phones: [tabs][fullscreen] then [zoom ... downloads]. Wider screens: everything on one row.
   const toolbar = (fullscreen: boolean) => (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 flex-1">
       {tabs.length > 1 && (
-        <div className="flex items-center bg-[#F0EEF6] p-1 rounded-2xl border border-black/5" role="tablist" aria-label="Bentuk visual">
-          {tabs.map(value => (
-            <button key={value} type="button" role="tab" aria-selected={tab === value}
-              onClick={() => { audioSynth.playClickSound(); setTab(value); setZoom(100); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer ${tab === value ? "bg-[#21518A] text-white" : "text-[#21518A] hover:bg-[#D2E5FA]"}`}>
-              {value === "image" ? <Sparkles className="w-3.5 h-3.5" /> : value === "diagram" ? <Layers className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              {tabLabel(value)}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex flex-1 sm:flex-none items-center clay-pill bg-[#F0EEF6] p-1 min-w-0" role="tablist" aria-label="Bentuk visual">
+            {tabs.map(value => (
+              <button key={value} type="button" role="tab" aria-selected={tab === value}
+                onClick={() => { audioSynth.playClickSound(); setTab(value); setZoom(100); }}
+                className={`flex-1 sm:flex-none justify-center px-3 py-1.5 rounded-full text-xs font-extrabold flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${tab === value ? "bg-[#21518A] text-white" : "text-[#21518A] hover:bg-[#D2E5FA]"}`}>
+                {value === "image" ? <Sparkles className="w-3.5 h-3.5" /> : value === "diagram" ? <Layers className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                {tabLabel(value)}
+              </button>
+            ))}
+          </div>
+          {!fullscreen && fullscreenButton("flex sm:hidden")}
         </div>
       )}
-      <div className="flex items-center bg-[#F7F6FA] rounded-xl border border-black/5 p-0.5">
-        <button type="button" aria-label="Perkecil" disabled={zoom <= 60} onClick={() => setZoom(z => Math.max(60, z - 20))} className="p-2 rounded-lg disabled:opacity-40 cursor-pointer"><ZoomOut className="w-4 h-4" /></button>
-        <button type="button" aria-label="Ukuran semula" onClick={() => setZoom(100)} className="px-2 py-1 text-mini font-bold text-[#21518A] cursor-pointer">{zoom}%</button>
-        <button type="button" aria-label="Perbesar" disabled={zoom >= 250} onClick={() => setZoom(z => Math.min(250, z + 30))} className="p-2 rounded-lg disabled:opacity-40 cursor-pointer"><ZoomIn className="w-4 h-4" /></button>
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:flex-1 sm:justify-end">
+        <div className="flex items-center clay-pill bg-white p-0.5">
+          <button type="button" aria-label="Perkecil" disabled={zoom <= 60} onClick={() => setZoom(z => Math.max(60, z - 20))} className="p-2 rounded-full disabled:opacity-40 cursor-pointer"><ZoomOut className="w-4 h-4" /></button>
+          <button type="button" aria-label="Ukuran semula" onClick={() => setZoom(100)} className="px-1.5 py-1 text-mini font-bold text-[#21518A] cursor-pointer tabular-nums">{zoom}%</button>
+          <button type="button" aria-label="Perbesar" disabled={zoom >= 250} onClick={() => setZoom(z => Math.min(250, z + 30))} className="p-2 rounded-full disabled:opacity-40 cursor-pointer"><ZoomIn className="w-4 h-4" /></button>
+        </div>
+        <div className="flex items-center gap-2">
+          {!fullscreen && fullscreenButton(tabs.length > 1 ? "hidden sm:flex" : "flex")}
+          <div className="flex items-center clay-pill bg-[#1C1E26] text-white p-0.5" role="group" aria-label="Unduh">
+            <Download className="w-3.5 h-3.5 ml-2 opacity-70" aria-hidden="true" />
+            <button type="button" onClick={saveSvg} aria-label="Unduh SVG" className="px-2.5 py-1.5 rounded-full text-xs font-bold cursor-pointer hover:bg-white/10">SVG</button>
+            <button type="button" onClick={savePng} aria-label="Unduh PNG" className="px-2.5 py-1.5 rounded-full text-xs font-bold cursor-pointer hover:bg-white/10">PNG</button>
+          </div>
+        </div>
       </div>
-      {!fullscreen && (
-        <button type="button" onClick={() => { audioSynth.playClickSound(); setFull(true); }} className="px-3 py-2 rounded-xl bg-[#F0EEF6] text-[#4B3B7A] text-xs font-bold flex items-center gap-1.5 cursor-pointer">
-          <Maximize2 className="w-3.5 h-3.5" />Layar penuh
-        </button>
-      )}
-      <button type="button" onClick={saveSvg} className="px-3 py-2 rounded-xl bg-[#1C1E26] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"><Download className="w-3.5 h-3.5" />SVG</button>
-      <button type="button" onClick={savePng} className="px-3 py-2 rounded-xl bg-[#1C1E26] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"><Download className="w-3.5 h-3.5" />PNG</button>
     </div>
   );
 
@@ -237,14 +252,16 @@ export default function VisualMap({ info, sources, art = null }: Props) {
         {tab === "diagram" && outline}
       </div>
 
-      {full && (
-        <div className="fixed inset-0 z-50 bg-[#1C1E26] flex flex-col gap-3 p-3 sm:p-6" role="dialog" aria-modal="true" aria-label="Peta visual layar penuh">
-          <div className="flex flex-wrap items-center justify-between gap-2 bg-white rounded-2xl p-2">
+      {full && createPortal(
+        <div className="fixed inset-0 z-[70] bg-[#1C1E26] flex flex-col gap-3 px-3 sm:px-6 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
+          role="dialog" aria-modal="true" aria-label="Peta visual layar penuh">
+          <div className="flex items-start gap-2 bg-white rounded-2xl p-2 shrink-0">
             {toolbar(true)}
-            <button type="button" aria-label="Tutup layar penuh" onClick={() => setFull(false)} className="p-2 rounded-xl bg-[#F0EEF6] cursor-pointer"><X className="w-5 h-5" /></button>
+            <button type="button" aria-label="Tutup layar penuh" onClick={() => setFull(false)} className="p-2 rounded-full bg-[#F0EEF6] cursor-pointer shrink-0"><X className="w-5 h-5" /></button>
           </div>
           {canvas(true)}
-        </div>
+        </div>,
+        document.body,
       )}
     </section>
   );

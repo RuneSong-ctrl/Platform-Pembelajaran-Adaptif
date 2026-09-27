@@ -74,24 +74,24 @@ export default function AdaptiveLearnPage() {
   const isDirectMode = Boolean(classParam && docParam);
 
   return (
-    <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden w-full max-w-full [touch-action:pan-y]">
+    <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden w-full max-w-full [touch-action:pan-y]">
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden w-full max-w-full">
         <StudentSidebar />
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full px-3.5 sm:px-6 lg:px-8 py-3.5 sm:py-4 min-w-0 flex flex-col gap-3 sm:gap-4 pb-36 md:pb-12">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full px-3.5 sm:px-6 lg:px-8 py-3.5 sm:py-4 min-w-0 flex flex-col gap-3 sm:gap-4 app-main md:pb-12">
           {/* ========================================================= */}
           {/* TOP BAR: Navigasi, Breadcrumb & Modalitas                  */}
           {/* ========================================================= */}
-          <div className="flex items-center justify-between gap-3 w-full bg-white px-3.5 py-2.5 rounded-2xl border border-black/5 shadow-2xs">
+          <div className="flex items-center justify-between gap-3 w-full clay-card bg-white px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-2xl border border-white/90 shadow-2xs">
             <div className="flex items-center gap-2.5 min-w-0">
               {activeDoc ? (
                 isDirectMode ? (
                   <Link
                     to={`/student/class/${classParam}/materi/${docParam}`}
                     onClick={() => audioSynth.playClickSound()}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-black/5 hover:bg-black/10 text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] transition-all cursor-pointer shrink-0"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/5 hover:bg-[#E3DBF8] hover:text-[#4B3B7A] text-xs font-bold text-[#5A5E70] transition-all cursor-pointer shrink-0"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>Naskah Bacaan</span>
@@ -103,7 +103,7 @@ export default function AdaptiveLearnPage() {
                       setSelectedDocId(null);
                       setSearchParams({});
                     }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-black/5 hover:bg-black/10 text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] transition-all cursor-pointer shrink-0"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/5 hover:bg-[#E3DBF8] hover:text-[#4B3B7A] text-xs font-bold text-[#5A5E70] transition-all cursor-pointer shrink-0"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>Ganti Materi</span>
@@ -116,7 +116,7 @@ export default function AdaptiveLearnPage() {
                     setSelectedClassId(null);
                     setSearchParams({});
                   }}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-black/5 hover:bg-black/10 text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] transition-all cursor-pointer shrink-0"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/5 hover:bg-[#E3DBF8] hover:text-[#4B3B7A] text-xs font-bold text-[#5A5E70] transition-all cursor-pointer shrink-0"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Pilih Kelas</span>
@@ -125,7 +125,7 @@ export default function AdaptiveLearnPage() {
                 <Link
                   to="/student"
                   onClick={() => audioSynth.playClickSound()}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-black/5 hover:bg-black/10 text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] transition-all cursor-pointer shrink-0"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/5 hover:bg-[#E3DBF8] hover:text-[#4B3B7A] text-xs font-bold text-[#5A5E70] transition-all cursor-pointer shrink-0"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Beranda</span>
@@ -148,12 +148,12 @@ export default function AdaptiveLearnPage() {
 
             {/* Gaya Belajar Badge */}
             <div
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black shrink-0 border ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shrink-0 ${
                 studentStyle === "KINESTETIK"
-                  ? "bg-[#FFF4DC] text-[#785308] border-[#FFE299]"
+                  ? "clay-pill clay-butter text-[#785308]"
                   : studentStyle === "AUDITORI"
-                  ? "bg-[#E3DBF8] text-[#4B3B7A] border-[#D0C4F7]"
-                  : "bg-[#D1EBE1] text-[#1D5E4D] border-[#9DE1CA]"
+                  ? "clay-pill clay-lavender text-[#4B3B7A]"
+                  : "clay-pill clay-mint text-[#1D5E4D]"
               }`}
             >
               {studentStyle === "KINESTETIK" && <FlaskConical className="w-3.5 h-3.5" />}
@@ -174,12 +174,9 @@ export default function AdaptiveLearnPage() {
                     Langkah 1 dari 2
                   </span>
                 </div>
-                <h2 className="text-base sm:text-lg font-black text-[#010105]">
+                <h2 className="text-base sm:text-lg font-black text-[#1C1E26]">
                   Pilih Ruang Kelas
                 </h2>
-                <p className="text-xs text-[#5A5E70]">
-                  Pilih kelas untuk mengakses kurikulum materi yang telah disesuaikan dengan gaya belajarmu.
-                </p>
               </div>
 
               {effectiveClassrooms.length === 0 ? (
@@ -255,11 +252,11 @@ export default function AdaptiveLearnPage() {
                     Langkah 2 dari 2
                   </span>
                 </div>
-                <h2 className="text-base sm:text-lg font-black text-[#010105]">
+                <h2 className="text-base sm:text-lg font-black text-[#1C1E26]">
                   Pilih Modul Pembelajaran
                 </h2>
                 <p className="text-xs text-[#5A5E70]">
-                  Kelas: <span className="font-bold text-[#1C1E26]">{currentClassroom?.name}</span>. Pilih topik materi yang ingin kamu kuasai.
+                  Kelas: <span className="font-bold text-[#1C1E26]">{currentClassroom?.name}</span>
                 </p>
               </div>
 

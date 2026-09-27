@@ -3,7 +3,9 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { ApiService } from "@/services/apiClient";
+import { useLiveEvents } from "@/services/liveEvents";
 import Navbar from "@/components/layout/Navbar";
+import PullToRefresh from "@/components/common/PullToRefresh";
 import BottomNav from "@/components/layout/BottomNav";
 import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
@@ -34,6 +36,8 @@ export default function LearningPathwayStatusPage() {
   const style = (currentUser.learningStyle || "KINESTETIK") as keyof typeof STYLES;
   const theme = STYLES[style] ?? STYLES.KINESTETIK;
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
+  useLiveEvents((e) => e.type === "refresh" && setReloadTick((n) => n + 1));
 
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -52,7 +56,7 @@ export default function LearningPathwayStatusPage() {
         : { pct: k.practice_progress_pct, done: k.missions_completed, total: k.missions_total, unit: "tugas praktik selesai" },
       );
     }).catch(() => { /* keep the locally known progress */ });
-  }, [currentUser?.id, currentUser?.learningProgress, style]);
+  }, [currentUser?.id, currentUser?.learningProgress, style, reloadTick]);
 
   const myScores = credentials.filter((c) => c.studentId === currentUser.id && c.score != null).map((c) => c.score as number);
   const avgScore = myScores.length ? Math.round(myScores.reduce((a, b) => a + b, 0) / myScores.length) : null;
@@ -66,13 +70,14 @@ export default function LearningPathwayStatusPage() {
   ];
 
   return (
-    <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
+    <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden w-full">
         <StudentSidebar />
 
-        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5 min-w-0 pb-24 md:pb-8">
+        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5 min-w-0 app-main md:pb-8">
+          <PullToRefresh />
           <div className="max-w-2xl mx-auto flex flex-col gap-5">
             <Link
               to="/student"
@@ -84,7 +89,7 @@ export default function LearningPathwayStatusPage() {
             </Link>
 
             <div className="space-y-1">
-              <h1 className="text-xl sm:text-2xl font-black text-[#010105]">Perkembanganmu</h1>
+              <h1 className="text-xl sm:text-2xl font-black text-[#1C1E26]">Perkembanganmu</h1>
               <p className="text-sm text-[#5A5E70]">
                 Kamu paling mudah belajar lewat <strong className={theme.ink}>{theme.label}</strong>.
               </p>
@@ -127,7 +132,7 @@ export default function LearningPathwayStatusPage() {
               {stats.map(({ Icon, label, value }) => (
                 <div key={label} className="clay-card bg-white p-4 border border-[rgba(28,30,38,0.06)] shadow-2xs">
                   <Icon className={`w-4 h-4 ${theme.ink}`} />
-                  <span className="block text-lg font-black text-[#010105] mt-1">{value}</span>
+                  <span className="block text-lg font-black text-[#1C1E26] mt-1">{value}</span>
                   <span className="block text-mini font-bold text-[#5A5E70]">{label}</span>
                 </div>
               ))}

@@ -19,7 +19,7 @@ export default function LinkChildForm({ onLinked }: { onLinked?: (childId: strin
     try {
       const child = await ApiService.linkChild(code.trim());
       audioSynth.playSuccessSound();
-      setDone(`${child.name} berhasil terhubung.`);
+      setDone(child.already_linked ? `${child.name} sudah terdaftar di akunmu.` : `${child.name} berhasil terhubung.`);
       setCode("");
       await triggerSync();
       setSelectedParentChildId(child.id);

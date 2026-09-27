@@ -10,6 +10,7 @@ from app.models.user import User
 from datetime import datetime, timedelta
 from app.models.task import GroundedTask
 from app.models.submission import AssignmentSubmission
+from app.services import progress_service
 from app.core.auth import current_user, require_class_access
 from app.services.cache_service import check_rate_limit
 from app.core.scope import visible_classrooms, visible_classroom_ids
@@ -123,7 +124,7 @@ def class_roster(cls: Classroom, db: Session) -> list[dict]:
         roster.append({
             "id": s.id, "name": s.name, "email": s.email, "avatar": s.avatar,
             "learning_style": s.learning_style, "level": s.current_dda_level,
-            "xp_total": s.xp_total or 0, "streak_days": s.streak_days or 0,
+            "xp_total": s.xp_total or 0, "streak_days": progress_service.current_streak(s),
             "progress": learning_progress_for(s, db).overall_progress,
             "tasks_total": len(task_ids), "tasks_submitted": len(task_ids) - missing,
             "average_grade": avg, "last_active": last.isoformat(), "alerts": alerts,

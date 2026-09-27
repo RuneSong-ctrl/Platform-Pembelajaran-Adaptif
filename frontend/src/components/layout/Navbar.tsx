@@ -30,7 +30,7 @@ export default function Navbar() {
   const isParent = currentUser?.role === "ORTU";
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-[rgba(28,30,38,0.08)] shadow-[0_2px_10px_rgba(0,0,0,0.02)] shrink-0">
+    <header className="sticky top-0 z-40 bg-white pt-[env(safe-area-inset-top)] border-b border-[rgba(28,30,38,0.08)] shadow-[0_2px_10px_rgba(0,0,0,0.02)] shrink-0">
       <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Brand Wordmark */}
         <div className="flex items-center gap-3">
@@ -39,9 +39,13 @@ export default function Navbar() {
             aria-label="EduAdapt Portal"
             className="flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-[#1C1E26] rounded-xl group"
           >
-            <div className="w-8 h-8 rounded-xl bg-[#1C1E26] text-white flex items-center justify-center font-black text-sm shadow-xs group-hover:scale-105 transition-transform">
-              E
-            </div>
+            <img
+              src="/brand/logo-96.png"
+              alt=""
+              width={32}
+              height={32}
+              className="w-8 h-8 shrink-0 group-hover:scale-105 transition-transform"
+            />
             <span className="font-black text-[#1C1E26] text-lg sm:text-xl tracking-tight">
               EduAdapt
             </span>
@@ -58,7 +62,7 @@ export default function Navbar() {
                 title="Streak Hari Belajar"
               >
                 <Flame className="w-3.5 h-3.5 fill-[#785308] text-[#785308]" />
-                <span>{mounted ? currentUser?.streakDays || 1 : 1}d</span>
+                <span>{mounted ? currentUser?.streakDays ?? 0 : 0}d</span>
               </span>
               <span className="w-1 h-1 rounded-full bg-black/20" />
               <span

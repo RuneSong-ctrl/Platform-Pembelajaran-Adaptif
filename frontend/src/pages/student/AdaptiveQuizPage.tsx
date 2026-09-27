@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
@@ -35,20 +35,24 @@ import {
 
 export default function AdaptiveQuizPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryTaskId = searchParams.get("taskId");
   const { currentUser, tasks, classrooms, credentials, claimQuizCredential } = useApp();
 
   const myClassrooms = classrooms.filter((c) =>
     Boolean(currentUser?.id && c.studentIds?.includes(currentUser.id))
   );
+  // Only quizzes play here: assignments and exams have their own pages.
   const quizTask =
+    (queryTaskId ? tasks.find((t) => t.id === queryTaskId && t.type === "quiz") : null) ||
     tasks.find((t) => myClassrooms.some((c) => c.id === t.classroomId) && t.type === "quiz") ||
-    tasks.find((t) => t.type === "quiz") ||
-    tasks[0];
+    tasks.find((t) => t.type === "quiz");
   const allQuestions = quizTask?.contentJson?.questions || [];
 
   const [ddaState, setDdaState] = useState<DDAState>(createInitialDDAState("BASIC"));
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [currentQuestionId, setCurrentQuestionId] = useState<string>("");
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
   // Result of the server check; the answer key is never sent to the browser before answering.
@@ -68,9 +72,26 @@ export default function AdaptiveQuizPage() {
   // Every answer is sent to the server, which grades them and issues the credential.
   const answersRef = useRef<{ question_id: string; selected_index: number | null }[]>([]);
 
+  // Initialize active question when allQuestions loads or when empty
+  useEffect(() => {
+    if (allQuestions.length > 0) {
+      if (!currentQuestionId || !allQuestions.some((q) => q.id === currentQuestionId)) {
+        const initialQ =
+          allQuestions.find((q) => q.difficulty === ddaState.currentLevel) ||
+          allQuestions[0];
+        if (initialQ) {
+          setCurrentQuestionId(initialQ.id);
+        }
+      }
+    }
+  }, [allQuestions, currentQuestionId, ddaState.currentLevel]);
+
   const activeQuestion =
+    allQuestions.find((q) => q.id === currentQuestionId) ||
     allQuestions.find((q) => q.difficulty === ddaState.currentLevel) ||
-    allQuestions[currentQuestionIndex % (allQuestions.length || 1)];
+    allQuestions[0];
+
+  const totalQuestions = allQuestions.length || 1;
 
   // Start question timer
   useEffect(() => {
@@ -143,14 +164,34 @@ export default function AdaptiveQuizPage() {
   const handleNextQuestion = () => {
     audioSynth.playClickSound();
 
-    if (ddaState.history.length >= Math.min(4, allQuestions.length)) {
-      finishQuiz();
-    } else {
-      setIsAnswerSubmitted(false);
-      setSelectedOption(null);
-      setReveal(null);
-      setCurrentQuestionIndex((prev) => prev + 1);
+    const answeredIds = new Set(answersRef.current.map((a) => a.question_id));
+    if (activeQuestion?.id) {
+      answeredIds.add(activeQuestion.id);
     }
+
+    if (answeredIds.size >= allQuestions.length) {
+      finishQuiz();
+      return;
+    }
+
+    const remainingQuestions = allQuestions.filter((q) => !answeredIds.has(q.id));
+    if (remainingQuestions.length === 0) {
+      finishQuiz();
+      return;
+    }
+
+    // Dynamic Difficulty Adjustment:
+    // Select the next unanswered question that matches the new DDA level
+    // Fall back to the first available unanswered question if no question with that exact level exists
+    const nextQ =
+      remainingQuestions.find((q) => q.difficulty === ddaState.currentLevel) ||
+      remainingQuestions[0];
+
+    setCurrentQuestionId(nextQ.id);
+    setIsAnswerSubmitted(false);
+    setSelectedOption(null);
+    setReveal(null);
+    setCurrentQuestionIndex((prev) => prev + 1);
   };
 
   const finishQuiz = async () => {
@@ -179,9 +220,10 @@ export default function AdaptiveQuizPage() {
 
   if (allQuestions.length === 0) {
     return (
-      <div className="min-h-screen bg-[#FBF9F4] text-[#1B1C19] pb-24">
+      <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
         <Navbar />
-        <main className="max-w-2xl mx-auto px-4 pt-8 space-y-6">
+        <main className="flex-1 overflow-y-auto w-full pb-[calc(6rem+env(safe-area-inset-bottom))]">
+        <div className="max-w-2xl mx-auto px-4 pt-8 space-y-6">
           <div className="flex items-center justify-between">
             <Link
               to="/student"
@@ -202,7 +244,7 @@ export default function AdaptiveQuizPage() {
                 Belum Ada Kuis Aktif dari Guru
               </h2>
               <p className="text-xs sm:text-sm text-[#595F72] leading-relaxed">
-                Guru di kelasmu belum menerbitkan kuis adaptif DDA untuk modul ini. Guru dapat menyusun kuis otomatis menggunakan AI Generator Studio di Portal Guru.
+                Gurumu belum menerbitkan kuis untuk modul ini.
               </p>
             </div>
 
@@ -223,24 +265,20 @@ export default function AdaptiveQuizPage() {
               </Link>
             </div>
           </div>
+        </div>
         </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col pb-24 relative overflow-hidden">
-      {/* Dynamic Ambient Top Gradient */}
-      <div
-        className="absolute top-0 left-0 right-0 h-[400px] bg-gradient-to-b from-[#9DE1CA]/60 via-[#D1EBE1]/35 to-transparent pointer-events-none transition-all duration-500"
-        aria-hidden="true"
-      />
-
+    <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col relative overflow-hidden">
       <div className="relative z-10">
         <Navbar />
       </div>
 
-      <main className="max-w-2xl mx-auto px-4 pt-4 sm:pt-6 space-y-5 relative z-10 w-full">
+      <main className="flex-1 overflow-y-auto w-full relative pb-[calc(6rem+env(safe-area-inset-bottom))]">
+      <div className="max-w-2xl mx-auto px-4 pt-4 sm:pt-6 space-y-5 relative z-10 w-full">
         {/* Top Back Navigation */}
         <div className="flex items-center justify-between">
           <Link
@@ -295,16 +333,16 @@ export default function AdaptiveQuizPage() {
             {/* Progress Bar */}
             <div className="space-y-1.5 px-1">
               <div className="flex justify-between text-mini font-bold text-[#9195A8]">
-                <span>Pertanyaan {ddaState.history.length + 1} dari 4</span>
+                <span>Pertanyaan {Math.min(answersRef.current.length + 1, totalQuestions)} dari {totalQuestions}</span>
                 <span className="truncate max-w-[200px]">{quizTask?.title || "Kuis Evaluasi Adaptif DDA"}</span>
               </div>
-              <Progress value={((ddaState.history.length + 1) / 4) * 100} indicatorColor="bg-[#1C1E26]" />
+              <Progress value={(Math.min(answersRef.current.length + 1, totalQuestions) / totalQuestions) * 100} indicatorColor="bg-[#1C1E26]" />
             </div>
 
             {/* Question Card */}
             <div className="clay-card clay-white p-6 sm:p-8 rounded-3xl shadow-xs space-y-6">
               <div className="flex justify-between items-start gap-4">
-                <h2 className="text-base sm:text-lg font-black text-[#010105] leading-snug">
+                <h2 className="text-base sm:text-lg font-black text-[#1C1E26] leading-snug">
                   {activeQuestion?.questionText}
                 </h2>
                 <button
@@ -325,7 +363,7 @@ export default function AdaptiveQuizPage() {
                   const isSelected = selectedOption === idx;
                   const isCorrectAnswer = reveal !== null && idx === reveal.correctIndex;
 
-                  let styleClass = "clay-card clay-card-hover clay-white text-[#010105]";
+                  let styleClass = "clay-card clay-card-hover clay-white text-[#1C1E26]";
 
                   if (isAnswerSubmitted) {
                     if (isCorrectAnswer) {
@@ -371,8 +409,14 @@ export default function AdaptiveQuizPage() {
                         : "bg-[#FCD9D7] text-[#ba1a1a]"
                     }`}
                   >
-                    <p className="font-black mb-1">
-                      {!reveal ? "Memeriksa jawaban..." : reveal.correct ? "✅ Jawaban Tepat!" : "❌ Jawaban Kurang Tepat"}
+                    <p className="font-black mb-1 flex items-center gap-1.5">
+                      {!reveal ? (
+                        "Memeriksa jawaban..."
+                      ) : reveal.correct ? (
+                        <><CheckCircle2 className="w-4 h-4 shrink-0" /> Jawaban Tepat!</>
+                      ) : (
+                        <><XCircle className="w-4 h-4 shrink-0" /> Jawaban Kurang Tepat</>
+                      )}
                     </p>
                     <p className="opacity-90 leading-relaxed">{reveal?.langkah}</p>
                   </div>
@@ -382,7 +426,7 @@ export default function AdaptiveQuizPage() {
                     disabled={!reveal}
                     className="clay-btn clay-btn-dark w-full py-3.5 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 shadow-xs cursor-pointer"
                   >
-                    <span>{ddaState.history.length >= 3 ? "Selesaikan Kuis" : "Lanjut Soal Berikutnya"}</span>
+                    <span>{answersRef.current.length >= totalQuestions - 1 ? "Selesaikan Kuis" : "Lanjut Soal Berikutnya"}</span>
                     <ArrowRight className="w-4 h-4 ml-1.5" />
                   </button>
                 </div>
@@ -396,23 +440,19 @@ export default function AdaptiveQuizPage() {
               <div className="w-16 h-16 rounded-3xl clay-card clay-mint flex items-center justify-center mx-auto shadow-xs">
                 <Sparkles className="w-8 h-8 text-[#1D5E4D]" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-[#010105]">
+              <h1 className="text-2xl sm:text-3xl font-black text-[#1C1E26]">
                 Kuis DDA Selesai!
               </h1>
-              <p className="text-xs sm:text-sm text-[#5A5E70] font-medium">
-                Performa kognitif dan akurasimu telah dievaluasi oleh engine DDA.
-              </p>
             </div>
 
             <div className="clay-card clay-white p-6 sm:p-8 rounded-3xl shadow-xs space-y-6">
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div className="clay-card clay-butter p-4 rounded-2xl">
                   <span className="text-xs text-[#785308] font-bold block">Akurasi Soal</span>
-                  <span className="text-2xl font-black text-[#010105] mt-1 block">
+                  <span className="text-2xl font-black text-[#1C1E26] mt-1 block">
                     {ddaState.totalAnswered > 0
-                      ? Math.round((ddaState.totalCorrect / ddaState.totalAnswered) * 100)
-                      : 100}
-                    %
+                      ? `${Math.round((ddaState.totalCorrect / ddaState.totalAnswered) * 100)}%`
+                      : "–"}
                   </span>
                 </div>
                 <div className="clay-card clay-mint p-4 rounded-2xl">
@@ -472,13 +512,14 @@ export default function AdaptiveQuizPage() {
             </div>
           </div>
         )}
+      </div>
       </main>
 
       {/* AI COMPANION HINT MODAL */}
       <Dialog open={hintModalOpen} onOpenChange={setHintModalOpen}>
         <DialogContent className="max-w-md p-6 bg-white rounded-3xl">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-[#010105] flex items-center gap-2">
+            <DialogTitle className="text-base font-bold text-[#1C1E26] flex items-center gap-2">
               <Lightbulb className="w-4 h-4 text-[#785308]" /> Petunjuk AI Companion
             </DialogTitle>
           </DialogHeader>
@@ -487,7 +528,7 @@ export default function AdaptiveQuizPage() {
             <button
               onClick={() => setActiveHintTab("analogi")}
               className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-all ${
-                activeHintTab === "analogi" ? "bg-white text-[#010105] shadow-xs" : "text-[#5A5E70]"
+                activeHintTab === "analogi" ? "bg-white text-[#1C1E26] shadow-xs" : "text-[#5A5E70]"
               }`}
             >
               Analogi
@@ -495,7 +536,7 @@ export default function AdaptiveQuizPage() {
             <button
               onClick={() => setActiveHintTab("visual")}
               className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-all ${
-                activeHintTab === "visual" ? "bg-white text-[#010105] shadow-xs" : "text-[#5A5E70]"
+                activeHintTab === "visual" ? "bg-white text-[#1C1E26] shadow-xs" : "text-[#5A5E70]"
               }`}
             >
               Alur Visual
@@ -503,14 +544,14 @@ export default function AdaptiveQuizPage() {
             <button
               onClick={() => setActiveHintTab("langkah")}
               className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-all ${
-                activeHintTab === "langkah" ? "bg-white text-[#010105] shadow-xs" : "text-[#5A5E70]"
+                activeHintTab === "langkah" ? "bg-white text-[#1C1E26] shadow-xs" : "text-[#5A5E70]"
               }`}
             >
               Langkah
             </button>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#FBF9F4] text-xs font-medium text-[#010105] leading-relaxed">
+          <div className="p-4 rounded-2xl bg-[#F8F9FD] text-xs font-medium text-[#1C1E26] leading-relaxed">
             {activeHintTab === "langkah"
               ? reveal?.langkah || "Langkah penyelesaian muncul setelah kamu menjawab."
               : activeQuestion?.explanation?.[activeHintTab] || "Petunjuk tidak tersedia untuk soal ini."}

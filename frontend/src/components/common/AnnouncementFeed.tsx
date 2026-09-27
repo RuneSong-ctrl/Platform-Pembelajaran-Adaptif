@@ -27,7 +27,7 @@ export default function AnnouncementFeed({ classroomId, canPost = false }: { cla
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classroomId]);
   useLiveEvents((e) => {
-    if (e.type === "announcement" && e.classroom_id === classroomId && !canPost) load();
+    if (e.type === "refresh" || (e.type === "announcement" && e.classroom_id === classroomId && !canPost)) load();
   });
 
   const post = async () => {

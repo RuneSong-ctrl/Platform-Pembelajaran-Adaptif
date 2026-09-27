@@ -19,12 +19,14 @@ import {
   StudentSchedulePage,
   AssessmentPage,
   AdaptiveQuizPage,
+  ExamPage,
   StudentPassportPage,
   TeacherDashboardPage,
   TeacherClassPage,
   TeacherAssistantPage,
   GradebookPage,
   QuizStudioPage,
+  TaskComposerPage,
   TeacherRAGPage,
   ParentPortalPage,
   ParentChatPage,
@@ -151,6 +153,14 @@ export default function App() {
           }
         />
         <Route
+          path="/student/exam/:taskId"
+          element={
+            <ProtectedRoute allowedRoles={["SISWA"]}>
+              <ExamPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/passport"
           element={
             <ProtectedRoute allowedRoles={["SISWA"]}>
@@ -173,6 +183,30 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={["GURU"]}>
               <TeacherClassPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/class/:classId/tasks/new"
+          element={
+            <ProtectedRoute allowedRoles={["GURU"]}>
+              <TaskComposerPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/tasks/new"
+          element={
+            <ProtectedRoute allowedRoles={["GURU"]}>
+              <TaskComposerPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/tasks/:taskId/edit"
+          element={
+            <ProtectedRoute allowedRoles={["GURU"]}>
+              <TaskComposerPage />
             </ProtectedRoute>
           }
         />

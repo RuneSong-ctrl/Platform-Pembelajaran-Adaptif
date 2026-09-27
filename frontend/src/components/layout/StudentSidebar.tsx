@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useApp } from "@/contexts/AppContext";
 import {
   BookOpen,
   Layers,
@@ -17,8 +16,6 @@ import { audioSynth } from "@/services/audioSynth";
 export default function StudentSidebar() {
   const location = useLocation();
   const pathname = location.pathname;
-  const { currentUser } = useApp();
-  const style = currentUser?.learningStyle;
   // Remembered per browser so it stays collapsed across page navigation.
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -37,12 +34,6 @@ export default function StudentSidebar() {
       }
       return !v;
     });
-  };
-
-  const getSidebarGradient = () => {
-    if (style === "AUDITORI") return "from-[#B7A9F3]/50 via-[#E3DBF8]/25 to-transparent";
-    if (style === "KINESTETIK") return "from-[#F9CF80]/50 via-[#FDF0CD]/25 to-transparent";
-    return "from-[#9DE1CA]/60 via-[#D1EBE1]/30 to-transparent";
   };
 
   const links = [
@@ -91,13 +82,7 @@ export default function StudentSidebar() {
   ];
 
   return (
-    <aside className={`${collapsed ? "w-[76px]" : "w-64"} shrink-0 h-full overflow-y-auto overflow-x-hidden bg-white/80 backdrop-blur-md border-r border-[rgba(28,30,38,0.06)] p-3.5 hidden md:flex flex-col justify-between z-20 relative transition-[width] duration-200 ease-out`}>
-      {/* Subtle Sidebar Top Ambient Gradient */}
-      <div
-        className={`absolute top-0 left-0 right-0 h-44 bg-gradient-to-b ${getSidebarGradient()} pointer-events-none transition-all duration-500`}
-        aria-hidden="true"
-      />
-
+    <aside className={`${collapsed ? "w-[76px]" : "w-64"} shrink-0 h-full overflow-y-auto overflow-x-hidden bg-white border-r border-[rgba(28,30,38,0.06)] p-3.5 hidden md:flex flex-col justify-between z-20 relative transition-[width] duration-200 ease-out`}>
       <div className="space-y-4 relative z-10">
         <div>
           <div className={`flex items-center mb-2 ${collapsed ? "justify-center" : "justify-between"}`}>
@@ -142,12 +127,6 @@ export default function StudentSidebar() {
         </div>
       </div>
 
-      {/* Subtle Platform Version */}
-      {!collapsed && (
-        <div className="relative z-10 px-3 py-2 text-mini font-bold text-[#A5A8B8] border-t border-black/5 whitespace-nowrap truncate">
-          EduAdapt K-12 Engine v2.4
-        </div>
-      )}
     </aside>
   );
 }

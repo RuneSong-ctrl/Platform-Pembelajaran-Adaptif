@@ -36,7 +36,7 @@ export default function RoleSidebar({ title, storageKey, links }: { title: strin
     <>
       {/* 1. DESKTOP SIDEBAR (collapsible to an icon rail) */}
       <aside
-        className={`hidden md:flex ${collapsed ? "w-[76px]" : "w-64"} shrink-0 h-full overflow-y-auto overflow-x-hidden bg-white/80 backdrop-blur-md border-r border-[rgba(28,30,38,0.06)] p-3.5 flex-col shadow-2xs z-20 transition-[width] duration-200 ease-out`}
+        className={`hidden md:flex ${collapsed ? "w-[76px]" : "w-64"} shrink-0 h-full overflow-y-auto overflow-x-hidden bg-white border-r border-[rgba(28,30,38,0.06)] p-3.5 flex-col shadow-2xs z-20 transition-[width] duration-200 ease-out`}
       >
         <div className={`flex items-center mb-3 ${collapsed ? "justify-center" : "justify-between"}`}>
           {!collapsed && (
@@ -83,7 +83,7 @@ export default function RoleSidebar({ title, storageKey, links }: { title: strin
       {/* 2. MOBILE BOTTOM TAB BAR: always visible, never covers page content (pages reserve pb-24). */}
       <nav
         aria-label={title}
-        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-[rgba(28,30,38,0.08)] shadow-[0_-8px_24px_rgba(28,30,38,0.06)] flex pb-[env(safe-area-inset-bottom)]"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-[rgba(28,30,38,0.08)] shadow-[0_-8px_24px_rgba(28,30,38,0.06)] flex pb-[env(safe-area-inset-bottom)]"
       >
         {links.map((item) => {
           const Icon = item.icon;

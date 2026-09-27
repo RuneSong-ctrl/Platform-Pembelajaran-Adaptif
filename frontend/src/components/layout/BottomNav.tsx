@@ -12,23 +12,25 @@ import { audioSynth } from "@/services/audioSynth";
 export default function BottomNav() {
   const location = useLocation();
   const pathname = location.pathname;
+  const homeActive = pathname === "/student" || pathname.startsWith("/student/schedule") || pathname.startsWith("/student/status");
+  const profileActive = pathname.startsWith("/student/profile") || pathname.startsWith("/passport");
 
   return (
-    <div className="fixed bottom-5 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none md:hidden">
-      <nav className="pointer-events-auto bg-white/95 backdrop-blur-md rounded-full px-4 sm:px-6 py-2 flex items-center justify-between gap-2 sm:gap-4 shadow-[0_12px_32px_rgba(28,30,38,0.14)] border border-[rgba(28,30,38,0.08)] max-w-sm sm:max-w-md w-full relative">
+    <div className="fixed bottom-[calc(12px+env(safe-area-inset-bottom))] left-0 right-0 z-40 flex justify-center px-4 pointer-events-none md:hidden">
+      <nav className="pointer-events-auto bg-white rounded-full px-4 sm:px-6 py-2 flex items-center justify-between gap-2 sm:gap-4 shadow-[0_12px_32px_rgba(28,30,38,0.14)] border border-[rgba(28,30,38,0.08)] max-w-sm sm:max-w-md w-full relative">
         {/* Tab 1: Home */}
         <Link
           to="/student"
           onClick={() => audioSynth.playClickSound()}
           className={`flex flex-col items-center justify-center p-1 transition-all rounded-2xl flex-1 ${
-            pathname === "/student"
+            homeActive
               ? "text-[#1C1E26] scale-105 font-extrabold"
               : "text-[#9195A8] hover:text-[#1C1E26]"
           }`}
         >
           <div
             className={`p-1.5 rounded-full transition-colors ${
-              pathname === "/student" ? "bg-[#E3DBF8] text-[#4B3B7A]" : ""
+              homeActive ? "bg-[#E3DBF8] text-[#4B3B7A]" : ""
             }`}
           >
             <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
@@ -61,7 +63,7 @@ export default function BottomNav() {
           <Link
             to="/student/ai"
             onClick={() => audioSynth.playClickSound()}
-            className={`w-12 h-12 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_10px_22px_rgba(59,130,246,0.4)] border-2 border-white transition-all transform hover:scale-110 active:scale-95 cursor-pointer bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white ${
+            className={`w-12 h-12 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_10px_22px_rgba(59,130,246,0.4)] border-2 border-white transition-all transform hover:scale-110 active:scale-95 cursor-pointer bg-[#2563EB] text-white ${
               pathname.startsWith("/student/ai") ? "ring-3 ring-[#3B82F6]/50" : ""
             }`}
             title="Asisten Belajar AI"
@@ -95,14 +97,14 @@ export default function BottomNav() {
           to="/student/profile"
           onClick={() => audioSynth.playClickSound()}
           className={`flex flex-col items-center justify-center p-1 transition-all rounded-2xl flex-1 ${
-            pathname.startsWith("/student/profile")
+            profileActive
               ? "text-[#1C1E26] scale-105 font-extrabold"
               : "text-[#9195A8] hover:text-[#1C1E26]"
           }`}
         >
           <div
             className={`p-1.5 rounded-full transition-colors ${
-              pathname.startsWith("/student/profile") ? "bg-[#FCD9D7] text-[#852C28]" : ""
+              profileActive ? "bg-[#FCD9D7] text-[#852C28]" : ""
             }`}
           >
             <UserCircle className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />

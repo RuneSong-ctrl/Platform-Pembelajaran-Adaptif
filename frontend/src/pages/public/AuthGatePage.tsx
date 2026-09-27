@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { audioSynth } from "@/services/audioSynth";
+import { SESSION_NOTICE_KEY } from "@/services/apiClient";
 import {
   KeyRound,
   School,
@@ -11,7 +12,38 @@ import {
   UserCheck,
   GraduationCap,
   Users,
+  Lightbulb,
+  Eye,
+  EyeOff,
 } from "@/components/ui/icons";
+
+/** Password input with a show/hide toggle so a typo can be checked before submitting. */
+function PasswordField({ value, onChange, placeholder, className, autoComplete }: {
+  value: string; onChange: (value: string) => void; placeholder: string; className: string; autoComplete: string;
+}) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        type={visible ? "text" : "password"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        className={`${className} pr-12`}
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+        aria-pressed={visible}
+        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center text-[#5A5E70] hover:text-[#1C1E26] hover:bg-black/5 cursor-pointer"
+      >
+        {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
+  );
+}
 
 export default function AuthGatePage() {
   const navigate = useNavigate();
@@ -32,7 +64,10 @@ export default function AuthGatePage() {
   // 1. Login State
   const [loginIdentifier, setLoginIdentifier] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
+  const [loginError, setLoginError] = useState(() => sessionStorage.getItem(SESSION_NOTICE_KEY) || "");
+  useEffect(() => {
+    sessionStorage.removeItem(SESSION_NOTICE_KEY);
+  }, []);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // 2. Register State
@@ -154,22 +189,14 @@ export default function AuthGatePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F6FA] text-[#1C1E26] flex flex-col justify-between relative overflow-hidden select-none">
-      {/* Subtle Ambient Top Pastel Glow */}
-      <div
-        className="absolute top-0 left-0 right-0 h-96 bg-gradient-to-b from-[#E3DBF8]/40 via-[#D1EBE1]/25 to-transparent pointer-events-none"
-        aria-hidden="true"
-      />
-
+    <div className="app-shell bg-[#F7F6FA] text-[#1C1E26] flex flex-col relative overflow-hidden select-none">
       {/* Top Clean Header */}
-      <header className="w-full bg-white/90 backdrop-blur-md border-b border-[rgba(28,30,38,0.06)] py-3.5 px-4 sm:px-8 relative z-10 shadow-xs">
+      <header className="w-full shrink-0 bg-white border-b border-[rgba(28,30,38,0.06)] pb-2.5 sm:pb-3.5 pt-[calc(0.625rem+env(safe-area-inset-top))] sm:pt-[calc(0.875rem+env(safe-area-inset-top))] px-4 sm:px-8 relative z-10 shadow-xs">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="clay-pill clay-mint w-10 h-10 rounded-2xl flex items-center justify-center text-[#1D5E4D] font-black shrink-0">
-              <School className="w-5 h-5" />
-            </div>
+            <img src="/brand/logo-96.png" alt="" width={40} height={40} className="w-10 h-10 shrink-0" />
             <div>
-              <span className="font-extrabold text-[#010105] text-lg sm:text-xl tracking-tight block leading-tight">
+              <span className="font-extrabold text-[#1C1E26] text-lg sm:text-xl tracking-tight block leading-tight">
                 EduAdapt
               </span>
               <p className="text-mini text-[#595F72] hidden sm:block font-medium">
@@ -182,18 +209,18 @@ export default function AuthGatePage() {
       </header>
 
       {/* Main Authentication Container */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 my-6 relative z-10">
-        <div className="w-full max-w-md clay-card p-6 sm:p-8 relative transition-all duration-300">
+      <main className="flex-1 min-h-0 flex items-center justify-center px-4 py-3 sm:p-6 relative z-10">
+        <div className="w-full max-w-md max-h-full overflow-y-auto clay-card p-5 sm:p-8 relative transition-all duration-300">
           {/* Card Heading */}
-          <div className="text-center mb-6">
-            <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">
+          <div className="text-center mb-4 sm:mb-6">
+            <h1 className="text-xl sm:text-3xl font-black text-[#1C1E26] tracking-tight">
               {authMode === "login"
                 ? "Selamat Datang"
                 : authMode === "register"
                   ? "Buat Akun Baru"
                   : "Gabung Kode Kelas"}
             </h1>
-            <p className="text-xs sm:text-sm text-[#595F72] mt-1 font-medium">
+            <p className={`text-xs sm:text-sm text-[#595F72] mt-1 font-medium ${authMode === "register" ? "hidden sm:block" : ""}`}>
               {authMode === "login"
                 ? "Masuk untuk melanjutkan pembelajaran personal Anda"
                 : authMode === "register"
@@ -204,7 +231,7 @@ export default function AuthGatePage() {
 
           {/* Segmented Mode Selector (Masuk vs Daftar) */}
           {authMode !== "class_code" && (
-            <div className="grid grid-cols-2 p-1.5 bg-[#F0EEF6] rounded-2xl mb-6 border border-black/5 shadow-inner">
+            <div className="grid grid-cols-2 p-1.5 bg-[#F0EEF6] rounded-2xl mb-4 sm:mb-6 border border-black/5 shadow-inner">
               <button
                 type="button"
                 onClick={() => {
@@ -265,7 +292,7 @@ export default function AuthGatePage() {
                   onChange={(e) => setLoginIdentifier(e.target.value)}
                   placeholder="Masukkan nama akun atau email Anda"
                   required
-                  className="w-full px-4 py-3.5 bg-[#F7F6FA] border border-[rgba(28,30,38,0.1)] rounded-2xl text-xs font-medium text-[#1C1E26] placeholder:text-[#595F72]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1C1E26]/20 transition-all shadow-inner"
+                  className="w-full px-4 py-3.5 bg-[#F7F6FA] border border-[rgba(28,30,38,0.1)] rounded-2xl max-md:text-base md:text-xs font-medium text-[#1C1E26] placeholder:text-[#595F72]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1C1E26]/20 transition-all shadow-inner"
                 />
               </div>
 
@@ -273,12 +300,12 @@ export default function AuthGatePage() {
                 <label className="block text-xs font-extrabold text-[#1C1E26] mb-1.5">
                   Kata Sandi
                 </label>
-                <input
-                  type="password"
+                <PasswordField
                   value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
+                  onChange={setLoginPassword}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3.5 bg-[#F7F6FA] border border-[rgba(28,30,38,0.1)] rounded-2xl text-xs font-medium text-[#1C1E26] placeholder:text-[#595F72]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1C1E26]/20 transition-all shadow-inner"
+                  autoComplete="current-password"
+                  className="w-full px-4 py-3.5 bg-[#F7F6FA] border border-[rgba(28,30,38,0.1)] rounded-2xl max-md:text-base md:text-xs font-medium text-[#1C1E26] placeholder:text-[#595F72]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1C1E26]/20 transition-all shadow-inner"
                 />
               </div>
 
@@ -316,7 +343,7 @@ export default function AuthGatePage() {
           {/* MODE 2: DAFTAR AKUN (SIGN UP)                                */}
           {/* ============================================================ */}
           {authMode === "register" && (
-            <form onSubmit={handleRegisterSubmit} className="space-y-4">
+            <form onSubmit={handleRegisterSubmit} className="space-y-3 sm:space-y-4">
               {regError && (
                 <div className="clay-card clay-coral p-3 text-xs flex items-center gap-2 animate-in fade-in">
                   <AlertCircle className="w-4 h-4 shrink-0" />
@@ -334,7 +361,7 @@ export default function AuthGatePage() {
                   onChange={(e) => setRegName(e.target.value)}
                   placeholder="Contoh: I Made Sujana"
                   required
-                  className="w-full px-4 py-3.5 bg-[#F7F6FA] border border-[rgba(28,30,38,0.1)] rounded-2xl text-xs font-medium text-[#1C1E26] placeholder:text-[#595F72]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1C1E26]/20 transition-all shadow-inner"
+                  className="w-full px-4 py-3 sm:py-3.5 bg-[#F7F6FA] border border-[rgba(28,30,38,0.1)] rounded-2xl max-md:text-base md:text-xs font-medium text-[#1C1E26] placeholder:text-[#595F72]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1C1E26]/20 transition-all shadow-inner"
                 />
               </div>
 
@@ -348,7 +375,7 @@ export default function AuthGatePage() {
                   onChange={(e) => setRegEmail(e.target.value)}
                   placeholder="Contoh: made.sujana@student.eduadapt.id"
                   required
-                  className="w-full px-4 py-3.5 bg-[#F7F6FA] border border-[rgba(28,30,38,0.1)] rounded-2xl text-xs font-medium text-[#1C1E26] placeholder:text-[#595F72]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1C1E26]/20 transition-all shadow-inner"
+                  className="w-full px-4 py-3 sm:py-3.5 bg-[#F7F6FA] border border-[rgba(28,30,38,0.1)] rounded-2xl max-md:text-base md:text-xs font-medium text-[#1C1E26] placeholder:text-[#595F72]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1C1E26]/20 transition-all shadow-inner"
                 />
               </div>
 
@@ -356,12 +383,12 @@ export default function AuthGatePage() {
                 <label className="block text-xs font-extrabold text-[#1C1E26] mb-1.5">
                   Kata Sandi
                 </label>
-                <input
-                  type="password"
+                <PasswordField
                   value={regPassword}
-                  onChange={(e) => setRegPassword(e.target.value)}
+                  onChange={setRegPassword}
                   placeholder="Buat kata sandi akun"
-                  className="w-full px-4 py-3.5 bg-[#F7F6FA] border border-[rgba(28,30,38,0.1)] rounded-2xl text-xs font-medium text-[#1C1E26] placeholder:text-[#595F72]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1C1E26]/20 transition-all shadow-inner"
+                  autoComplete="new-password"
+                  className="w-full px-4 py-3 sm:py-3.5 bg-[#F7F6FA] border border-[rgba(28,30,38,0.1)] rounded-2xl max-md:text-base md:text-xs font-medium text-[#1C1E26] placeholder:text-[#595F72]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1C1E26]/20 transition-all shadow-inner"
                 />
               </div>
 
@@ -432,7 +459,7 @@ export default function AuthGatePage() {
                     placeholder="Minta kode ini ke admin sekolah"
                     autoComplete="off"
                     maxLength={64}
-                    className="w-full px-4 py-3.5 bg-[#F7F6FA] border border-[rgba(28,30,38,0.1)] rounded-2xl text-xs font-medium text-[#1C1E26] placeholder:text-[#595F72]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1C1E26]/20 transition-all shadow-inner"
+                    className="w-full px-4 py-3 sm:py-3.5 bg-[#F7F6FA] border border-[rgba(28,30,38,0.1)] rounded-2xl max-md:text-base md:text-xs font-medium text-[#1C1E26] placeholder:text-[#595F72]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1C1E26]/20 transition-all shadow-inner"
                   />
                 </div>
               )}
@@ -584,7 +611,7 @@ export default function AuthGatePage() {
                   onChange={(e) => setStudentName(e.target.value)}
                   placeholder="Contoh: I Kadek Dwi"
                   required
-                  className="w-full px-4 py-3.5 bg-[#F7F6FA] border border-[rgba(28,30,38,0.1)] rounded-2xl text-xs font-medium text-[#1C1E26] placeholder:text-[#595F72]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1C1E26]/20 transition-all shadow-inner"
+                  className="w-full px-4 py-3.5 bg-[#F7F6FA] border border-[rgba(28,30,38,0.1)] rounded-2xl max-md:text-base md:text-xs font-medium text-[#1C1E26] placeholder:text-[#595F72]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1C1E26]/20 transition-all shadow-inner"
                 />
               </div>
 
@@ -603,9 +630,12 @@ export default function AuthGatePage() {
                 />
               </div>
 
-              <div className="clay-card clay-mint p-3.5 text-mini font-semibold leading-relaxed">
-                💡 Masuk dengan kode kelas akan otomatis menghubungkan akun
-                siswa Anda ke kelas guru dan membuka asesmen adaptif.
+              <div className="clay-card clay-mint p-3.5 text-mini font-semibold leading-relaxed flex gap-2">
+                <Lightbulb className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  Masuk dengan kode kelas akan otomatis menghubungkan akun
+                  siswa Anda ke kelas guru dan membuka asesmen adaptif.
+                </span>
               </div>
 
               {/* High-Contrast Clear Primary CTA Button */}
@@ -641,7 +671,7 @@ export default function AuthGatePage() {
       </main>
 
       {/* Clean Institutional Footer */}
-      <footer className="w-full bg-white border-t border-[rgba(28,30,38,0.06)] py-4 px-4 text-center relative z-10">
+      <footer className="hidden sm:block w-full shrink-0 bg-white border-t border-[rgba(28,30,38,0.06)] pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] px-4 text-center relative z-10">
         <p className="max-w-4xl mx-auto text-xs text-[#595F72] font-medium">
           © 2026 EduAdapt • Riset Hibah Fundamental Universitas Udayana
         </p>

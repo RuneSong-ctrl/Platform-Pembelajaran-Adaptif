@@ -24,6 +24,7 @@ export {
   ArrowLeft,
   ArrowUpRight,
   Eye,
+  EyeOff,
   Headphones,
   FlaskConical,
   Calculator,

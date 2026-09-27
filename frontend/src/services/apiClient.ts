@@ -28,7 +28,7 @@ export function normalizeUser(u: any): User {
     email: u.email,
     role: u.role,
     avatar: u.avatar || u.role?.slice(0, 2) || "ED",
-    grade: u.grade ?? 10,
+    grade: u.grade ?? undefined,
     learningStyle: ("learning_style" in u ? u.learning_style : u.learningStyle) || undefined,
     modalityScores: u.modality_scores || u.modalityScores || { visual: 0, audio: 0, practice: 0 },
     learningProgress: u.learning_progress || u.learningProgress || {
@@ -44,8 +44,8 @@ export function normalizeUser(u: any): User {
     },
     processingSpeed: u.processing_speed || u.processingSpeed || "MODERATE",
     xpTotal: u.xp_total ?? u.xpTotal ?? 0,
-    streakDays: u.streak_days ?? u.streakDays ?? 1,
-    hearts: u.hearts ?? 5,
+    streakDays: u.streak_days ?? u.streakDays ?? 0,
+    hearts: u.hearts ?? 0,
     currentDDALevel: u.current_dda_level || u.currentDDALevel || "BASIC",
     childrenIds: u.children_ids || u.childrenIds || [],
     subjectSpecialization: u.subject_specialization || u.subjectSpecialization,
@@ -58,8 +58,8 @@ export function normalizeClassroom(c: any): Classroom {
     id: c.id,
     name: c.name,
     grade: c.grade ?? 10,
-    subject: c.subject || "Sains",
-    joinCode: c.join_code || c.joinCode || "UDU000",
+    subject: c.subject || "",
+    joinCode: c.join_code || c.joinCode || "",
     teacherId: c.teacher_id || c.teacherId || "",
     teacherName: c.teacher_name || c.teacherName || "Guru Pengajar",
     studentIds: c.student_ids || c.studentIds || [],
@@ -112,8 +112,20 @@ export function normalizeTask(t: any): GroundedTask {
     dueDate: t.due_date || t.dueDate,
     contentJson: t.content_json || t.contentJson || {},
     createdAt: t.created_at || t.createdAt || new Date().toISOString(),
+    examLabel: t.exam_label || t.examLabel || undefined,
+    opensAt: t.opens_at || t.opensAt || undefined,
+    closesAt: t.closes_at || t.closesAt || undefined,
+    timeLimitMinutes: t.time_limit_minutes ?? t.timeLimitMinutes ?? undefined,
+    maxAttempts: t.max_attempts ?? t.maxAttempts ?? undefined,
+    attachments: t.attachments || [],
   };
 }
+
+const SUBMISSION_STATUS: Record<string, AssignmentSubmission["status"]> = {
+  IN_PROGRESS: "InProgress",
+  SUBMITTED: "Submitted",
+  GRADED: "Graded",
+};
 
 export function normalizeCredential(c: any): BlockchainCredential {
   if (!c) return {} as BlockchainCredential;
@@ -126,7 +138,7 @@ export function normalizeCredential(c: any): BlockchainCredential {
     classroomId: c.classroom_id || c.classroomId || "",
     className: c.classroom_name || c.className || "Kelas Sains",
     competencyTitle: c.competency_title || c.competencyTitle || "Kompetensi Pembelajaran",
-    score: c.score ?? 100,
+    score: c.score ?? 0,
     blockIndex: c.block_index ?? c.blockIndex ?? 1,
     previousHash: c.previous_hash || c.previousHash || "0000000000000000000000000000000000000000000000000000000000000000",
     blockHash: c.block_hash || c.blockHash || "",
@@ -160,10 +172,15 @@ export function normalizeSubmission(sub: any): AssignmentSubmission {
     studentName: sub.student_name || sub.studentName || "Siswa",
     submittedAt: sub.submitted_at || sub.submittedAt || new Date().toISOString(),
     content: sub.content || "",
-    attachmentName: sub.attachment_name || sub.attachmentName || "Tugas.pdf",
-    grade: sub.grade,
-    feedback: sub.feedback,
-    status: sub.status || "Submitted",
+    attachmentName: sub.attachment_name || sub.attachmentName || undefined,
+    grade: sub.grade ?? undefined,
+    feedback: sub.feedback || undefined,
+    status: SUBMISSION_STATUS[sub.status] || sub.status || "Submitted",
+    attachments: sub.attachments || [],
+    answers: sub.answers || undefined,
+    essayScores: sub.essay_scores || sub.essayScores || undefined,
+    startedAt: sub.started_at || sub.startedAt || undefined,
+    isLate: Boolean(sub.is_late ?? sub.isLate),
   };
 }
 
@@ -187,6 +204,66 @@ export function normalizeNote(n: any): ParentTeacherNote {
 /** <audio>, <img> and <iframe> cannot send the Authorization header, so backend media links carry the token. */
 // Short-lived, read-only pass for URLs that cannot carry an Authorization header (<img>, <audio>, PDF, EventSource).
 // The login token itself never goes into a URL.
+const TOKEN_KEY = "eduadapt_token";
+/** One-line message the login page shows after the app signed the user out on its own. */
+export const SESSION_NOTICE_KEY = "eduadapt_session_notice";
+
+// The token used to live in sessionStorage, which iOS wipes whenever the home-screen app is closed.
+try {
+  const legacy = sessionStorage.getItem(TOKEN_KEY);
+  if (legacy && !localStorage.getItem(TOKEN_KEY)) localStorage.setItem(TOKEN_KEY, legacy);
+  sessionStorage.removeItem(TOKEN_KEY);
+} catch {
+  // storage blocked (private mode): the user simply logs in again
+}
+
+export interface TaskPayload {
+  classroom_id: string;
+  classroom_name?: string;
+  type?: string;
+  title: string;
+  chapter?: string;
+  source_reference?: string;
+  difficulty_level?: string;
+  is_published?: boolean;
+  due_date?: string;
+  content_json?: any;
+  exam_label?: string | null;
+  opens_at?: string | null;
+  closes_at?: string | null;
+  time_limit_minutes?: number | null;
+}
+
+export interface ExamQuestion {
+  id: string;
+  kind: "mcq" | "essay";
+  questionText: string;
+  options: string[] | null;
+  points: number;
+}
+
+export interface ExamSession {
+  submission_id: string;
+  status: string;
+  started_at: string;
+  deadline: string | null;
+  server_now: string;
+  questions: ExamQuestion[];
+  answers: Record<string, number | string>;
+}
+
+export class ApiError extends Error {
+  constructor(message: string, readonly status?: number) {
+    super(message);
+  }
+}
+
+let sessionExpiredHandler: (() => void) | null = null;
+/** AppContext registers this; it runs when the server rejects the token that is currently stored. */
+export const onSessionExpired = (handler: (() => void) | null) => {
+  sessionExpiredHandler = handler;
+};
+
 let mediaTicket = "";
 let ticketTimer: ReturnType<typeof setInterval> | undefined;
 export const getMediaTicket = () => mediaTicket;
@@ -249,10 +326,20 @@ export interface MessageThreadSummary {
 export const utcDate = (iso: string) => new Date(/Z|[+-]\d\d:?\d\d$/.test(iso) ? iso : iso + "Z");
 
 export class ApiService {
-  static getToken() { return sessionStorage.getItem("eduadapt_token"); }
+  static getToken() {
+    try {
+      return localStorage.getItem(TOKEN_KEY);
+    } catch {
+      return null; // storage blocked: behave as signed out
+    }
+  }
   static setToken(token?: string) {
-    if (token) sessionStorage.setItem("eduadapt_token", token);
-    else sessionStorage.removeItem("eduadapt_token");
+    try {
+      if (token) localStorage.setItem(TOKEN_KEY, token);
+      else localStorage.removeItem(TOKEN_KEY);
+    } catch {
+      // storage blocked: the session lasts only while the page stays open
+    }
     if (!token) {
       mediaTicket = "";
       clearInterval(ticketTimer);
@@ -269,36 +356,44 @@ export class ApiService {
     clearInterval(ticketTimer);
     ticketTimer = setInterval(() => void this.refreshMediaTicket(), 60 * 60 * 1000);
   }
+  /** A 401 for a token that is still the stored one means the session ended on the server. */
+  private static checkExpired(sentToken: string | null, status: number) {
+    if (status === 401 && sentToken && sentToken === this.getToken()) sessionExpiredHandler?.();
+  }
   static async authenticatedRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    const sentToken = this.getToken();
     let response: Response;
     try {
       response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.getToken() || ""}`, ...options?.headers },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${sentToken || ""}`, ...options?.headers },
       });
     } catch {
-      throw new Error("Server tidak dapat dihubungi. Pastikan backend berjalan.");
+      throw new ApiError("Server tidak dapat dihubungi. Pastikan backend berjalan.");
     }
     if (!response.ok) {
+      this.checkExpired(sentToken, response.status);
       const body = await response.json().catch(() => ({}));
-      throw new Error(typeof body.detail === "string" ? body.detail : `Permintaan gagal (${response.status}).`);
+      throw new ApiError(typeof body.detail === "string" ? body.detail : `Permintaan gagal (${response.status}).`, response.status);
     }
     return response.json();
   }
   private static async request<T>(endpoint: string, options?: RequestInit): Promise<T | null> {
     try {
       const url = `${API_BASE_URL}${endpoint}`;
+      const sentToken = this.getToken();
       const response = await fetch(url, {
         ...options,
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          ...(this.getToken() ? { Authorization: `Bearer ${this.getToken()}` } : {}),
+          ...(sentToken ? { Authorization: `Bearer ${sentToken}` } : {}),
           ...(options?.headers || {}),
         },
       });
 
       if (!response.ok) {
+        this.checkExpired(sentToken, response.status);
         console.warn(`[API] Request failed (${response.status}): ${url}`);
         return null;
       }
@@ -389,7 +484,7 @@ export class ApiService {
   }
 
   static async linkChild(code: string) {
-    return this.authenticatedRequest<{ id: string; name: string }>("/family/children", {
+    return this.authenticatedRequest<{ id: string; name: string; already_linked: boolean }>("/family/children", {
       method: "POST",
       body: JSON.stringify({ code }),
     });
@@ -541,35 +636,34 @@ export class ApiService {
     return this.request<any[]>(`/tasks${query}`);
   }
 
-  static async createTask(data: {
-    classroom_id: string;
-    classroom_name?: string;
-    type?: string;
-    title: string;
-    chapter?: string;
-    source_reference?: string;
-    difficulty_level?: string;
-    is_published?: boolean;
-    due_date?: string;
-    content_json?: any;
-  }) {
+  /** multipart/form-data request: the browser sets the boundary, so no Content-Type header here. */
+  private static async sendForm<T>(endpoint: string, form: FormData, method = "POST"): Promise<T> {
+    const sentToken = this.getToken();
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method,
+        headers: { Authorization: `Bearer ${sentToken || ""}` },
+        body: form,
+      });
+    } catch {
+      throw new ApiError("Server tidak dapat dihubungi. Periksa koneksimu.");
+    }
+    if (!response.ok) {
+      this.checkExpired(sentToken, response.status);
+      const body = await response.json().catch(() => ({}));
+      throw new ApiError(typeof body.detail === "string" ? body.detail : `Unggah gagal (${response.status}).`, response.status);
+    }
+    return response.json();
+  }
+
+  static async createTask(data: TaskPayload) {
     return this.authenticatedRequest<any>("/tasks", {
       method: "POST",
       body: JSON.stringify(data),
     });
   }
 
-  static async generateAiQuiz(classroomId: string, chapterTitle: string, difficulty = "MEDIUM") {
-    return this.request<any>("/tasks/generate-quiz", {
-      method: "POST",
-      body: JSON.stringify({
-        classroom_id: classroomId,
-        chapter_title: chapterTitle,
-        difficulty_level: difficulty,
-        num_questions: 4,
-      }),
-    });
-  }
 
   // --- DDA ENGINE ---
   static async evaluateDDA(payload: {
@@ -646,9 +740,30 @@ export class ApiService {
     return this.request<any[]>(`/schedules${query}`);
   }
 
+  static async createSchedule(data: {
+    student_id?: string;
+    day: string;
+    time: string;
+    duration: string;
+    title: string;
+    format: string;
+    completed?: boolean;
+  }) {
+    return this.authenticatedRequest<any>("/schedules", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
   static async toggleSchedule(scheduleId: string) {
     return this.request<any>(`/schedules/${scheduleId}/toggle`, {
       method: "PATCH",
+    });
+  }
+
+  static async deleteSchedule(scheduleId: string) {
+    return this.authenticatedRequest<{ success: boolean; message: string }>(`/schedules/${scheduleId}`, {
+      method: "DELETE",
     });
   }
 
@@ -661,24 +776,62 @@ export class ApiService {
     return this.request<any[]>(`/submissions${query}`);
   }
 
-  static async submitAssignment(data: {
-    task_id: string;
-    task_title: string;
-    student_id: string;
-    student_name: string;
-    content: string;
-    attachment_name?: string;
-  }) {
-    return this.request<any>("/submissions", {
-      method: "POST",
+  static async updateTask(taskId: string, data: Partial<TaskPayload>) {
+    return this.authenticatedRequest<any>(`/tasks/${encodeURIComponent(taskId)}`, {
+      method: "PATCH",
       body: JSON.stringify(data),
     });
   }
 
-  static async gradeSubmission(submissionId: string, grade: number, feedback: string) {
+  static async deleteTask(taskId: string) {
+    return this.authenticatedRequest<{ deleted: boolean }>(`/tasks/${encodeURIComponent(taskId)}`, { method: "DELETE" });
+  }
+
+  static async uploadTaskAttachments(taskId: string, files: File[]) {
+    const form = new FormData();
+    files.forEach((f) => form.append("files", f));
+    return this.sendForm<any>(`/tasks/${encodeURIComponent(taskId)}/attachments`, form);
+  }
+
+  static async deleteTaskAttachment(taskId: string, fileId: string) {
+    return this.authenticatedRequest<any>(`/tasks/${encodeURIComponent(taskId)}/attachments/${encodeURIComponent(fileId)}`, {
+      method: "DELETE",
+    });
+  }
+
+  /** Hands in (or re-hands in) an assignment: text plus kept and new files. */
+  static async submitAssignment(data: { task_id: string; content: string; keep_file_ids: string[]; files: File[] }) {
+    const form = new FormData();
+    form.append("task_id", data.task_id);
+    form.append("content", data.content);
+    form.append("keep_files", JSON.stringify(data.keep_file_ids));
+    data.files.forEach((f) => form.append("files", f));
+    return this.sendForm<any>("/submissions", form);
+  }
+
+  static async gradeSubmission(submissionId: string, data: { grade?: number; essay_scores?: Record<string, number>; feedback: string }) {
     return this.authenticatedRequest<any>(`/submissions/${submissionId}/grade`, {
       method: "PATCH",
-      body: JSON.stringify({ grade, feedback }),
+      body: JSON.stringify(data),
+    });
+  }
+
+  // --- TIMED EXAMS ---
+  static async startExam(taskId: string) {
+    return this.authenticatedRequest<ExamSession>(`/tasks/${encodeURIComponent(taskId)}/start`, { method: "POST" });
+  }
+
+  static async saveExamProgress(taskId: string, answers: Record<string, number | string>) {
+    return this.authenticatedRequest<{ saved: boolean; deadline: string | null }>(`/tasks/${encodeURIComponent(taskId)}/progress`, {
+      method: "PUT",
+      body: JSON.stringify({ answers }),
+    });
+  }
+
+  static async submitExam(taskId: string, answers: Record<string, number | string>) {
+    return this.authenticatedRequest<any>(`/tasks/${encodeURIComponent(taskId)}/submit`, {
+      method: "POST",
+      body: JSON.stringify({ answers }),
     });
   }
 
@@ -738,13 +891,14 @@ export class ApiService {
   }
 
   static async listAIConversations() {
-    return this.request<{ id: string; title: string; document_id?: string | null; updated_at: string }[]>("/ai/conversations");
+    return this.request<{ id: string; title: string; classroom_id?: string | null; document_id?: string | null; updated_at: string }[]>("/ai/conversations");
   }
 
   static async getAIConversation(id: string) {
     return this.request<{
       id: string;
       title: string;
+      classroom_id?: string | null;
       document_id?: string | null;
       messages: { sender: "ai" | "user"; text: string; citation?: string; timestamp: string }[];
     }>(`/ai/conversations/${encodeURIComponent(id)}`);

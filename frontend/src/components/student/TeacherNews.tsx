@@ -23,7 +23,7 @@ export default function TeacherNews() {
 
   return (
     <section className="clay-card clay-white p-4 sm:p-5 space-y-3 shadow-xs">
-      <h2 className="text-sm sm:text-base font-extrabold text-[#010105] flex items-center gap-2">
+      <h2 className="text-sm sm:text-base font-extrabold text-[#1C1E26] flex items-center gap-2">
         <Bell className="w-4 h-4 text-[#4B3B7A]" /> Kabar dari guru
       </h2>
 

@@ -2,11 +2,16 @@ import React, { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
+import PullToRefresh from "@/components/common/PullToRefresh";
 import BottomNav from "@/components/layout/BottomNav";
 import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
 import AnnouncementFeed from "@/components/common/AnnouncementFeed";
 import MessageThread from "@/components/common/MessageThread";
+import AssignmentSheet from "@/components/student/AssignmentSheet";
+import { formatWhen, taskDeadline, taskKindLabel } from "@/lib/tasks";
+import { utcDate } from "@/services/apiClient";
+import type { GroundedTask } from "@/types";
 import {
   ArrowLeft,
   School,
@@ -17,8 +22,6 @@ import {
   GraduationCap,
   Users,
   Bell,
-  UploadCloud,
-  X,
   Loader2,
 } from "@/components/ui/icons";
 
@@ -31,17 +34,13 @@ export default function ClassDetailPage() {
     documents,
     tasks,
     submissions,
-    submitAssignment,
     users,
     isSyncing,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<"beranda" | "materi" | "tugas" | "anggota">("beranda");
 
-  // Submit modal state for assignments
-  const [submitModalOpen, setSubmitModalOpen] = useState(false);
-  const [activeTask, setActiveTask] = useState<any | null>(null);
-  const [submissionText, setSubmissionText] = useState("");
+  const [openTask, setOpenTask] = useState<GroundedTask | null>(null);
 
   // Robust classroom matching (number vs string ID, or join code)
   const classroom = classrooms.find(
@@ -73,24 +72,24 @@ export default function ClassDetailPage() {
       )
     : [];
 
-  const handleOpenSubmit = (task: any) => {
-    audioSynth.playClickSound();
-    setActiveTask(task);
-    setSubmissionText("");
-    setSubmitModalOpen(true);
-  };
+  const mySubmission = (taskId: string) =>
+    submissions.find((s) => String(s.taskId) === String(taskId) && String(s.studentId) === String(currentUser?.id));
 
-  const handleSendSubmission = () => {
-    if (!activeTask || !submissionText) return;
-    audioSynth.playSuccessSound();
-    submitAssignment(activeTask.id, submissionText, "Tugas_Catatan_Mandiri.pdf");
-    setSubmitModalOpen(false);
+  // One line of status per task, in the student's words.
+  const statusOf = (task: GroundedTask) => {
+    const sub = mySubmission(task.id);
+    const due = taskDeadline(task);
+    if (sub?.status === "Graded") return { text: `Nilai ${sub.grade}`, tone: "bg-[#EBF6F2] text-[#1D5E4D]" };
+    if (sub?.status === "InProgress") return { text: "Sedang dikerjakan", tone: "bg-[#FFF6DF] text-[#785308]" };
+    if (sub) return { text: task.type === "exam" ? "Menunggu nilai" : sub.isLate ? "Terlambat" : "Dikumpulkan", tone: sub.isLate ? "bg-[#FDF0EF] text-[#852C28]" : "bg-[#EBF6F2] text-[#1D5E4D]" };
+    if (due && due.getTime() < Date.now()) return { text: task.type === "exam" ? "Ditutup" : "Lewat tenggat", tone: "bg-[#FDF0EF] text-[#852C28]" };
+    return { text: "Belum", tone: "bg-black/5 text-[#5A5E70]" };
   };
 
   // Loading State while backend syncs
   if (!classroom && isSyncing) {
     return (
-      <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
+      <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
         <Navbar />
         <div className="flex flex-1 overflow-hidden w-full">
           <StudentSidebar />
@@ -109,11 +108,12 @@ export default function ClassDetailPage() {
   // 404 State if classroom not found
   if (!classroom) {
     return (
-      <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
+      <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
         <Navbar />
         <div className="flex flex-1 overflow-hidden w-full">
           <StudentSidebar />
-          <main className="flex-1 overflow-y-auto flex items-center justify-center p-6 pb-24 md:pb-8">
+          <main className="flex-1 overflow-y-auto flex items-center justify-center p-6 app-main md:pb-8">
+            <PullToRefresh />
             <div className="clay-card bg-white p-8 rounded-3xl text-center space-y-4 max-w-sm w-full shadow-xs">
               <div className="w-14 h-14 rounded-2xl bg-[#FCD9D7] text-[#852C28] flex items-center justify-center mx-auto">
                 <School className="w-7 h-7" />
@@ -139,13 +139,14 @@ export default function ClassDetailPage() {
   }
 
   return (
-    <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
+    <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden w-full">
         <StudentSidebar />
 
-        <main className="flex-1 overflow-y-auto w-full px-3.5 sm:px-6 lg:px-8 py-4 sm:py-5 min-w-0 flex flex-col gap-4 pb-28 md:pb-8">
+        <main className="flex-1 overflow-y-auto w-full px-3.5 sm:px-6 lg:px-8 py-4 sm:py-5 min-w-0 flex flex-col gap-4 app-main md:pb-8">
+          <PullToRefresh />
           {/* Top Header & Back Button */}
           <div className="flex items-center justify-between">
             <Link
@@ -165,33 +166,32 @@ export default function ClassDetailPage() {
           {/* ========================================================= */}
           {/* BANNER HEADER KELAS (VIBRANT & PROPORTIONAL)              */}
           {/* ========================================================= */}
-          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#452B87] via-[#5C3FA6] to-[#25134A] p-5 sm:p-7 text-white shadow-md border border-white/10 min-h-[135px] flex flex-col justify-between">
-            {/* Soft Ambient Overlay */}
-            <div className="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-            <div className="absolute right-6 -bottom-6 w-32 h-32 rounded-full bg-[#FFE299]/15 blur-xl pointer-events-none" />
+          <div className="relative clay-card clay-lavender overflow-hidden p-5 sm:p-7 min-h-[135px] flex flex-col justify-between">
+            <div className="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-white/35 pointer-events-none" />
+            <div className="absolute right-6 -bottom-6 w-32 h-32 rounded-full bg-[#FEE7B3]/50 pointer-events-none" />
 
             <div className="relative z-10 space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-mini font-extrabold tracking-wide border border-white/15">
+                <span className="px-2.5 py-0.5 rounded-full bg-white/80 text-[#4B3B7A] text-mini font-extrabold tracking-wide border border-white">
                   Kelas {classroom.grade}-A
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-[#D1EBE1]/25 backdrop-blur-md text-[#D1EBE1] text-mini font-extrabold border border-[#D1EBE1]/20">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#D1EBE1] text-[#1D5E4D] text-mini font-extrabold border border-white">
                   {classroom.subject}
                 </span>
               </div>
 
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight text-white drop-shadow-xs">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight text-[#1C1E26]">
                 {classroom.name}
               </h1>
             </div>
 
-            <div className="relative z-10 pt-3 border-t border-white/15 flex items-center justify-between text-xs text-white/90 font-medium">
+            <div className="relative z-10 pt-3 border-t border-[#4B3B7A]/15 flex items-center justify-between text-xs text-[#4B3B7A] font-medium">
               <span className="flex items-center gap-1.5">
-                <GraduationCap className="w-4 h-4 text-[#FFE299]" />
+                <GraduationCap className="w-4 h-4 text-[#785308]" />
                 <span className="font-bold">Pengajar: {classroom.teacherName}</span>
               </span>
 
-              <span className="text-mini text-white/70 hidden sm:inline-block font-mono">
+              <span className="text-mini text-[#4B3B7A]/70 hidden sm:inline-block font-mono">
                 {classDocuments.length} Modul • {classTasks.length} Aktivitas
               </span>
             </div>
@@ -342,80 +342,41 @@ export default function ClassDetailPage() {
               ) : (
                 <div className="bg-white rounded-3xl border border-[rgba(28,30,38,0.07)] shadow-xs divide-y divide-[rgba(28,30,38,0.05)] overflow-hidden">
                   {classTasks.map((task) => {
-                    const mySub = submissions.find(
-                      (s) => String(s.taskId) === String(task.id) && String(s.studentId) === String(currentUser?.id)
-                    );
-                    const isQuiz = task.type === "quiz" || task.type === "exam";
+                    const status = statusOf(task);
+                    const due = taskDeadline(task);
+                    const opens = task.type === "exam" && task.opensAt ? utcDate(task.opensAt) : null;
+                    const Icon = task.type === "assignment" ? FileText : Sparkles;
+                    const open = () => {
+                      audioSynth.playClickSound();
+                      if (task.type === "quiz") navigate(`/quiz?taskId=${task.id}`);
+                      else if (task.type === "exam") navigate(`/student/exam/${task.id}`);
+                      else setOpenTask(task);
+                    };
 
                     return (
-                      <div
+                      <button
                         key={task.id}
-                        className="p-4 sm:p-4.5 flex items-center justify-between gap-3 hover:bg-[#F8F9FD] transition-colors"
+                        type="button"
+                        onClick={open}
+                        className="w-full text-left p-4 flex items-center gap-3 hover:bg-[#F8F9FD] transition-colors cursor-pointer"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div
-                            className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 text-xs shadow-2xs ${
-                              isQuiz
-                                ? "bg-[#FFF6DF] text-[#785308]"
-                                : "bg-[#FDF0EF] text-[#852C28]"
-                            }`}
-                          >
-                            {isQuiz ? (
-                              <Sparkles className="w-4.5 h-4.5" />
-                            ) : (
-                              <FileText className="w-4.5 h-4.5" />
-                            )}
-                          </div>
-
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-mini font-extrabold uppercase px-2 py-0.5 rounded-full bg-black/5 text-[#5A5E70]">
-                                {task.type}
-                              </span>
-                              {task.sourceReference && (
-                                <span className="text-mini text-[#5A5E70] font-medium truncate">
-                                  • {task.sourceReference}
-                                </span>
-                              )}
-                            </div>
-                            <h4 className="text-xs sm:text-sm font-black text-[#010105] truncate mt-0.5">
-                              {task.title}
-                            </h4>
-                          </div>
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
+                          task.type === "exam" ? "bg-[#FDF0EF] text-[#852C28]" : task.type === "quiz" ? "bg-[#D2E5FA] text-[#21518A]" : "bg-[#EBF6F2] text-[#1D5E4D]"
+                        }`}>
+                          <Icon className="w-4.5 h-4.5" />
                         </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-2 shrink-0">
-                          {mySub ? (
-                            <span className="text-mini font-bold px-2.5 py-1 rounded-full bg-[#EBF6F2] text-[#1D5E4D]">
-                              {mySub.status === "Graded" ? `Nilai: ${mySub.grade}` : "Dikumpul"}
-                            </span>
-                          ) : (
-                            <span className="text-mini font-bold px-2.5 py-1 rounded-full bg-[#FDF0EF] text-[#852C28] hidden sm:inline-block">
-                              Belum
-                            </span>
-                          )}
-
-                          {isQuiz ? (
-                            <button
-                              onClick={() => {
-                                audioSynth.playClickSound();
-                                navigate("/quiz");
-                              }}
-                              className="clay-btn clay-btn-dark px-3.5 py-1.5 rounded-xl text-xs font-black shadow-2xs cursor-pointer"
-                            >
-                              Mulai
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleOpenSubmit(task)}
-                              className="clay-btn clay-btn-white px-3.5 py-1.5 rounded-xl text-xs font-black text-[#1C1E26] shadow-2xs cursor-pointer border border-[rgba(28,30,38,0.08)]"
-                            >
-                              {mySub ? "Revisi" : "Kumpul"}
-                            </button>
+                        <div className="min-w-0 flex-1">
+                          <span className="text-mini font-extrabold uppercase px-2 py-0.5 rounded-full bg-black/5 text-[#5A5E70]">{taskKindLabel(task)}</span>
+                          <h4 className="text-sm font-black text-[#1C1E26] truncate mt-0.5">{task.title}</h4>
+                          {(due || opens) && (
+                            <p className="text-mini text-[#5A5E70] truncate">
+                              {task.type === "exam" && opens ? `${formatWhen(opens)} – ${formatWhen(due)}` : `Tenggat ${formatWhen(due)}`}
+                            </p>
                           )}
                         </div>
-                      </div>
+                        <span className={`text-mini font-bold px-2.5 py-1 rounded-full shrink-0 ${status.tone}`}>{status.text}</span>
+                        <ChevronRight className="w-4 h-4 text-[#9195A8] shrink-0" />
+                      </button>
                     );
                   })}
                 </div>
@@ -486,79 +447,8 @@ export default function ClassDetailPage() {
         </main>
       </div>
 
-      {/* INSTANT CLAY SUBMIT ASSIGNMENT MODAL */}
-      {submitModalOpen && activeTask && (
-        <div
-          className="fixed inset-0 z-50 bg-black/25 flex items-center justify-center p-4"
-          onClick={() => setSubmitModalOpen(false)}
-        >
-          <div
-            className="clay-card bg-white rounded-[28px] p-5 sm:p-6 border border-white max-w-sm sm:max-w-md w-full shadow-[0_12px_28px_rgba(28,30,38,0.08),inset_2px_2px_4px_#fff,inset_-2px_-2px_5px_rgba(0,0,0,0.03)] flex flex-col gap-3.5 relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setSubmitModalOpen(false)}
-              className="absolute right-4 top-4 rounded-xl p-1.5 text-[#5A5E70] clay-pill bg-[#F0EEF6] hover:bg-[#E3DBF8] transition-all cursor-pointer"
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            <div>
-              <h3 className="text-base font-black text-[#1C1E26]">
-                Kumpulkan: {activeTask.title}
-              </h3>
-              <p className="text-xs text-[#5A5E70] mt-0.5">
-                {activeTask.contentJson?.instructions || "Uraikan jawaban tugasmu di bawah ini."}
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-[#1C1E26] mb-1">
-                Teks Jawaban / Analisis Mandiri
-              </label>
-              <div className="p-1 rounded-2xl bg-[#F7F6FA] border border-white shadow-[inset_1.5px_1.5px_3px_rgba(0,0,0,0.04)]">
-                <textarea
-                  rows={4}
-                  placeholder="Ketik uraian jawaban tugasmu di sini..."
-                  value={submissionText}
-                  onChange={(e) => setSubmissionText(e.target.value)}
-                  className="w-full p-2.5 bg-transparent border-0 outline-none text-xs font-medium text-[#1C1E26] placeholder:text-[#9195A8] resize-none"
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            <div className="p-2.5 rounded-xl bg-[#F0EEF6] flex items-center justify-between text-xs font-medium text-[#5A5E70] border border-white">
-              <span className="flex items-center gap-1.5 text-mini font-bold text-[#4B3B7A]">
-                <UploadCloud className="w-3.5 h-3.5 text-[#4B3B7A]" />
-                Lampiran Catatan
-              </span>
-              <span className="text-mini font-mono font-bold bg-white px-2 py-0.5 rounded-md text-[#1C1E26] shadow-2xs">
-                Tugas_Catatan_Mandiri.pdf
-              </span>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-black/5">
-              <button
-                onClick={() => setSubmitModalOpen(false)}
-                className="clay-pill bg-[#F0EEF6] hover:bg-[#E3DBF8] text-[#4B3B7A] px-4 py-2 text-xs font-extrabold cursor-pointer transition-all active:scale-95"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleSendSubmission}
-                disabled={!submissionText}
-                className={`clay-btn px-4 py-2 text-xs font-extrabold ${
-                  submissionText
-                    ? "clay-btn-dark text-white cursor-pointer shadow-sm active:scale-95"
-                    : "bg-[#E4E2DD] text-[#9195A8] cursor-not-allowed"
-                }`}
-              >
-                Kirim ke Guru
-              </button>
-            </div>
-          </div>
-        </div>
+      {openTask && (
+        <AssignmentSheet task={openTask} submission={mySubmission(openTask.id)} onClose={() => setOpenTask(null)} />
       )}
 
       <BottomNav />

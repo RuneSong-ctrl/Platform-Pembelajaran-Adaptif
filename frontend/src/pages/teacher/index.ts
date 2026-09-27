@@ -4,3 +4,4 @@ export { default as QuizStudioPage } from "./QuizStudioPage";
 export { default as TeacherRAGPage } from "./TeacherRAGPage";
 export { default as TeacherClassPage } from "./TeacherClassPage";
 export { default as TeacherAssistantPage } from "./TeacherAssistantPage";
+export { default as TaskComposerPage } from "./TaskComposerPage";

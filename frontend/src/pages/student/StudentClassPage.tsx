@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
+import PullToRefresh from "@/components/common/PullToRefresh";
 import BottomNav from "@/components/layout/BottomNav";
 import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
@@ -49,13 +50,14 @@ export default function StudentClassPage() {
   };
 
   return (
-    <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
+    <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden w-full">
         <StudentSidebar />
 
-        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5 min-w-0 flex flex-col gap-5 pb-24 md:pb-8">
+        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5 min-w-0 flex flex-col gap-5 app-main md:pb-8">
+          <PullToRefresh />
           {/* Top Header & Back Action */}
           <div className="flex items-center justify-between">
             <Link
@@ -86,12 +88,9 @@ export default function StudentClassPage() {
                 Rombel &amp; Pembelajaran
               </span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-[#010105]">
+            <h1 className="text-xl sm:text-2xl font-black text-[#1C1E26]">
               Ruang Kelas Belajar
             </h1>
-            <p className="text-xs text-[#5A5E70] font-medium mt-0.5">
-              Pilih kelas untuk mengakses materi, pengumuman, dan tugas kurikulum.
-            </p>
           </div>
 
           {/* ========================================================= */}
@@ -111,7 +110,7 @@ export default function StudentClassPage() {
                 </div>
                 <h3 className="text-base font-black text-[#1C1E26]">Belum Ada Kelas Terdaftar</h3>
                 <p className="text-xs text-[#5A5E70] max-w-sm mx-auto">
-                  Kamu belum bergabung ke dalam kelas manapun. Masukkan 6-digit kode kelas dari gurumu untuk mulai belajar.
+                  Masukkan kode kelas dari gurumu untuk mulai belajar.
                 </p>
                 <button
                   onClick={() => {
@@ -159,7 +158,7 @@ export default function StudentClassPage() {
                               </span>
                             </div>
 
-                            <h3 className="text-sm sm:text-base font-black text-[#010105] truncate">
+                            <h3 className="text-sm sm:text-base font-black text-[#1C1E26] truncate">
                               {cls.name}
                             </h3>
                             <p className="text-xs text-[#5A5E70] font-medium flex items-center gap-1 mt-0.5">
@@ -177,7 +176,7 @@ export default function StudentClassPage() {
                       {/* Class Meta Metrics Bar */}
                       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-black/5 text-center text-xs">
                         <div className="bg-white/70 p-2 rounded-xl border border-[rgba(28,30,38,0.04)]">
-                          <span className="font-black text-[#010105] block">
+                          <span className="font-black text-[#1C1E26] block">
                             {cls.documentsCount || 0} Modul
                           </span>
                           <span className="text-mini text-[#5A5E70] font-medium">
@@ -186,7 +185,7 @@ export default function StudentClassPage() {
                         </div>
 
                         <div className="bg-white/70 p-2 rounded-xl border border-[rgba(28,30,38,0.04)]">
-                          <span className="font-black text-[#010105] block">
+                          <span className="font-black text-[#1C1E26] block">
                             {cls.tasksCount || 0} Aktivitas
                           </span>
                           <span className="text-mini text-[#5A5E70] font-medium">
@@ -221,7 +220,7 @@ export default function StudentClassPage() {
           onClick={() => setJoinModalOpen(false)}
         >
           <div
-            className="clay-card bg-white rounded-[26px] p-5 sm:p-6 border border-white max-w-xs sm:max-w-sm w-full shadow-[0_12px_28px_rgba(28,30,38,0.08),inset_2px_2px_4px_#fff,inset_-2px_-2px_5px_rgba(0,0,0,0.03)] flex flex-col gap-3 relative"
+            className="clay-card bg-white rounded-[26px] p-5 sm:p-6 border border-white max-w-xs sm:max-w-sm w-full max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-[0_12px_28px_rgba(28,30,38,0.08),inset_2px_2px_4px_#fff,inset_-2px_-2px_5px_rgba(0,0,0,0.03)] flex flex-col gap-3 relative"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -236,7 +235,7 @@ export default function StudentClassPage() {
                 Gabung Kelas Baru
               </h3>
               <p className="text-xs text-[#5A5E70] mt-0.5">
-                Masukkan 6-digit kode kelas dari guru (misal: UDU802 atau MAT714).
+                6 karakter dari gurumu, misal UDU802.
               </p>
             </div>
 

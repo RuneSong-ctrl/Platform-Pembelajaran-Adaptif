@@ -4,6 +4,7 @@ import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
 import TeacherSidebar from "@/components/layout/TeacherSidebar";
 import GradeDialog from "@/components/teacher/GradeDialog";
+import { taskDeadline, taskKindLabel } from "@/lib/tasks";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { audioSynth } from "@/services/audioSynth";
 import confetti from "canvas-confetti";
@@ -43,7 +44,9 @@ export default function GradebookPage() {
     avg(classTasks.map((t) => cell.get(`${id}:${t.id}`)?.grade).filter((g): g is number => g != null));
   const taskAvg = (taskId: string) =>
     avg(students.map((s) => cell.get(`${s.id}:${taskId}`)?.grade).filter((g): g is number => g != null));
-  const toGrade = [...cell.values()].filter((s) => s.grade == null && students.some((st) => st.id === s.studentId)).length;
+  const toGrade = [...cell.values()].filter(
+    (s) => s.grade == null && s.status !== "InProgress" && students.some((st) => st.id === s.studentId),
+  ).length;
 
   const hasCert = (id: string) => credentials.some((c) => c.studentId === id && c.classroomId === cls?.id && !c.taskId);
   const certReady = students.filter((s) => !hasCert(s.id) && studentAvg(s.id) !== null);
@@ -174,7 +177,7 @@ export default function GradebookPage() {
                 ) : classTasks.length === 0 ? (
                   <Empty>
                     Belum ada tugas atau kuis di {cls?.name}.{" "}
-                    <Link to="/teacher/quiz-generator" className="font-bold underline">Buat kuis</Link>.
+                    <Link to={cls ? `/teacher/class/${cls.id}/tasks/new` : "/teacher/tasks/new"} className="font-bold underline">Buat tugas, kuis, atau ujian</Link>.
                   </Empty>
                 ) : (
                   <div className="clay-card clay-white overflow-hidden">
@@ -188,8 +191,8 @@ export default function GradebookPage() {
                               <th key={t.id} className="font-bold px-3 py-3 text-center min-w-27.5 max-w-35 align-bottom">
                                 <span className="block truncate text-[#010105]" title={t.title}>{t.title}</span>
                                 <span className="block text-mini font-medium text-[#9195A8]">
-                                  {t.type === "quiz" ? "Kuis" : "Tugas"}
-                                  {t.dueDate && ` · ${new Date(t.dueDate).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}`}
+                                  {taskKindLabel(t)}
+                                  {taskDeadline(t) && ` · ${taskDeadline(t)!.toLocaleDateString("id-ID", { day: "numeric", month: "short" })}`}
                                 </span>
                               </th>
                             ))}
@@ -222,12 +225,17 @@ export default function GradebookPage() {
                                 </td>
                                 {classTasks.map((t) => {
                                   const sub = cell.get(`${st.id}:${t.id}`);
-                                  const late = !sub && t.dueDate && new Date(t.dueDate) < new Date();
+                                  const due = taskDeadline(t);
+                                  const late = !sub && due && due < new Date();
                                   if (!sub)
                                     return (
                                       <td key={t.id} className={`px-3 py-2.5 text-center ${late ? "text-[#852C28] font-bold" : "text-[#C4C6D0]"}`}>
                                         {late ? "Belum" : "–"}
                                       </td>
+                                    );
+                                  if (sub.status === "InProgress")
+                                    return (
+                                      <td key={t.id} className="px-3 py-2.5 text-center text-mini font-bold text-[#785308]">Sedang ujian</td>
                                     );
                                   return (
                                     <td key={t.id} className="px-1.5 py-1.5 text-center">
@@ -243,6 +251,7 @@ export default function GradebookPage() {
                                         }`}
                                       >
                                         {sub.grade ?? "Nilai"}
+                                        {sub.isLate && <span className="block text-mini font-bold text-[#852C28]">terlambat</span>}
                                       </button>
                                     </td>
                                   );

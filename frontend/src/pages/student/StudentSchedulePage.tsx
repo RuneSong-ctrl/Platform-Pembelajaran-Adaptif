@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import Navbar from "@/components/layout/Navbar";
+import PullToRefresh from "@/components/common/PullToRefresh";
 import BottomNav from "@/components/layout/BottomNav";
 import StudentSidebar from "@/components/layout/StudentSidebar";
 import { audioSynth } from "@/services/audioSynth";
@@ -51,9 +52,18 @@ export default function StudentSchedulePage() {
   const currentDayName = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"][new Date().getDay()];
   const [modalOpen, setModalOpen] = useState(false);
   const [day, setDay] = useState(currentDayName);
-  const [time, setTime] = useState("16:00 - 16:30");
-  const [duration, setDuration] = useState("30 mnt");
+  const [startTime, setStartTime] = useState("16:00");
+  const [endTime, setEndTime] = useState("16:30");
+  // Duration follows the two clock pickers, so every plan is stored as "HH:MM - HH:MM" plus a matching length.
+  const toMinutes = (hhmm: string) => {
+    const [h, m] = hhmm.split(":").map(Number);
+    return h * 60 + m;
+  };
+  const minutes = startTime && endTime ? toMinutes(endTime) - toMinutes(startTime) : 0;
+  const duration =
+    minutes >= 60 ? `${Math.floor(minutes / 60)} jam${minutes % 60 ? ` ${minutes % 60} mnt` : ""}` : `${minutes} mnt`;
   const [title, setTitle] = useState("");
+  const canSave = Boolean(title.trim()) && minutes > 0;
   const [specificFormat, setSpecificFormat] = useState(
     style === "AUDITORI"
       ? "Podcast Pembelajaran"
@@ -90,7 +100,7 @@ export default function StudentSchedulePage() {
   const formatOptions = getFormatOptions();
 
   const handleSave = () => {
-    if (!title.trim()) return;
+    if (!canSave) return;
     audioSynth.playSuccessSound();
 
     const matchedOption = formatOptions.find((o) => o.id === specificFormat);
@@ -98,7 +108,7 @@ export default function StudentSchedulePage() {
     addLearningSchedule({
       studentId: currentUser.id,
       day,
-      time,
+      time: `${startTime} - ${endTime}`,
       duration,
       title: title.trim(),
       format: matchedOption?.formatType || "Visual",
@@ -110,7 +120,7 @@ export default function StudentSchedulePage() {
   };
 
   const studentSchedules = learningSchedules.filter(
-    (s) => s.studentId === currentUser.id
+    (s) => !currentUser?.id || !s.studentId || s.studentId === currentUser.id
   );
 
   const filteredSchedules = studentSchedules.filter((sch) => {
@@ -123,13 +133,14 @@ export default function StudentSchedulePage() {
   const completedCount = studentSchedules.filter((s) => s.completed).length;
 
   return (
-    <div className="h-screen bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
+    <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden w-full">
         <StudentSidebar />
 
-        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5 min-w-0 flex flex-col gap-5 pb-24 md:pb-8">
+        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5 min-w-0 flex flex-col gap-5 app-main md:pb-8">
+          <PullToRefresh />
         {/* Top Back Navigation & Add Button */}
         <div className="flex items-center justify-between">
           <Link
@@ -163,12 +174,9 @@ export default function StudentSchedulePage() {
               {completedCount}/{studentSchedules.length} Selesai
             </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-[#010105]">
+          <h1 className="text-xl sm:text-2xl font-black text-[#1C1E26]">
             Jadwal Belajar Mandiri
           </h1>
-          <p className="text-xs text-[#5A5E70] font-medium mt-0.5">
-            Rencanakan komitmen belajarmu dengan format materi terkhusus gaya belajarmu.
-          </p>
         </div>
 
         {/* Day Selector Strip in Clay Pills (Expanded, No Cut-off) */}
@@ -183,7 +191,7 @@ export default function StudentSchedulePage() {
               className={`px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                 selectedDayFilter === d
                   ? "clay-btn clay-btn-dark text-white font-bold shadow-xs"
-                  : "clay-pill clay-white text-[#5A5E70] hover:text-[#010105]"
+                  : "clay-pill clay-white text-[#5A5E70] hover:text-[#1C1E26]"
               }`}
             >
               {d}
@@ -264,7 +272,7 @@ export default function StudentSchedulePage() {
                     </span>
                   </div>
 
-                  <h3 className={`text-xs sm:text-sm font-black ${sch.completed ? "line-through text-[#9195A8]" : "text-[#010105]"}`}>
+                  <h3 className={`text-xs sm:text-sm font-black ${sch.completed ? "line-through text-[#9195A8]" : "text-[#1C1E26]"}`}>
                     {sch.title}
                   </h3>
                 </div>
@@ -317,9 +325,6 @@ export default function StudentSchedulePage() {
               <h3 className="text-base font-black text-[#1C1E26]">
                 Buat Rencana Belajar Baru
               </h3>
-              <p className="text-xs text-[#5A5E70] mt-0.5">
-                Pilih format terkhusus gaya belajar {style === "AUDITORI" ? "Auditori" : style === "KINESTETIK" ? "Kinestetik" : "Visual"} kamu.
-              </p>
             </div>
 
             <div className="space-y-3 my-1">
@@ -346,30 +351,30 @@ export default function StudentSchedulePage() {
                 </div>
               </div>
 
-              {/* Time & Duration */}
+              {/* Time: two clock pickers, duration computed */}
               <div>
-                <label className="block text-xs font-bold text-[#1C1E26] mb-1">
-                  Waktu &amp; Durasi
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold text-[#1C1E26]">Waktu</span>
+                  <span className={`text-mini font-extrabold ${minutes > 0 ? "text-[#1D5E4D]" : "text-[#852C28]"}`} aria-live="polite">
+                    {minutes > 0 ? `Durasi ${duration}` : "Jam selesai harus setelah jam mulai"}
+                  </span>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="p-1 rounded-2xl bg-[#F7F6FA] border border-white shadow-[inset_1.5px_1.5px_3px_rgba(0,0,0,0.04)]">
-                    <input
-                      type="text"
-                      value={time}
-                      onChange={(e) => setTime(e.target.value)}
-                      placeholder="Misal: 16:00 - 16:30"
-                      className="w-full rounded-xl text-xs font-medium bg-transparent border-0 outline-none px-2 py-1.5 text-[#1C1E26]"
-                    />
-                  </div>
-                  <div className="p-1 rounded-2xl bg-[#F7F6FA] border border-white shadow-[inset_1.5px_1.5px_3px_rgba(0,0,0,0.04)]">
-                    <input
-                      type="text"
-                      value={duration}
-                      onChange={(e) => setDuration(e.target.value)}
-                      placeholder="Misal: 30 mnt"
-                      className="w-full rounded-xl text-xs font-medium bg-transparent border-0 outline-none px-2 py-1.5 text-[#1C1E26]"
-                    />
-                  </div>
+                  {[
+                    { label: "Mulai", value: startTime, set: setStartTime },
+                    { label: "Selesai", value: endTime, set: setEndTime },
+                  ].map(({ label, value, set }) => (
+                    <label key={label} className="p-1 rounded-2xl bg-[#F7F6FA] border border-white shadow-[inset_1.5px_1.5px_3px_rgba(0,0,0,0.04)] block">
+                      <span className="block px-2 pt-0.5 text-mini font-bold text-[#5A5E70]">{label}</span>
+                      <input
+                        type="time"
+                        value={value}
+                        onChange={(e) => set(e.target.value)}
+                        required
+                        className="w-full rounded-xl max-md:text-base md:text-xs font-bold bg-transparent border-0 outline-none px-2 py-1 text-[#1C1E26]"
+                      />
+                    </label>
+                  ))}
                 </div>
               </div>
 
@@ -384,7 +389,7 @@ export default function StudentSchedulePage() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Contoh: Belajar Modul & Latihan Mandiri"
-                    className="w-full rounded-xl text-xs font-medium bg-transparent border-0 outline-none px-2 py-1.5 text-[#1C1E26]"
+                    className="w-full rounded-xl max-md:text-base md:text-xs font-medium bg-transparent border-0 outline-none px-2 py-1.5 text-[#1C1E26]"
                     autoFocus
                   />
                 </div>
@@ -434,9 +439,9 @@ export default function StudentSchedulePage() {
               </button>
               <button
                 onClick={handleSave}
-                disabled={!title.trim()}
+                disabled={!canSave}
                 className={`clay-btn px-4 py-2 text-xs font-extrabold ${
-                  title.trim()
+                  canSave
                     ? "clay-btn-dark text-white cursor-pointer shadow-sm active:scale-95"
                     : "bg-[#E4E2DD] text-[#9195A8] cursor-not-allowed"
                 }`}

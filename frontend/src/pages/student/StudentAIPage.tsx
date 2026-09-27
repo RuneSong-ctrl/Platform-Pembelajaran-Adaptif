@@ -45,9 +45,15 @@ const toListDate = (iso: string) => {
 interface ConversationSummary {
   id: string;
   title: string;
+  classroom_id?: string | null;
   document_id?: string | null;
   updated_at: string;
 }
+
+// What the tutor grounds its answers in: nothing (general), every material of one class, or one material.
+type Scope = { kind: "general" } | { kind: "class"; classId: string; docId: string };
+// While picking: docId null = material not chosen yet, "" = all materials of the subject.
+type Selection = { kind: "general" } | { kind: "class"; classId: string; docId: string | null };
 
 export default function StudentAIPage() {
   const { currentUser, documents, classrooms } = useApp();
@@ -65,38 +71,88 @@ export default function StudentAIPage() {
   const myClassrooms = classrooms.filter((c) =>
     Boolean(currentUser?.id && c.studentIds?.includes(currentUser.id))
   );
-  const effectiveClassrooms = myClassrooms.length > 0 ? myClassrooms : classrooms;
-  const activeDocs = documents.filter((d) =>
-    effectiveClassrooms.some((c) => c.id === d.classroomId)
-  );
-  const availableDocs = activeDocs.length > 0 ? activeDocs : documents;
+  const classLabel = (c: { id: string; name: string; subject: string }) =>
+    myClassrooms.filter((o) => o.subject === c.subject).length > 1 ? `${c.subject} · ${c.name}` : c.subject || c.name;
 
-  const [selectedDocId, setSelectedDocId] = useState<string>(availableDocs[0]?.id || "");
-
-  const primaryDoc =
-    availableDocs.find((d) => d.id === selectedDocId) || availableDocs[0] || documents[0];
+  // The focus stays open to change until the first question is sent; the conversation then keeps it and the
+  // picker goes away (a different focus = a new conversation). No classes means general; one class is preselected.
+  const [picked, setPicked] = useState<Selection | null>(null);
+  const selection: Selection | null =
+    picked && (picked.kind === "general" || myClassrooms.some((c) => c.id === picked.classId))
+      ? picked
+      : myClassrooms.length === 0
+        ? { kind: "general" }
+        : myClassrooms.length === 1
+          ? { kind: "class", classId: myClassrooms[0].id, docId: null }
+          : null;
+  const focusClass = selection?.kind === "class" ? myClassrooms.find((c) => c.id === selection.classId) : undefined;
+  const classDocs = focusClass ? documents.filter((d) => d.classroomId === focusClass.id) : [];
+  // Ready to ask once the choice is complete; a subject without materials has nothing more to pick.
+  const scope: Scope | null = !selection
+    ? null
+    : selection.kind === "general"
+      ? selection
+      : selection.docId !== null || classDocs.length === 0
+        ? { kind: "class", classId: selection.classId, docId: selection.docId ?? "" }
+        : null;
+  const activeClass = scope?.kind === "class" ? focusClass : undefined;
+  const activeDoc = scope?.kind === "class" && scope.docId ? classDocs.find((d) => d.id === scope.docId) : undefined;
+  const subjectName = focusClass ? classLabel(focusClass) : "";
+  const grounded = Boolean(activeClass && classDocs.length > 0);
 
   const firstName = (currentUser?.name || "Siswa").split(" ")[0];
-  const greeting = primaryDoc
-    ? `Jawabanku merujuk ke materi dari gurumu: "${primaryDoc.title}". Tanyakan apa saja yang belum kamu pahami.`
-    : "Gurumu belum mengunggah materi, jadi aku akan menjawab dengan pengetahuan umum. Tanyakan konsep pelajaran apa saja.";
+  const greeting = !scope
+    ? focusClass
+      ? `Pilih materi ${subjectName} di atas: semua materi, atau satu materi saja.`
+      : "Pilih dulu di atas: Umum untuk pertanyaan bebas, atau mapel supaya jawabanku merujuk materi dari gurumu."
+    : scope.kind === "general"
+      ? "Mode Umum: aku menjawab dengan pengetahuan umum, tidak berdasarkan materi gurumu. Tanyakan konsep pelajaran apa saja."
+      : activeDoc
+        ? `Jawabanku merujuk ke materi dari gurumu: "${activeDoc.title}". Tanyakan apa saja yang belum kamu pahami.`
+        : grounded
+          ? `Jawabanku merujuk ke semua materi ${subjectName} dari gurumu. Tanyakan apa saja yang belum kamu pahami.`
+          : `Gurumu belum mengunggah materi ${subjectName}, jadi untuk sekarang aku menjawab dengan pengetahuan umum.`;
+  const scopeLabel = !scope
+    ? focusClass ? `Pilih materi ${subjectName}` : "Pilih Umum atau mapel"
+    : scope.kind === "general"
+      ? "Mode Umum"
+      : activeDoc
+        ? `Merujuk: ${activeDoc.title}`
+        : `Merujuk: semua materi ${subjectName}`;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const hasConversation = messages.length > 0;
 
-  const suggestions = primaryDoc
-    ? [
-        { icon: BookOpen, text: `Ringkas materi "${primaryDoc.title.slice(0, 40)}"` },
-        { icon: Lightbulb, text: "Apa konsep paling penting yang harus aku kuasai?" },
-        { icon: Sparkles, text: "Beri contoh atau analogi sederhana untuk materi ini" },
-        { icon: HelpCircle, text: "Buatkan 3 soal latihan beserta pembahasannya" },
-      ]
-    : [
-        { icon: Brain, text: "Bagaimana cara belajar yang efektif?" },
-        { icon: Lightbulb, text: "Apa itu tingkat kesulitan adaptif di EduAdapt?" },
-        { icon: HelpCircle, text: "Bagaimana cara bergabung ke kelas guru?" },
-        { icon: Sparkles, text: "Beri tips mengatur jadwal belajar mandiri" },
-      ];
+  const suggestions = !scope
+    ? []
+    : activeDoc
+      ? [
+          { icon: BookOpen, text: `Ringkas materi "${activeDoc.title.slice(0, 40)}"` },
+          { icon: Lightbulb, text: "Apa konsep paling penting yang harus aku kuasai?" },
+          { icon: Sparkles, text: "Beri contoh atau analogi sederhana untuk materi ini" },
+          { icon: HelpCircle, text: "Buatkan 3 soal latihan beserta pembahasannya" },
+        ]
+      : grounded
+        ? [
+            { icon: BookOpen, text: `Ringkas semua materi ${subjectName} dari guruku` },
+            { icon: Lightbulb, text: `Apa konsep paling penting di ${subjectName}?` },
+            { icon: Sparkles, text: "Beri contoh atau analogi sederhana dari materi guruku" },
+            { icon: HelpCircle, text: "Buatkan 3 soal latihan beserta pembahasannya" },
+          ]
+        : [
+            { icon: Brain, text: "Bagaimana cara belajar yang efektif?" },
+            { icon: Lightbulb, text: "Jelaskan satu konsep pelajaran dengan contoh sehari-hari" },
+            { icon: HelpCircle, text: "Bagaimana cara bergabung ke kelas guru?" },
+            { icon: Sparkles, text: "Beri tips mengatur jadwal belajar mandiri" },
+          ];
+
+  const conversationLabel = (c: ConversationSummary) => {
+    const doc = c.document_id ? documents.find((d) => d.id === c.document_id) : undefined;
+    const cls = myClassrooms.find((x) => x.id === (c.classroom_id || doc?.classroomId));
+    if (doc) return doc.title;
+    if (cls) return classLabel(cls);
+    return c.classroom_id || c.document_id ? "Materi kelas" : "Umum";
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -112,12 +168,17 @@ export default function StudentAIPage() {
     refreshConversations();
   }, []);
 
+  const pick = (next: Selection) => {
+    audioSynth.playClickSound();
+    setPicked(next);
+  };
+
   const startNewChat = () => {
     audioSynth.playClickSound();
     setActiveConvId(null);
     setMessages([]);
+    setPicked(null);
     setHistoryOpen(false);
-    textareaRef.current?.focus();
   };
 
   const openConversation = async (id: string) => {
@@ -133,7 +194,9 @@ export default function StudentAIPage() {
       return;
     }
     setMessages(conv.messages.map((m, i) => ({ ...m, id: `${id}_${i}`, timestamp: toTime(m.timestamp) })));
-    if (conv.document_id && availableDocs.some((d) => d.id === conv.document_id)) setSelectedDocId(conv.document_id);
+    const doc = conv.document_id ? documents.find((d) => d.id === conv.document_id) : undefined;
+    const classId = conv.classroom_id || doc?.classroomId;
+    setPicked(classId ? { kind: "class", classId, docId: doc?.id || "" } : { kind: "general" });
   };
 
   const confirmDelete = async () => {
@@ -152,7 +215,7 @@ export default function StudentAIPage() {
 
   const handleSendMessage = async (textToSend?: string) => {
     const text = (textToSend ?? inputText).trim();
-    if (!text || isTyping) return;
+    if (!text || isTyping || !scope) return;
 
     audioSynth.playClickSound();
 
@@ -167,8 +230,8 @@ export default function StudentAIPage() {
       const response = await ApiService.chatWithAI({
         message: text,
         history: newHistory.filter((m) => !m.isError).map((m) => ({ sender: m.sender, text: m.text })),
-        classroom_id: primaryDoc?.classroomId,
-        document_id: primaryDoc?.id,
+        classroom_id: activeClass?.id,
+        document_id: activeDoc?.id,
         learning_style: currentUser?.learningStyle || "VISUAL",
         student_name: currentUser?.name || "Siswa",
         student_id: currentUser?.id || "guest",
@@ -214,10 +277,10 @@ export default function StudentAIPage() {
     }
   };
 
-  const canSend = Boolean(inputText.trim()) && !isTyping;
+  const canSend = Boolean(inputText.trim()) && !isTyping && Boolean(scope);
 
   return (
-    <div className="h-[100dvh] w-full bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
+    <div className="app-shell w-full bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
       <div className="shrink-0">
         <Navbar />
       </div>
@@ -225,8 +288,8 @@ export default function StudentAIPage() {
       <div className="flex flex-1 overflow-hidden min-h-0 w-full relative z-10">
         <StudentSidebar />
 
-        <main className="flex-1 w-full px-3 sm:px-6 lg:px-8 py-3 sm:py-4 flex flex-col h-full overflow-hidden min-h-0 min-w-0">
-          <section className="relative flex-1 flex min-h-0 w-full max-w-6xl mx-auto bg-white rounded-3xl border border-black/5 shadow-[0_1px_2px_rgba(28,30,38,0.04),0_12px_32px_-12px_rgba(28,30,38,0.10)] overflow-hidden">
+        <main className="flex-1 w-full px-3 sm:px-6 lg:px-8 pt-3 sm:pt-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-4 flex flex-col h-full overflow-hidden min-h-0 min-w-0">
+          <section className="relative flex-1 flex min-h-0 w-full max-w-6xl mx-auto clay-card clay-white overflow-hidden">
             {/* History panel: static on lg, drawer on smaller screens */}
             {historyOpen && (
               <div className="lg:hidden absolute inset-0 z-20 bg-black/20" onClick={() => setHistoryOpen(false)} aria-hidden="true" />
@@ -273,7 +336,9 @@ export default function StudentAIPage() {
                           <MessageSquare className={`w-4 h-4 shrink-0 ${active ? "text-[#4B3B7A]" : "text-[#9195A8]"}`} />
                           <span className="min-w-0 flex-1">
                             <span className={`block text-sm truncate ${active ? "font-bold text-[#2D2152]" : "font-medium text-[#1C1E26]"}`}>{c.title}</span>
-                            <span className="block text-[11px] text-[#9195A8]">{toListDate(c.updated_at)}</span>
+                            <span className="block text-[11px] text-[#9195A8] truncate">
+                              {conversationLabel(c)} · {toListDate(c.updated_at)}
+                            </span>
                           </span>
                         </button>
                         <button
@@ -308,8 +373,8 @@ export default function StudentAIPage() {
                 <div className="min-w-0">
                   <h1 className="text-sm sm:text-base font-black tracking-tight truncate">AI Tutor</h1>
                   <p className="text-xs text-[#5A5E70] font-medium truncate flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
-                    {primaryDoc ? `Merujuk: ${primaryDoc.title}` : "Siap membantu belajar"}
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#1D5E4D] shrink-0" aria-hidden="true" />
+                    {scopeLabel}
                   </p>
                 </div>
               </div>
@@ -335,28 +400,55 @@ export default function StudentAIPage() {
               </div>
             </header>
 
-            {/* Module focus */}
-            {availableDocs.length > 1 && (
-              <div className="flex items-center gap-2 px-4 sm:px-6 py-2.5 border-b border-black/5 overflow-x-auto shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#9195A8] shrink-0">Materi</span>
-                {availableDocs.map((doc) => {
-                  const active = doc.id === primaryDoc?.id;
-                  return (
+            {/* Focus picker: open until the first question is sent */}
+            {!hasConversation && !loadingConv && (
+              <div className="border-b border-black/5 shrink-0">
+                <div className="flex items-center gap-2 px-4 sm:px-6 py-2.5 overflow-x-auto shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Rujukan jawaban">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#9195A8] shrink-0">Rujukan</span>
+                  <button
+                    onClick={() => pick({ kind: "general" })}
+                    aria-pressed={selection?.kind === "general"}
+                    className={`h-8 px-3 rounded-full text-xs font-bold whitespace-nowrap transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D5E4D]/40 ${selection?.kind === "general" ? "bg-[#4B3B7A] text-white" : "bg-[#F4F5F8] text-[#5A5E70] hover:bg-[#EBECF1]"}`}
+                  >
+                    Umum
+                  </button>
+                  {myClassrooms.map((c) => {
+                    const active = focusClass?.id === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => !active && pick({ kind: "class", classId: c.id, docId: null })}
+                        aria-pressed={active}
+                        className={`h-8 px-3 rounded-full text-xs font-bold whitespace-nowrap transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D5E4D]/40 ${active ? "bg-[#1D5E4D] text-white" : "bg-[#F4F5F8] text-[#5A5E70] hover:bg-[#EBECF1]"}`}
+                      >
+                        {classLabel(c)}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {focusClass && classDocs.length > 0 && selection?.kind === "class" && (
+                  <div className="flex items-center gap-2 px-4 sm:px-6 py-2.5 overflow-x-auto shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pt-0" role="group" aria-label={`Materi ${subjectName}`}>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#9195A8] shrink-0">Materi</span>
                     <button
-                      key={doc.id}
-                      onClick={() => {
-                        audioSynth.playClickSound();
-                        setSelectedDocId(doc.id);
-                      }}
-                      aria-pressed={active}
-                      className={`h-8 px-3 rounded-full text-xs font-bold whitespace-nowrap transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D5E4D]/40 ${
-                        active ? "bg-[#1D5E4D] text-white" : "bg-[#F4F5F8] text-[#5A5E70] hover:bg-[#EBECF1]"
-                      }`}
+                      onClick={() => pick({ kind: "class", classId: focusClass.id, docId: "" })}
+                      aria-pressed={selection.docId === ""}
+                      className={`h-8 px-3 rounded-full text-xs font-bold whitespace-nowrap transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D5E4D]/40 ${selection.docId === "" ? "bg-[#D1EBE1] text-[#1D5E4D]" : "bg-[#F4F5F8] text-[#5A5E70] hover:bg-[#EBECF1]"}`}
                     >
-                      {doc.title}
+                      Semua materi
                     </button>
-                  );
-                })}
+                    {classDocs.map((doc) => (
+                      <button
+                        key={doc.id}
+                        onClick={() => pick({ kind: "class", classId: focusClass.id, docId: doc.id })}
+                        aria-pressed={selection.docId === doc.id}
+                        className={`h-8 px-3 rounded-full text-xs font-bold whitespace-nowrap transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D5E4D]/40 ${selection.docId === doc.id ? "bg-[#D1EBE1] text-[#1D5E4D]" : "bg-[#F4F5F8] text-[#5A5E70] hover:bg-[#EBECF1]"}`}
+                      >
+                        {doc.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -380,7 +472,7 @@ export default function StudentAIPage() {
                       <button
                         key={text}
                         onClick={() => handleSendMessage(text)}
-                        className="group text-left px-3 py-2.5 rounded-xl border border-black/5 bg-[#FAFAFC] hover:bg-white hover:border-[#4B3B7A]/20 hover:shadow-[0_6px_16px_-8px_rgba(75,59,122,0.25)] hover:-translate-y-0.5 transition-all duration-200 ease-out active:scale-[0.98] flex items-center gap-3 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4B3B7A]/40"
+                        className="group text-left px-3 py-2.5 clay-card clay-white clay-card-hover rounded-2xl! active:scale-[0.98] flex items-center gap-3 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4B3B7A]/40"
                       >
                         <span className="w-8 h-8 rounded-lg bg-[#F0EEF6] text-[#4B3B7A] flex items-center justify-center shrink-0 group-hover:bg-[#E3DBF8] transition-colors">
                           <Icon className="w-4 h-4" />
@@ -443,7 +535,7 @@ export default function StudentAIPage() {
                           <span className="w-1.5 h-1.5 rounded-full bg-[#5A5E70] animate-bounce [animation-delay:0.3s]" />
                         </span>
                         <span className="text-xs text-[#5A5E70] font-medium">
-                          {primaryDoc ? "Membaca materi gurumu…" : "Sedang berpikir…"}
+                          {grounded ? "Membaca materi gurumu…" : "Sedang berpikir…"}
                         </span>
                       </div>
                     </div>
@@ -455,7 +547,12 @@ export default function StudentAIPage() {
 
             {/* Composer */}
             <div className="px-3 sm:px-6 pb-3 sm:pb-4 pt-2 shrink-0">
-              <div className="flex items-end gap-2 p-1.5 rounded-2xl bg-[#F4F5F8] border border-transparent focus-within:border-[#4B3B7A]/25 focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(75,59,122,0.08)] transition-all">
+              {scope?.kind === "general" && (
+                <p className="text-[11px] font-semibold text-[#5A5E70] px-1 pb-1.5">
+                  Jawaban umum, tidak berdasarkan materi gurumu.
+                </p>
+              )}
+              <div className="flex items-end gap-2 p-1.5 clay-pill rounded-2xl! bg-[#F4F5F8] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#4B3B7A]/10 transition-all">
                 <textarea
                   ref={textareaRef}
                   rows={1}
@@ -463,8 +560,9 @@ export default function StudentAIPage() {
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   aria-label="Tulis pertanyaan untuk AI Tutor"
-                  placeholder={primaryDoc ? "Tanya tentang materi ini…" : "Tanya konsep pelajaran…"}
-                  className="flex-1 bg-transparent border-0 outline-none text-sm text-[#1C1E26] placeholder-[#9195A8] px-3 py-2.5 resize-none max-h-40 leading-relaxed min-w-0"
+                  disabled={!scope}
+                  placeholder={!scope ? "Pilih Umum atau mapel dulu" : grounded ? "Tanya tentang materi ini…" : "Tanya konsep pelajaran…"}
+                  className="flex-1 bg-transparent border-0 outline-none max-md:text-base md:text-sm text-[#1C1E26] placeholder-[#9195A8] px-3 py-2.5 resize-none max-h-40 leading-relaxed min-w-0"
                 />
                 <button
                   onClick={() => handleSendMessage()}
@@ -480,7 +578,7 @@ export default function StudentAIPage() {
                 </button>
               </div>
               <p className="hidden sm:block text-[11px] text-[#9195A8] text-center mt-2">
-                Enter untuk kirim · Shift + Enter untuk baris baru · AI bisa keliru, cek kembali dengan materi gurumu
+                AI bisa keliru, cek lagi dengan materi gurumu.
               </p>
             </div>
             </div>
@@ -497,7 +595,7 @@ export default function StudentAIPage() {
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="reset-title"
-            className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-[0_24px_48px_-12px_rgba(28,30,38,0.25)] animate-in zoom-in-95 duration-150 flex flex-col items-center text-center gap-3"
+            className="bg-white rounded-3xl p-6 max-w-sm w-full max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-[0_24px_48px_-12px_rgba(28,30,38,0.25)] animate-in zoom-in-95 duration-150 flex flex-col items-center text-center gap-3"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-11 h-11 rounded-2xl bg-[#FCD9D7] text-[#852C28] flex items-center justify-center">
