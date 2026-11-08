@@ -175,7 +175,7 @@ export default function StudentClassPage() {
 
                       {/* Class Meta Metrics Bar */}
                       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-black/5 text-center text-xs">
-                        <div className="bg-white/70 p-2 rounded-xl border border-[rgba(28,30,38,0.04)]">
+                        <div className="bg-[#F8F9FD] p-2 rounded-xl border border-[#E6E4EE]">
                           <span className="font-black text-[#1C1E26] block">
                             {cls.documentsCount || 0} Modul
                           </span>
@@ -184,7 +184,7 @@ export default function StudentClassPage() {
                           </span>
                         </div>
 
-                        <div className="bg-white/70 p-2 rounded-xl border border-[rgba(28,30,38,0.04)]">
+                        <div className="bg-[#F8F9FD] p-2 rounded-xl border border-[#E6E4EE]">
                           <span className="font-black text-[#1C1E26] block">
                             {cls.tasksCount || 0} Aktivitas
                           </span>

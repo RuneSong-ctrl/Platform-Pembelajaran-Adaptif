@@ -297,7 +297,7 @@ export default function AssessmentPage() {
             </div>
 
             {/* Question Box Card */}
-            <div className="clay-card clay-white p-5 sm:p-6 rounded-[28px] border border-white shadow-sm space-y-4">
+            <div className="clay-card clay-white p-5 sm:p-6 rounded-[26px] border border-white shadow-sm space-y-4">
               <h2 className="text-sm sm:text-base font-black text-[#1C1E26] leading-relaxed">
                 {currentQ.prompt}
               </h2>
@@ -326,7 +326,7 @@ export default function AssessmentPage() {
                         {opt.text}
                       </span>
                       {isSelected && (
-                        <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0 ml-1" />
+                        <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#D1EBE1] shrink-0 ml-1" />
                       )}
                     </button>
                   );
@@ -354,7 +354,7 @@ export default function AssessmentPage() {
                 className={`clay-btn flex-1 py-3.5 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all focus-visible:ring-2 focus-visible:ring-[#1C1E26] ${
                   selectedOption !== null && !isSaving
                     ? "clay-btn-dark text-white shadow-md active:scale-98 cursor-pointer"
-                    : "bg-[#E4E2DD] text-[#9195A8] cursor-not-allowed"
+                    : "bg-[#E6E4EE] text-[#9195A8] cursor-not-allowed"
                 }`}
               >
                 <span>
@@ -386,7 +386,7 @@ export default function AssessmentPage() {
               </p>
             </div>
 
-            <div className="clay-card clay-white p-5 sm:p-6 rounded-[28px] border border-white shadow-sm space-y-4">
+            <div className="clay-card clay-white p-5 sm:p-6 rounded-[26px] border border-white shadow-sm space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-black/5">
                 <div>
                   <span className="text-mini font-bold text-[#9195A8] uppercase tracking-wider block">

@@ -90,7 +90,7 @@ function ChildOverview({ child }: { child: User }) {
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Recent grades */}
         <section className="space-y-3">
-          <h2 className="text-base font-black text-[#010105]">Nilai terbaru</h2>
+          <h2 className="text-base font-black text-[#1C1E26]">Nilai terbaru</h2>
           {graded.length === 0 ? (
             <Card>
               <p className="text-xs text-[#5A5E70]">Belum ada tugas yang dinilai.</p>
@@ -100,7 +100,7 @@ function ChildOverview({ child }: { child: User }) {
               {graded.slice(0, 5).map((s) => (
                 <li key={s.id} className="px-4 sm:px-5 py-3 space-y-0.5">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-bold text-[#010105] truncate">{s.taskTitle}</span>
+                    <span className="text-sm font-bold text-[#1C1E26] truncate">{s.taskTitle}</span>
                     <span className={`text-sm font-black shrink-0 ${(s.grade as number) < 70 ? "text-[#852C28]" : "text-[#1D5E4D]"}`}>
                       {s.grade}
                     </span>
@@ -114,7 +114,7 @@ function ChildOverview({ child }: { child: User }) {
 
         {/* Upcoming work */}
         <section className="space-y-3">
-          <h2 className="text-base font-black text-[#010105]">Tugas yang belum dikerjakan</h2>
+          <h2 className="text-base font-black text-[#1C1E26]">Tugas yang belum dikerjakan</h2>
           {upcoming.length === 0 ? (
             <Card>
               <p className="text-xs text-[#5A5E70] flex items-center gap-2">
@@ -126,7 +126,7 @@ function ChildOverview({ child }: { child: User }) {
               {upcoming.slice(0, 5).map((t) => (
                 <li key={t.id} className="px-4 sm:px-5 py-3 flex items-center justify-between gap-3">
                   <span className="min-w-0">
-                    <span className="block text-sm font-bold text-[#010105] truncate">{t.title}</span>
+                    <span className="block text-sm font-bold text-[#1C1E26] truncate">{t.title}</span>
                     <span className="block text-mini text-[#9195A8]">{t.type === "quiz" ? "Kuis" : "Tugas"} · {t.classroomName}</span>
                   </span>
                   {t.dueDate && (
@@ -144,7 +144,7 @@ function ChildOverview({ child }: { child: User }) {
       {/* Announcements */}
       {news.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-base font-black text-[#010105] flex items-center gap-2">
+          <h2 className="text-base font-black text-[#1C1E26] flex items-center gap-2">
             <Bell className="w-4 h-4 text-[#4B3B7A]" /> Pengumuman kelas
           </h2>
           <ul className="space-y-2">
@@ -162,7 +162,7 @@ function ChildOverview({ child }: { child: User }) {
 
       {/* Classes and teachers */}
       <section className="space-y-3">
-        <h2 className="text-base font-black text-[#010105]">Kelas {child.name.split(" ")[0]}</h2>
+        <h2 className="text-base font-black text-[#1C1E26]">Kelas {child.name.split(" ")[0]}</h2>
         <ul className="grid sm:grid-cols-2 gap-3">
           {classes.map((c) => (
             <li key={c.id} className="clay-card clay-white p-4 flex items-center gap-3">
@@ -170,7 +170,7 @@ function ChildOverview({ child }: { child: User }) {
                 <School className="w-5 h-5" />
               </span>
               <span className="flex-1 min-w-0">
-                <span className="block text-sm font-black text-[#010105] truncate">{c.name}</span>
+                <span className="block text-sm font-black text-[#1C1E26] truncate">{c.name}</span>
                 <span className="block text-xs text-[#5A5E70] truncate">{c.teacherName}</span>
               </span>
               <Link
@@ -197,7 +197,7 @@ function Stat({ label, value, warn = false }: { label: string; value: React.Reac
   return (
     <div className="clay-card clay-white px-3 sm:px-4 py-3">
       <dt className="text-mini sm:text-xs font-bold text-[#9195A8]">{label}</dt>
-      <dd className={`text-xl sm:text-2xl font-black ${warn ? "text-[#852C28]" : "text-[#010105]"}`}>{value}</dd>
+      <dd className={`text-xl sm:text-2xl font-black ${warn ? "text-[#852C28]" : "text-[#1C1E26]"}`}>{value}</dd>
     </div>
   );
 }

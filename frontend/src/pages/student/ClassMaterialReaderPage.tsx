@@ -31,6 +31,22 @@ const CTA_THEME = {
   KINESTETIK: { Icon: FlaskConical, icon: "bg-[#FEE7B3] text-[#785308]", btn: "clay-btn-butter", hint: "Lewat simulasi dan praktik" },
 } as const;
 
+/** Resolves a fully qualified PDF URL guaranteed to serve the file */
+function resolvePdfUrl(docObj: GroundedDocument): string {
+  if (docObj.fileUrl && docObj.fileUrl.startsWith("/uploads/")) {
+    return mediaUrl(docObj.fileUrl);
+  }
+  if (
+    docObj.fileUrl &&
+    (docObj.fileUrl.startsWith("http://") || docObj.fileUrl.startsWith("https://"))
+  ) {
+    return docObj.fileUrl;
+  }
+  // Guaranteed fallback endpoint with auto-generation on FastAPI backend
+  return mediaUrl(`/api/v1/documents/${docObj.id}/pdf`);
+}
+
+
 export default function ClassMaterialReaderPage() {
   const { classId, docId } = useParams<{ classId: string; docId: string }>();
   const navigate = useNavigate();
@@ -78,6 +94,22 @@ export default function ClassMaterialReaderPage() {
     }
   }, [doc, docId, classId]);
 
+  // An iframe shows the server's raw error body (JSON) on 404/401 and never fires onError, so probe first.
+  useEffect(() => {
+    if (!doc) return;
+    const ctrl = new AbortController();
+    setPdfLoadError(false);
+    fetch(resolvePdfUrl(doc), { signal: ctrl.signal })
+      .then((res) => {
+        if (!res.ok) setPdfLoadError(true);
+        ctrl.abort(); // headers are enough; the iframe loads the body itself
+      })
+      .catch((e) => {
+        if (e?.name !== "AbortError") setPdfLoadError(true);
+      });
+    return () => ctrl.abort();
+  }, [doc]);
+
   // Loading state while syncing or fetching
   if (!doc && (isSyncing || isLoadingDoc)) {
     return (
@@ -116,7 +148,7 @@ export default function ClassMaterialReaderPage() {
               <Link
                 to={classId ? `/student/class/${classId}` : "/student/class"}
                 onClick={() => audioSynth.playClickSound()}
-                className="clay-btn clay-btn-dark px-4 py-2.5 rounded-xl text-xs font-black inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                className="clay-btn clay-btn-dark whitespace-nowrap px-4 py-2.5 rounded-xl text-xs font-black inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Kembali ke Kelas</span>
@@ -128,21 +160,6 @@ export default function ClassMaterialReaderPage() {
       </div>
     );
   }
-
-  /** Resolves a fully qualified PDF URL guaranteed to serve the file */
-  const resolvePdfUrl = (docObj: GroundedDocument): string => {
-    if (docObj.fileUrl && docObj.fileUrl.startsWith("/uploads/")) {
-      return mediaUrl(docObj.fileUrl);
-    }
-    if (
-      docObj.fileUrl &&
-      (docObj.fileUrl.startsWith("http://") || docObj.fileUrl.startsWith("https://"))
-    ) {
-      return docObj.fileUrl;
-    }
-    // Guaranteed fallback endpoint with auto-generation on FastAPI backend
-    return mediaUrl(`/api/v1/documents/${docObj.id}/pdf`);
-  };
 
   const pdfUrl = resolvePdfUrl(doc);
   const hasRawText = Boolean(doc.rawText && doc.rawText.trim().length > 0);
@@ -157,18 +174,18 @@ export default function ClassMaterialReaderPage() {
 
         <main className="flex-1 overflow-y-auto w-full px-3.5 sm:px-6 lg:px-8 py-4 sm:py-5 min-w-0 flex flex-col gap-4 app-main md:pb-10">
           {/* Top Header & Back Navigation */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <Link
               to={`/student/class/${targetClassId}`}
               onClick={() => audioSynth.playClickSound()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[rgba(28,30,38,0.08)] shadow-2xs text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] transition-all cursor-pointer group"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-full bg-white border border-[rgba(28,30,38,0.08)] shadow-2xs text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] transition-all cursor-pointer group"
             >
               <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
               <span>Kembali ke Kelas</span>
             </Link>
 
             <div className="flex items-center gap-2">
-              <span className="text-mini font-black px-3 py-1 rounded-full bg-[#E3DBF8] text-[#4B3B7A] shadow-2xs">
+              <span className="text-mini font-black whitespace-nowrap px-3 py-1 rounded-full bg-[#E3DBF8] text-[#4B3B7A] shadow-2xs">
                 Dokumen Modul Kelas
               </span>
             </div>
@@ -211,7 +228,7 @@ export default function ClassMaterialReaderPage() {
           {/* FORMAT SELECTOR TABS (Dokumen PDF vs Teks Terformat)     */}
           {/* ========================================================= */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="inline-flex bg-white rounded-2xl p-1 border border-[rgba(28,30,38,0.06)] shadow-2xs">
+            <div className="inline-flex clay-white rounded-2xl p-1">
               <button
                 onClick={() => {
                   audioSynth.playClickSound();
@@ -224,7 +241,7 @@ export default function ClassMaterialReaderPage() {
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>Dokumen PDF Guru</span>
+                <span className="whitespace-nowrap"><span className="hidden sm:inline">Dokumen </span>PDF Guru</span>
               </button>
 
               <button
@@ -239,7 +256,7 @@ export default function ClassMaterialReaderPage() {
                 }`}
               >
                 <BookOpen className="w-3.5 h-3.5" />
-                <span>Teks Digital Terformat</span>
+                <span className="whitespace-nowrap">Teks Digital<span className="hidden sm:inline"> Terformat</span></span>
               </button>
             </div>
 
@@ -306,6 +323,11 @@ export default function ClassMaterialReaderPage() {
           ) : (
             /* Formatted Digital Text Reader */
             <div className="clay-card bg-white p-5 sm:p-8 rounded-3xl border border-black/5 shadow-xs space-y-4">
+              {viewMode === "pdf" && pdfLoadError && (
+                <p role="status" className="clay-pill clay-butter px-4 py-2.5 text-xs font-bold text-[#785308]">
+                  File PDF dari guru belum bisa dibuka, jadi materi ditampilkan sebagai teks.
+                </p>
+              )}
               <div className="flex items-center justify-between pb-3 border-b border-black/5 text-xs font-bold text-[#5A5E70]">
                 <span className="flex items-center gap-1.5 text-[#1D5E4D]">
                   <BookOpen className="w-4 h-4" />

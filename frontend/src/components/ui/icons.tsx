@@ -1,5 +1,6 @@
 export {
   Star,
+  Target,
   Search,
   Bell,
   ChevronDown,

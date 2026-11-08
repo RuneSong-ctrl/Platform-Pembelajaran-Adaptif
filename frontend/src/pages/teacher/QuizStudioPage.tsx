@@ -38,7 +38,7 @@ const blankQuestion = (): Question => ({
 });
 
 const selectCls =
-  "w-full p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-[#F8F9FD] focus:outline-none cursor-pointer";
+  "w-full p-2.5 rounded-2xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#1C1E26] bg-[#F8F9FD] focus:outline-none cursor-pointer";
 
 export default function QuizStudioPage() {
   const { documents, classrooms, createTask, currentUser } = useApp();
@@ -153,7 +153,7 @@ export default function QuizStudioPage() {
         <main className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-6">
           <div className="max-w-5xl mx-auto space-y-6">
             <header>
-              <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">Buat Kuis</h1>
+              <h1 className="text-2xl sm:text-3xl font-black text-[#1C1E26] tracking-tight">Buat Kuis</h1>
               <p className="text-sm text-[#5A5E70] mt-1">
                 Soal dibuat dari materi yang Anda unggah. Periksa dan ubah dulu, lalu kirim ke kelas.
               </p>
@@ -178,7 +178,7 @@ export default function QuizStudioPage() {
 
                 {/* Step 1: settings */}
                 <section className="clay-card clay-white p-5 sm:p-6 space-y-4">
-                  <h2 className="text-sm font-black text-[#010105]">1. Pilih materi</h2>
+                  <h2 className="text-sm font-black text-[#1C1E26]">1. Pilih materi</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Field label="Kelas">
                       <select
@@ -279,7 +279,7 @@ export default function QuizStudioPage() {
                   <section className="space-y-4">
                     <div className="flex items-end justify-between gap-3">
                       <div>
-                        <h2 className="text-sm font-black text-[#010105]">2. Periksa soal ({questions.length})</h2>
+                        <h2 className="text-sm font-black text-[#1C1E26]">2. Periksa soal ({questions.length})</h2>
                         <p className="text-xs text-[#5A5E70]">
                           Klik teks untuk mengubah. Pilih lingkaran di kiri jawaban untuk menandai jawaban benar.
                         </p>
@@ -299,7 +299,7 @@ export default function QuizStudioPage() {
                           )}
                           <button
                             onClick={() => setQuestions((qs) => qs.filter((_, n) => n !== i))}
-                            className="ml-auto p-2 rounded-xl text-[#9195A8] hover:text-[#ba1a1a] hover:bg-[#FDE8E8] cursor-pointer"
+                            className="ml-auto p-2 rounded-xl text-[#9195A8] hover:text-[#852C28] hover:bg-[#FDE8E8] cursor-pointer"
                             aria-label={`Hapus soal ${i + 1}`}
                             title="Hapus soal"
                           >
@@ -313,7 +313,7 @@ export default function QuizStudioPage() {
                           rows={2}
                           placeholder="Tulis pertanyaan"
                           aria-label={`Pertanyaan ${i + 1}`}
-                          className="w-full p-3 rounded-2xl border border-[rgba(28,30,38,0.08)] text-sm font-black text-[#010105] bg-[#F8F9FD] focus:outline-none focus:border-[#4B3B7A] leading-relaxed"
+                          className="w-full p-3 rounded-2xl border border-[rgba(28,30,38,0.08)] text-sm font-black text-[#1C1E26] bg-[#F8F9FD] focus:outline-none focus:border-[#4B3B7A] leading-relaxed"
                         />
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5" role="radiogroup" aria-label={`Jawaban benar soal ${i + 1}`}>
@@ -362,7 +362,7 @@ export default function QuizStudioPage() {
 
                     {/* Step 3: send */}
                     <section className="clay-card clay-white p-5 sm:p-6 space-y-4">
-                      <h2 className="text-sm font-black text-[#010105]">3. Kirim ke kelas</h2>
+                      <h2 className="text-sm font-black text-[#1C1E26]">3. Kirim ke kelas</h2>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Field label="Judul kuis">
                           <Input
@@ -412,7 +412,7 @@ export default function QuizStudioPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="block text-xs font-bold text-[#010105] mb-1">{label}</span>
+      <span className="block text-xs font-bold text-[#1C1E26] mb-1">{label}</span>
       {children}
     </label>
   );
@@ -422,7 +422,7 @@ function Empty({ title, to, cta, children }: { title: string; to: string; cta: s
   return (
     <div className="clay-card clay-white p-8 sm:p-12 text-center space-y-3">
       <BookOpen className="w-8 h-8 text-[#9195A8] mx-auto" />
-      <h2 className="text-base font-black text-[#010105]">{title}</h2>
+      <h2 className="text-base font-black text-[#1C1E26]">{title}</h2>
       <p className="text-xs text-[#5A5E70] max-w-sm mx-auto">{children}</p>
       <Link to={to} className="clay-btn clay-btn-dark px-5 py-2.5 rounded-2xl text-xs font-black inline-flex">
         {cta}

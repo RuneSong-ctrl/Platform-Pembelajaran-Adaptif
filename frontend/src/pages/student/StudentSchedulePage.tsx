@@ -285,7 +285,7 @@ export default function StudentSchedulePage() {
                     audioSynth.playClickSound();
                     deleteLearningSchedule(sch.id);
                   }}
-                  className="clay-btn clay-btn-white w-8 h-8 rounded-xl text-[#9195A8] hover:text-[#ba1a1a] flex items-center justify-center transition-colors cursor-pointer"
+                  className="clay-btn clay-btn-white w-8 h-8 rounded-xl text-[#9195A8] hover:text-[#852C28] flex items-center justify-center transition-colors cursor-pointer"
                   title="Hapus Jadwal"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -443,7 +443,7 @@ export default function StudentSchedulePage() {
                 className={`clay-btn px-4 py-2 text-xs font-extrabold ${
                   canSave
                     ? "clay-btn-dark text-white cursor-pointer shadow-sm active:scale-95"
-                    : "bg-[#E4E2DD] text-[#9195A8] cursor-not-allowed"
+                    : "bg-[#E6E4EE] text-[#9195A8] cursor-not-allowed"
                 }`}
               >
                 Simpan Jadwal

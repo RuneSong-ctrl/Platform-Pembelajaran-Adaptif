@@ -53,7 +53,7 @@ export default function KinestheticLearning({ documentId, preview, sources, onAc
       <div className="grid grid-cols-2 gap-3" role="tablist" aria-label="Menu kinestetik">
         {menus.map(m => (
           <button key={m.id} type="button" role="tab" id={`kin-tab-${m.id}`} aria-selected={menu === m.id} aria-controls={`kin-panel-${m.id}`} onClick={() => open(m.id)}
-            className={`clay-btn ${menu === m.id ? "clay-btn-butter" : "clay-btn-white"} rounded-[20px] p-3 sm:p-4 flex items-center gap-3 text-left`}>
+            className={`clay-btn ${menu === m.id ? "clay-btn-butter" : "clay-btn-white"} rounded-[18px] p-3 sm:p-4 flex items-center gap-3 text-left`}>
             <span className={`w-10 h-10 shrink-0 rounded-[12px] flex items-center justify-center text-[#785308] ${menu === m.id ? "bg-white" : "bg-[#FFF6DF]"}`}>
               <m.icon className="w-5 h-5" strokeWidth={2.2} />
             </span>
@@ -129,11 +129,11 @@ function Games({ info, onDone, onChallenge }: { info: Infographic | null; onDone
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2 p-1.5 rounded-[20px] bg-[#F0EEF6]" role="group" aria-label="Pilih game">
+      <div className="flex flex-wrap gap-2 p-1.5 rounded-[18px] bg-[#F0EEF6]" role="group" aria-label="Pilih game">
         {games.map(g => (
           <button key={g.id} type="button" disabled={!g.available} onClick={() => setGame(g.id)} aria-pressed={game === g.id}
-            className={`flex-1 min-w-[9rem] rounded-[16px] px-3 py-2 flex items-center gap-2.5 text-left cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 transition-colors ${game === g.id ? "clay-white" : "hover:bg-[#ECE9F4]"}`}>
-            <span className={`w-8 h-8 shrink-0 rounded-[10px] flex items-center justify-center ${game === g.id ? "bg-[#FEE7B3] text-[#785308]" : "bg-white text-[#595F72]"}`}>
+            className={`flex-1 min-w-[9rem] rounded-[18px] px-3 py-2 flex items-center gap-2.5 text-left cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 transition-colors ${game === g.id ? "clay-white" : "hover:bg-[#ECE9F4]"}`}>
+            <span className={`w-8 h-8 shrink-0 rounded-[12px] flex items-center justify-center ${game === g.id ? "bg-[#FEE7B3] text-[#785308]" : "bg-white text-[#595F72]"}`}>
               <g.icon className="w-4 h-4" strokeWidth={2.2} />
             </span>
             <span className="min-w-0">

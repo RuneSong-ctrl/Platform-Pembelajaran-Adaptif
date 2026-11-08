@@ -19,7 +19,7 @@ export default function LogoutConfirmDialog({ open, onOpenChange }: { open: bool
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm p-6 bg-white rounded-3xl border-2 border-white shadow-2xl">
+      <DialogContent className="max-w-sm p-6 clay-card">
         <DialogHeader>
           <div className="w-12 h-12 rounded-2xl bg-[#FDE8E8] text-[#852C28] flex items-center justify-center mb-1">
             <LogOut className="w-6 h-6" />

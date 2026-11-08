@@ -54,6 +54,12 @@ function ResumePendingJoin() {
 }
 
 export default function App() {
+  const { isRestoringSession } = useApp();
+  // The launch intro in index.html stays up until the saved session has been checked, so no second spinner follows it.
+  useEffect(() => {
+    if (!isRestoringSession) (window as Window & { __introReady?: () => void }).__introReady?.();
+  }, [isRestoringSession]);
+
   return (
     <>
       <ResumePendingJoin />

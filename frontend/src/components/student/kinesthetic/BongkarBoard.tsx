@@ -235,7 +235,7 @@ export default function BongkarBoard({ diagram, selected, onSelect, onProgress }
         @keyframes kin-wiggle { 0%,100% { rotate: 0deg } 25% { rotate: -6deg } 75% { rotate: 6deg } }
         @keyframes kin-line { from { stroke-dashoffset: 400 } to { stroke-dashoffset: 0 } }
         .kin-node { position: absolute; transform: translate(-50%, -50%); transition: left .45s ease, top .45s ease; }
-        .kin-pop { animation: kin-pop .5s cubic-bezier(.2,1.4,.4,1) both; }
+        .kin-pop { animation: kin-pop .5s cubic-bezier(.16,1,.3,1) both; }
         .kin-merge { animation: kin-merge ${MERGE_MS}ms ease-in both; }
         .kin-wiggle { animation: kin-wiggle .35s ease 3; }
       `}</style>
@@ -275,7 +275,7 @@ export default function BongkarBoard({ diagram, selected, onSelect, onProgress }
                 width: isRoot ? bubble * 1.15 : bubble, minHeight: isRoot ? bubble * 1.15 : bubble * 0.62, padding: compact ? "8px 6px" : "12px 10px",
                 fontSize: compact ? 11 : isRoot ? 15 : 13,
                 transform: pulled ? `translate(${pulled.dx}px, ${pulled.dy}px) scale(${1 + tension * 0.18})` : undefined,
-                transition: pulled ? "none" : "transform .35s cubic-bezier(.2,1.5,.4,1)",
+                transition: pulled ? "none" : "transform .35s cubic-bezier(.16,1,.3,1)",
               }}>
               {closedParent && tension > 0 && (
                 // cracks appear as the concept is stretched

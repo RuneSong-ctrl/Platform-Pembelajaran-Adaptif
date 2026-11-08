@@ -88,7 +88,7 @@ export default function PublicVerifyPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FBF9F4] text-[#1B1C19] selection:bg-[#FADFAD] pb-24">
+    <div className="min-h-screen bg-[#F8F9FD] text-[#1C1E26] selection:bg-[#FADFAD] pb-24">
       <Navbar />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 space-y-8">
@@ -99,7 +99,7 @@ export default function PublicVerifyPage() {
             <span>Independent Public Cryptographic Verifier</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-bold text-[#010105]">
+          <h1 className="text-3xl sm:text-5xl font-bold text-[#1C1E26]">
             Verifikasi Kredensial Blockchain
           </h1>
           <p className="text-xs sm:text-sm text-[#5A5E70] font-medium max-w-xl mx-auto leading-relaxed">
@@ -108,7 +108,7 @@ export default function PublicVerifyPage() {
         </div>
 
         {/* SEARCH BAR */}
-        <Card className="p-4 bg-white rounded-3xl border border-[rgba(28,30,38,0.08)] shadow-xs">
+        <Card className="p-4 clay-card">
           <form
             className="flex flex-col sm:flex-row gap-2"
             onSubmit={(e) => {
@@ -152,7 +152,7 @@ export default function PublicVerifyPage() {
                       <Badge variant="white" className="text-mini mb-1">
                         Cryptographically Authentic
                       </Badge>
-                      <h2 className="text-xl font-bold text-[#010105]">
+                      <h2 className="text-xl font-bold text-[#1C1E26]">
                         Sertifikat Terverifikasi Asli &amp; Valid
                       </h2>
                     </div>
@@ -167,11 +167,11 @@ export default function PublicVerifyPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="p-4 rounded-2xl bg-white shadow-xs">
                     <span className="text-mini uppercase font-bold text-[#9195A8] block">Nama Pemilik</span>
-                    <span className="text-sm font-bold text-[#010105]">{matchedCert?.studentName}</span>
+                    <span className="text-sm font-bold text-[#1C1E26]">{matchedCert?.studentName}</span>
                   </div>
                   <div className="p-4 rounded-2xl bg-white shadow-xs">
                     <span className="text-mini uppercase font-bold text-[#9195A8] block">Kompetensi</span>
-                    <span className="text-sm font-bold text-[#010105]">{matchedCert?.competencyTitle}</span>
+                    <span className="text-sm font-bold text-[#1C1E26]">{matchedCert?.competencyTitle}</span>
                   </div>
                   <div className="p-4 rounded-2xl bg-white shadow-xs">
                     <span className="text-mini uppercase font-bold text-[#9195A8] block">Nilai Capaian</span>
@@ -183,7 +183,7 @@ export default function PublicVerifyPage() {
                 <div className="p-4 rounded-2xl bg-white font-mono text-xs space-y-2 border border-[rgba(29,94,77,0.15)]">
                   <div>
                     <span className="text-mini uppercase font-bold text-[#9195A8] block">Stored Block Hash</span>
-                    <span className="text-[#010105] break-all">{verificationResult.recordedHash}</span>
+                    <span className="text-[#1C1E26] break-all">{verificationResult.recordedHash}</span>
                   </div>
                   <div>
                     <span className="text-mini uppercase font-bold text-[#9195A8] block">Recomputed SHA-256 Hash</span>
@@ -232,10 +232,10 @@ export default function PublicVerifyPage() {
 
         {/* TAMPER SIMULATION SANDBOX */}
         {matchedCert && (
-          <Card className="p-6 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs space-y-4">
+          <Card className="p-6 clay-card space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <h3 className="text-sm font-bold text-[#010105]">
+                <h3 className="text-sm font-bold text-[#1C1E26]">
                   Sandbox Pengujian Anti-Manipulasi (Zero-Tamper Proof)
                 </h3>
                 <p className="text-xs text-[#5A5E70]">
@@ -258,9 +258,9 @@ export default function PublicVerifyPage() {
             </div>
 
             {isTamperSimActive && (
-              <div className="p-4 rounded-2xl bg-[#FBF9F4] border border-[rgba(28,30,38,0.06)] space-y-3 animate-in fade-in">
+              <div className="p-4 rounded-2xl bg-[#F8F9FD] border border-[rgba(28,30,38,0.06)] space-y-3 animate-in fade-in">
                 <div className="flex items-center gap-4">
-                  <label className="text-xs font-bold text-[#010105]">
+                  <label className="text-xs font-bold text-[#1C1E26]">
                     Ubah Nilai Simulasi:
                   </label>
                   <input
@@ -275,7 +275,7 @@ export default function PublicVerifyPage() {
                     }}
                     className="flex-1 accent-[#1C1E26]"
                   />
-                  <span className="w-12 text-center text-sm font-bold text-[#010105]">
+                  <span className="w-12 text-center text-sm font-bold text-[#1C1E26]">
                     {tamperedScore}%
                   </span>
                 </div>

@@ -104,7 +104,7 @@ export default function TeacherAssistantPage() {
   };
 
   const selectCls =
-    "p-2 rounded-xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#010105] bg-white focus:outline-none cursor-pointer min-w-0";
+    "p-2 rounded-xl border border-[rgba(28,30,38,0.1)] text-xs font-bold text-[#1C1E26] bg-white focus:outline-none cursor-pointer min-w-0";
 
   return (
     <div className="h-dvh bg-[#F8F9FD] text-[#1C1E26] flex flex-col overflow-hidden">
@@ -130,7 +130,7 @@ export default function TeacherAssistantPage() {
                 <button
                   onClick={() => removeConv(c.id)}
                   aria-label={`Hapus ${c.title}`}
-                  className="p-1.5 mr-1 rounded-lg text-[#9195A8] hover:text-[#ba1a1a] opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
+                  className="p-1.5 mr-1 rounded-lg text-[#9195A8] hover:text-[#852C28] opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -142,7 +142,7 @@ export default function TeacherAssistantPage() {
         <main className="flex-1 flex flex-col min-w-0 min-h-0 pb-16 md:pb-0">
           {/* Context bar */}
           <div className="shrink-0 px-4 sm:px-6 py-3 border-b border-[rgba(28,30,38,0.06)] flex flex-wrap items-center gap-2">
-            <h1 className="text-base font-black text-[#010105] mr-auto">Asisten Mengajar</h1>
+            <h1 className="text-base font-black text-[#1C1E26] mr-auto">Asisten Mengajar</h1>
             <button onClick={newChat} className="lg:hidden clay-btn clay-btn-white p-2 cursor-pointer" aria-label="Percakapan baru">
               <Plus className="w-4 h-4" />
             </button>
@@ -184,7 +184,7 @@ export default function TeacherAssistantPage() {
                     <MessageSquare className="w-6 h-6" />
                   </div>
                   <div className="space-y-1">
-                    <h2 className="text-lg font-black text-[#010105]">Mau siapkan apa hari ini?</h2>
+                    <h2 className="text-lg font-black text-[#1C1E26]">Mau siapkan apa hari ini?</h2>
                     <p className="text-xs text-[#5A5E70] max-w-md mx-auto">
                       Asisten membaca materi dan data nilai kelas yang dipilih di atas. Periksa lagi hasilnya sebelum dipakai di kelas.
                     </p>
@@ -226,7 +226,7 @@ export default function TeacherAssistantPage() {
                     </div>
                     {!m.isError && (
                       <div className="flex items-center gap-3 px-1 text-mini text-[#9195A8]">
-                        <button onClick={() => copy(i, m.text)} className="flex items-center gap-1 font-bold hover:text-[#010105] cursor-pointer">
+                        <button onClick={() => copy(i, m.text)} className="flex items-center gap-1 font-bold hover:text-[#1C1E26] cursor-pointer">
                           {copied === i ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                           {copied === i ? "Tersalin" : "Salin"}
                         </button>

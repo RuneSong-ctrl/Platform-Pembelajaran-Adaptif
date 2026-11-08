@@ -153,7 +153,7 @@ export function AvatarIcon({
   const statusClasses = {
     online: "bg-[#1D5E4D] ring-white",
     learning: "bg-[#FEE7B3] text-[#785308] ring-white",
-    busy: "bg-[#ba1a1a] ring-white",
+    busy: "bg-[#852C28] ring-white",
     offline: "bg-[#9195A8] ring-white",
   };
 

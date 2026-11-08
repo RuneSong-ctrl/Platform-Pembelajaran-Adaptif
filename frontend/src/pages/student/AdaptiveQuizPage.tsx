@@ -224,14 +224,14 @@ export default function AdaptiveQuizPage() {
         <Navbar />
         <main className="flex-1 overflow-y-auto w-full pb-[calc(6rem+env(safe-area-inset-bottom))]">
         <div className="max-w-2xl mx-auto px-4 pt-8 space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <Link
               to="/student"
               onClick={() => audioSynth.playClickSound()}
               className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[rgba(28,30,38,0.08)] shadow-[0_4px_12px_rgba(28,30,38,0.04)] text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] hover:bg-[#F2EFFC] transition-all cursor-pointer group"
             >
               <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
-              <span>Kembali ke Beranda</span>
+              <span className="whitespace-nowrap">Kembali<span className="hidden min-[400px]:inline"> ke Beranda</span></span>
             </Link>
           </div>
 
@@ -280,16 +280,16 @@ export default function AdaptiveQuizPage() {
       <main className="flex-1 overflow-y-auto w-full relative pb-[calc(6rem+env(safe-area-inset-bottom))]">
       <div className="max-w-2xl mx-auto px-4 pt-4 sm:pt-6 space-y-5 relative z-10 w-full">
         {/* Top Back Navigation */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <Link
             to="/student"
             onClick={() => audioSynth.playClickSound()}
             className="clay-pill clay-white inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] transition-all cursor-pointer group"
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
-            <span>Kembali ke Beranda</span>
+            <span className="whitespace-nowrap">Kembali<span className="hidden min-[400px]:inline"> ke Beranda</span></span>
           </Link>
-          <span className="clay-pill clay-mint text-mini font-extrabold text-[#1D5E4D] uppercase tracking-wider px-3 py-1">
+          <span className="clay-pill clay-mint whitespace-nowrap text-mini font-extrabold text-[#1D5E4D] uppercase tracking-wider px-3 py-1">
             Sesi Kuis Adaptif DDA
           </span>
         </div>
@@ -323,7 +323,7 @@ export default function AdaptiveQuizPage() {
 
                 <div className="flex items-center gap-1.5 text-[#5A5E70] font-extrabold">
                   <Timer className="w-4 h-4" />
-                  <span className={secondsLeft <= 5 ? "text-[#ba1a1a] font-black animate-pulse" : ""}>
+                  <span className={secondsLeft <= 5 ? "text-[#852C28] font-black animate-pulse" : ""}>
                     {secondsLeft}s
                   </span>
                 </div>
@@ -369,7 +369,7 @@ export default function AdaptiveQuizPage() {
                     if (isCorrectAnswer) {
                       styleClass = "clay-card clay-mint text-[#1D5E4D] font-bold ring-2 ring-[#1D5E4D]";
                     } else if (isSelected && !isCorrectAnswer) {
-                      styleClass = "clay-card bg-[#FCD9D7] text-[#ba1a1a] font-bold ring-2 ring-[#ba1a1a]";
+                      styleClass = "clay-card bg-[#FCD9D7] text-[#852C28] font-bold ring-2 ring-[#852C28]";
                     }
                   } else if (isSelected) {
                     styleClass = "clay-btn clay-btn-dark text-white font-bold";
@@ -392,7 +392,7 @@ export default function AdaptiveQuizPage() {
                         <CheckCircle2 className="w-5 h-5 text-[#1D5E4D] shrink-0 ml-2" />
                       )}
                       {isAnswerSubmitted && isSelected && !isCorrectAnswer && (
-                        <XCircle className="w-5 h-5 text-[#ba1a1a] shrink-0 ml-2" />
+                        <XCircle className="w-5 h-5 text-[#852C28] shrink-0 ml-2" />
                       )}
                     </button>
                   );
@@ -406,7 +406,7 @@ export default function AdaptiveQuizPage() {
                     className={`clay-card p-4 rounded-2xl text-xs font-semibold ${
                       reveal?.correct
                         ? "clay-mint text-[#1D5E4D]"
-                        : "bg-[#FCD9D7] text-[#ba1a1a]"
+                        : "bg-[#FCD9D7] text-[#852C28]"
                     }`}
                   >
                     <p className="font-black mb-1 flex items-center gap-1.5">

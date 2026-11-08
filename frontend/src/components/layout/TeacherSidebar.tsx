@@ -21,6 +21,7 @@ export default function TeacherSidebar() {
     {
       href: "/teacher/tasks/new",
       label: "Tugas & Ujian",
+      short: "Tugas",
       icon: FileText,
       active: pathname.startsWith("/teacher/tasks") || pathname.includes("/tasks/new") || pathname === "/teacher/quiz-generator",
     },

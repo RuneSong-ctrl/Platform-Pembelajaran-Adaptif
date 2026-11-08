@@ -200,7 +200,7 @@ export default function ClassDetailPage() {
           {/* ========================================================= */}
           {/* TAB SWITCHER (4 Tab: Beranda, Materi, Tugas, Anggota)     */}
           {/* ========================================================= */}
-          <div className="grid grid-cols-4 gap-1 bg-white rounded-2xl p-1.5 border border-[rgba(28,30,38,0.06)] shadow-2xs">
+          <div className="grid grid-cols-4 gap-1 clay-white rounded-2xl p-1.5">
             {[
               { key: "beranda", label: "Beranda", icon: Bell },
               { key: "materi", label: `Materi (${classDocuments.length})`, icon: BookOpen },
@@ -340,7 +340,7 @@ export default function ClassDetailPage() {
                   </p>
                 </div>
               ) : (
-                <div className="bg-white rounded-3xl border border-[rgba(28,30,38,0.07)] shadow-xs divide-y divide-[rgba(28,30,38,0.05)] overflow-hidden">
+                <div className="clay-card divide-y divide-[rgba(28,30,38,0.05)] overflow-hidden">
                   {classTasks.map((task) => {
                     const status = statusOf(task);
                     const due = taskDeadline(task);
@@ -418,7 +418,7 @@ export default function ClassDetailPage() {
                   </h3>
                 </div>
 
-                <div className="bg-white rounded-3xl border border-[rgba(28,30,38,0.07)] shadow-xs divide-y divide-[rgba(28,30,38,0.05)] overflow-hidden">
+                <div className="clay-card divide-y divide-[rgba(28,30,38,0.05)] overflow-hidden">
                   {classStudents.length > 0 ? (
                     classStudents.map((st) => (
                       <div key={st.id} className="p-3.5 sm:p-4 flex items-center gap-3">
