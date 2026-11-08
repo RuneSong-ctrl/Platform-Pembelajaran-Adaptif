@@ -1,3 +1,4 @@
+import logging
 import os
 import uuid
 import io
@@ -19,6 +20,7 @@ from app.api.v1.endpoints.learning_units import access, schedule_generation
 from app.schemas.document import DocumentResponse, DocumentCreate
 from app.services.vector_store import index_document, remove_document_from_index
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["Documents & RAG"])
 
 def _extract_text_from_file_bytes(filename: str, content: bytes) -> str:
@@ -143,10 +145,8 @@ async def extract_text(file: UploadFile = File(...), user: User = Depends(curren
             "length": len(extracted_text),
         }
     except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Gagal mengekstrak teks dari file '{file.filename}': {str(e)}"
-        )
+        logger.warning("extract-text failed for %s: %s", file.filename, e)
+        raise HTTPException(400, f"Teks dari file '{file.filename}' tidak bisa dibaca. Pastikan file tidak rusak atau terkunci.")
 
 @router.post("/upload-file", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
 async def upload_document_file(

@@ -252,6 +252,15 @@ export interface ExamSession {
   answers: Record<string, number | string>;
 }
 
+/** Turns a failed response into a sentence for the user: never a bare status code or a validation dump. */
+const failMessage = (status: number, body: any, fallback: string) =>
+  typeof body?.detail === "string" ? body.detail
+  : status === 413 ? "File terlalu besar."
+  : status === 422 ? "Data yang dikirim belum lengkap atau tidak valid."
+  : status === 429 ? "Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi."
+  : status >= 500 ? "Server sedang bermasalah. Coba lagi sebentar lagi."
+  : fallback;
+
 export class ApiError extends Error {
   constructor(message: string, readonly status?: number) {
     super(message);
@@ -374,7 +383,7 @@ export class ApiService {
     if (!response.ok) {
       this.checkExpired(sentToken, response.status);
       const body = await response.json().catch(() => ({}));
-      throw new ApiError(typeof body.detail === "string" ? body.detail : `Permintaan gagal (${response.status}).`, response.status);
+      throw new ApiError(failMessage(response.status, body, "Permintaan gagal. Coba lagi."), response.status);
     }
     return response.json();
   }
@@ -592,7 +601,7 @@ export class ApiService {
     }
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      throw new Error(typeof body.detail === "string" ? body.detail : `Unggah gagal (${response.status}).`);
+      throw new Error(failMessage(response.status, body, "Unggah gagal. Coba lagi."));
     }
     return (await response.json()) as any;
   }
@@ -652,7 +661,7 @@ export class ApiService {
     if (!response.ok) {
       this.checkExpired(sentToken, response.status);
       const body = await response.json().catch(() => ({}));
-      throw new ApiError(typeof body.detail === "string" ? body.detail : `Unggah gagal (${response.status}).`, response.status);
+      throw new ApiError(failMessage(response.status, body, "Unggah gagal. Coba lagi."), response.status);
     }
     return response.json();
   }
