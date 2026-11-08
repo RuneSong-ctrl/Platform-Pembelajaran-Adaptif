@@ -23,7 +23,7 @@ const buttonVariants = cva(
         coral:
           "bg-[#FCD9D7] text-[#852C28] border border-[rgba(133,44,40,0.15)] hover:bg-[#FACBC9] active:translate-y-[1px] shadow-[0_4px_12px_rgba(133,44,40,0.06)]",
         destructive:
-          "bg-[#ba1a1a] text-white hover:bg-[#93000a] active:translate-y-[1px] shadow-[0_4px_12px_rgba(186,26,26,0.15)]",
+          "bg-[#852C28] text-white hover:bg-[#93000a] active:translate-y-[1px] shadow-[0_4px_12px_rgba(186,26,26,0.15)]",
         outline:
           "border border-[rgba(28,30,38,0.12)] bg-white text-[#1C1E26] hover:bg-[#F7F6FA] active:translate-y-[1px] shadow-[0_2px_8px_rgba(28,30,38,0.03)]",
         ghost:

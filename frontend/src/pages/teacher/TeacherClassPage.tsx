@@ -67,7 +67,7 @@ export default function TeacherClassPage() {
     return (
       <Shell>
         <div className="clay-card clay-white p-8 text-center space-y-3 max-w-sm mx-auto mt-10">
-          <h2 className="text-lg font-black text-[#010105]">Kelas tidak ditemukan</h2>
+          <h2 className="text-lg font-black text-[#1C1E26]">Kelas tidak ditemukan</h2>
           <p className="text-xs text-[#5A5E70]">Kelas ini mungkin sudah dihapus atau bukan milik Anda.</p>
           <BackLink />
         </div>
@@ -128,7 +128,7 @@ export default function TeacherClassPage() {
       {/* Class banner */}
       <section className={`clay-card ${tone.card} p-6 sm:p-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4`}>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">{cls.name}</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-[#1C1E26] tracking-tight">{cls.name}</h1>
           <p className={`text-sm font-bold mt-1 ${tone.text}`}>
             {cls.subject} · Kelas {cls.grade}
           </p>
@@ -136,7 +136,7 @@ export default function TeacherClassPage() {
         <div className="bg-white/70 rounded-2xl px-4 py-3 self-start sm:self-auto">
           <span className="block text-mini font-bold text-[#5A5E70]">Kode kelas</span>
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xl font-black tracking-widest text-[#010105]">{cls.joinCode}</span>
+            <span className="font-mono text-xl font-black tracking-widest text-[#1C1E26]">{cls.joinCode}</span>
             <button onClick={() => copyText("code")} aria-label="Salin kode kelas" className="p-1.5 rounded-lg hover:bg-white cursor-pointer text-[#5A5E70]">
               {copied === "code" ? <Check className="w-4 h-4 text-[#1D5E4D]" /> : <Copy className="w-4 h-4" />}
             </button>
@@ -156,18 +156,18 @@ export default function TeacherClassPage() {
       </section>
 
       {/* Tabs */}
-      <nav className="flex gap-1 border-b border-[rgba(28,30,38,0.08)] overflow-x-auto" role="tablist">
+      <nav className="flex gap-1 clay-white rounded-2xl p-1 overflow-x-auto" role="tablist">
         {tabs.map((t) => (
           <button
             key={t.id}
             role="tab"
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
-            className={`flex-1 sm:flex-none px-2 sm:px-4 py-2.5 text-xs sm:text-sm font-black whitespace-nowrap -mb-px border-b-2 cursor-pointer transition-colors ${
-              tab === t.id ? "border-[#010105] text-[#010105]" : "border-transparent text-[#9195A8] hover:text-[#5A5E70]"
+            className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-black whitespace-nowrap cursor-pointer transition-colors ${
+              tab === t.id ? "bg-[#1C1E26] text-white shadow-xs" : "text-[#5A5E70] hover:text-[#1C1E26]"
             }`}
           >
-            {t.label} {t.count !== undefined && <span className="text-xs font-bold text-[#9195A8]">{t.count}</span>}
+            {t.label} {t.count !== undefined && <span className={`text-xs font-bold ${tab === t.id ? "text-[#D6D8E0]" : "text-[#9195A8]"}`}>{t.count}</span>}
           </button>
         ))}
       </nav>
@@ -220,7 +220,7 @@ export default function TeacherClassPage() {
                       {s.name.charAt(0).toUpperCase()}
                     </span>
                     <span className="flex-1 min-w-0">
-                      <span className="block text-sm font-black text-[#010105] truncate">{s.name}</span>
+                      <span className="block text-sm font-black text-[#1C1E26] truncate">{s.name}</span>
                       <span className="block text-xs text-[#9195A8] truncate">
                         {s.alerts[0] ? <span className="text-[#852C28] font-bold">{s.alerts[0]}</span> : `Aktif ${timeAgo(s.last_active).toLowerCase()}`}
                       </span>
@@ -234,7 +234,7 @@ export default function TeacherClassPage() {
                     <span className="hidden md:block w-20 text-right text-xs font-bold text-[#5A5E70]">
                       {s.tasks_submitted}/{s.tasks_total} tugas
                     </span>
-                    <span className="w-12 text-right text-sm font-black text-[#010105]">{s.average_grade ?? "–"}</span>
+                    <span className="w-12 text-right text-sm font-black text-[#1C1E26]">{s.average_grade ?? "–"}</span>
                   </button>
                 </li>
               ))}
@@ -258,7 +258,7 @@ export default function TeacherClassPage() {
               {classDocs.map((d) => (
                 <li key={d.id} className="px-5 py-3.5 flex items-center gap-3">
                   <FileText className="w-4 h-4 text-[#4B3B7A] shrink-0" />
-                  <span className="flex-1 text-sm font-bold text-[#010105] truncate">{d.title}</span>
+                  <span className="flex-1 text-sm font-bold text-[#1C1E26] truncate">{d.title}</span>
                   <span className="text-xs text-[#9195A8]">{new Date(d.uploadedAt).toLocaleDateString("id-ID")}</span>
                 </li>
               ))}
@@ -339,11 +339,11 @@ export default function TeacherClassPage() {
 
       {/* Student detail */}
       <Dialog open={!!selected} onOpenChange={(o) => { if (!o) { setSelected(null); setConfirmRemove(false); } }}>
-        <DialogContent className="max-w-md p-6 bg-white rounded-3xl border-2 border-white shadow-2xl">
+        <DialogContent className="max-w-md p-6 clay-card">
           {selected && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-base font-black text-[#010105]">{selected.name}</DialogTitle>
+                <DialogTitle className="text-base font-black text-[#1C1E26]">{selected.name}</DialogTitle>
                 <DialogDescription className="text-xs text-[#5A5E70]">{selected.email}</DialogDescription>
               </DialogHeader>
 
@@ -398,11 +398,11 @@ export default function TeacherClassPage() {
 
       {/* Private chat with one student */}
       <Dialog open={!!chatWith} onOpenChange={(o) => !o && setChatWith(null)}>
-        <DialogContent className="max-w-md p-6 bg-white rounded-3xl border-2 border-white shadow-2xl">
+        <DialogContent className="max-w-md p-6 clay-card">
           {chatWith && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-base font-black text-[#010105]">{chatWith.name}</DialogTitle>
+                <DialogTitle className="text-base font-black text-[#1C1E26]">{chatWith.name}</DialogTitle>
                 <DialogDescription className="text-xs text-[#5A5E70]">Pesan pribadi · hanya Anda dan siswa ini yang bisa membaca</DialogDescription>
               </DialogHeader>
               <MessageThread classroomId={cls.id} studentId={chatWith.id} emptyHint="Belum ada pesan. Tulis pesan pertama untuk siswa ini." />
@@ -430,7 +430,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function BackLink() {
   return (
-    <Link to="/teacher" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5A5E70] hover:text-[#010105]">
+    <Link to="/teacher" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26]">
       <ArrowLeft className="w-4 h-4" /> Semua kelas
     </Link>
   );
@@ -440,7 +440,7 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="bg-[#F8F9FD] rounded-xl p-2.5">
       <dt className="text-mini font-bold text-[#9195A8]">{label}</dt>
-      <dd className="text-sm font-black text-[#010105]">{value}</dd>
+      <dd className="text-sm font-black text-[#1C1E26]">{value}</dd>
     </div>
   );
 }
@@ -449,7 +449,7 @@ function Empty({ icon, title, children }: { icon: React.ReactNode; title: string
   return (
     <div className="clay-card clay-white p-8 text-center space-y-2">
       <div className="w-12 h-12 rounded-2xl bg-[#F8F9FD] text-[#9195A8] flex items-center justify-center mx-auto">{icon}</div>
-      <h3 className="text-sm font-black text-[#010105]">{title}</h3>
+      <h3 className="text-sm font-black text-[#1C1E26]">{title}</h3>
       <p className="text-xs text-[#5A5E70] max-w-xs mx-auto">{children}</p>
     </div>
   );

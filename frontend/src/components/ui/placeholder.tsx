@@ -54,7 +54,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "rounded-[28px] p-8 md:p-12 text-center flex flex-col items-center justify-center space-y-4 select-none",
+        "rounded-[26px] p-8 md:p-12 text-center flex flex-col items-center justify-center space-y-4 select-none",
         variantStyles[variant],
         className
       )}
@@ -138,7 +138,7 @@ export function MaterialPlaceholder({
   return (
     <div
       className={cn(
-        "clay-card clay-white p-5 md:p-6 rounded-[28px] relative overflow-hidden transition-all duration-200",
+        "clay-card clay-white p-5 md:p-6 rounded-[26px] relative overflow-hidden transition-all duration-200",
         isLocked ? "opacity-80" : "hover:-translate-y-1 hover:shadow-md",
         className
       )}
@@ -229,7 +229,7 @@ export function QuizPlaceholder({
   return (
     <div
       className={cn(
-        "clay-card clay-white p-5 md:p-6 rounded-[28px] relative overflow-hidden",
+        "clay-card clay-white p-5 md:p-6 rounded-[26px] relative overflow-hidden",
         className
       )}
     >

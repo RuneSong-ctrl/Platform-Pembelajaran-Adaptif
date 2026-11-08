@@ -70,7 +70,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               leftIcon && "pl-10",
               rightIcon && "pr-10",
               error
-                ? "border-[#ba1a1a] focus-visible:ring-[#ba1a1a]/20 text-[#ba1a1a]"
+                ? "border-[#852C28] focus-visible:ring-[#852C28]/20 text-[#852C28]"
                 : variantStyles[variant],
               className
             )}
@@ -86,7 +86,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         </div>
 
         {error ? (
-          <p className="text-mini font-bold text-[#ba1a1a]">{error}</p>
+          <p className="text-mini font-bold text-[#852C28]">{error}</p>
         ) : helperText ? (
           <p className="text-mini text-[#5A5E70]">{helperText}</p>
         ) : null}
@@ -128,7 +128,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             "flex min-h-[90px] w-full rounded-2xl border border-[rgba(28,30,38,0.12)] bg-white px-4 py-3 text-sm font-medium text-[#1C1E26] shadow-[0_2px_8px_rgba(28,30,38,0.02)] transition-all",
             "placeholder:text-[#9195A8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1C1E26]/10 focus:border-[#1C1E26]",
             "disabled:cursor-not-allowed disabled:opacity-50 resize-y",
-            error && "border-[#ba1a1a] focus-visible:ring-[#ba1a1a]/20",
+            error && "border-[#852C28] focus-visible:ring-[#852C28]/20",
             className
           )}
           ref={ref}
@@ -136,7 +136,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         />
 
         {error ? (
-          <p className="text-mini font-bold text-[#ba1a1a]">{error}</p>
+          <p className="text-mini font-bold text-[#852C28]">{error}</p>
         ) : helperText ? (
           <p className="text-mini text-[#5A5E70]">{helperText}</p>
         ) : null}
@@ -179,7 +179,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             "flex h-11 w-full rounded-2xl border border-[rgba(28,30,38,0.12)] bg-white px-4 py-2 text-sm font-medium text-[#1C1E26] shadow-[0_2px_8px_rgba(28,30,38,0.02)] transition-all",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1C1E26]/10 focus:border-[#1C1E26]",
             "disabled:cursor-not-allowed disabled:opacity-50",
-            error && "border-[#ba1a1a]",
+            error && "border-[#852C28]",
             className
           )}
           ref={ref}
@@ -195,7 +195,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         </select>
 
         {error ? (
-          <p className="text-mini font-bold text-[#ba1a1a]">{error}</p>
+          <p className="text-mini font-bold text-[#852C28]">{error}</p>
         ) : helperText ? (
           <p className="text-mini text-[#5A5E70]">{helperText}</p>
         ) : null}
@@ -229,7 +229,7 @@ export function FormField({
       )}
       {children}
       {error ? (
-        <p className="text-mini font-bold text-[#ba1a1a]">{error}</p>
+        <p className="text-mini font-bold text-[#852C28]">{error}</p>
       ) : helperText ? (
         <p className="text-mini text-[#5A5E70]">{helperText}</p>
       ) : null}

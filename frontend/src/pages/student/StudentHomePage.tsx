@@ -15,6 +15,7 @@ import {
   ArrowRight,
   ChevronRight,
   Sparkles,
+  Target,
   Flame,
   Star,
   Check,
@@ -332,11 +333,11 @@ export default function StudentHomePage() {
               <section className={`${styleConfig.heroClass} p-5 sm:p-6 relative overflow-hidden`}>
                 <div className="flex items-start justify-between gap-3 relative z-10">
                   <div>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className="clay-pill clay-white px-2.5 py-0.5 text-mini font-extrabold uppercase tracking-wide text-[#1C1E26]">
+                    <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                      <span className="clay-pill clay-white whitespace-nowrap px-2.5 py-0.5 text-mini font-extrabold uppercase tracking-wide text-[#1C1E26]">
                         {userGrade}
                       </span>
-                      <span className={`px-2.5 py-0.5 text-mini font-extrabold ${styleConfig.heroBadgeBg}`}>
+                      <span className={`whitespace-nowrap px-2.5 py-0.5 text-mini font-extrabold ${styleConfig.heroBadgeBg}`}>
                         Modalitas {styleConfig.modalityLabel}
                       </span>
                     </div>
@@ -360,15 +361,15 @@ export default function StudentHomePage() {
                       <Flame className="w-3.5 h-3.5 fill-[#785308]" />
                       <span>{currentUser?.streakDays || 0} Hari</span>
                     </div>
-                    <span className={`text-mini ${styleConfig.heroSubColor} font-extrabold block mt-0.5`}>Streak Aktif</span>
+                    <span className={`text-mini ${styleConfig.heroSubColor} font-extrabold block mt-0.5 whitespace-nowrap`}>Streak</span>
                   </div>
 
                   <div className="clay-pill clay-white p-2.5 text-center flex flex-col items-center justify-center shadow-2xs">
                     <div className="flex items-center justify-center gap-1 text-[#1D5E4D] font-black text-xs">
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <Target className="w-3.5 h-3.5" />
                       <span>{currentModalityAccuracy === null ? "–" : `${currentModalityAccuracy}%`}</span>
                     </div>
-                    <span className={`text-mini ${styleConfig.heroSubColor} font-extrabold block mt-0.5`}>Jawaban Benar</span>
+                    <span className={`text-mini ${styleConfig.heroSubColor} font-extrabold block mt-0.5 whitespace-nowrap`}>Akurasi</span>
                   </div>
 
                   <div className="clay-pill clay-white p-2.5 text-center flex flex-col items-center justify-center shadow-2xs">
@@ -376,7 +377,7 @@ export default function StudentHomePage() {
                       <Star className="w-3.5 h-3.5 fill-[#21518A]" />
                       <span>{currentUser?.xpTotal || 0} XP</span>
                     </div>
-                    <span className={`text-mini ${styleConfig.heroSubColor} font-extrabold block mt-0.5`}>Total XP</span>
+                    <span className={`text-mini ${styleConfig.heroSubColor} font-extrabold block mt-0.5 whitespace-nowrap`}>Total XP</span>
                   </div>
                 </div>
 
@@ -402,7 +403,7 @@ export default function StudentHomePage() {
               <TeacherNews />
 
               {/* 2. DYNAMIC WEEKLY SCHEDULE & TARGET HUB */}
-              <section className={`clay-card ${cal.cardBg} ${cal.textColor} p-4 sm:p-5 rounded-[28px] border ${cal.cardBorder} space-y-3.5 shadow-xs`}>
+              <section className={`clay-card ${cal.cardBg} ${cal.textColor} p-4 sm:p-5 rounded-[26px] border ${cal.cardBorder} space-y-3.5 shadow-xs`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl ${cal.iconBox} flex items-center justify-center shadow-xs shrink-0`}>
@@ -1099,7 +1100,7 @@ export default function StudentHomePage() {
 
                   {/* Step 3 - Locked */}
                   <div className="flex items-center gap-4 w-full max-w-xs justify-start opacity-60">
-                    <div className="clay-stone-node bg-[#E4E2DD] text-[#5A5E70] border border-[rgba(28,30,38,0.1)] shrink-0 cursor-not-allowed">
+                    <div className="clay-stone-node bg-[#E6E4EE] text-[#5A5E70] border border-[rgba(28,30,38,0.1)] shrink-0 cursor-not-allowed">
                       <Lock className="w-5 h-5" />
                     </div>
                     <div className="text-left">

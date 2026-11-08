@@ -595,7 +595,7 @@ export default function StudentAIPage() {
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="reset-title"
-            className="bg-white rounded-3xl p-6 max-w-sm w-full max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-[0_24px_48px_-12px_rgba(28,30,38,0.25)] animate-in zoom-in-95 duration-150 flex flex-col items-center text-center gap-3"
+            className="rounded-3xl p-6 max-w-sm w-full max-h-[calc(100dvh-2rem)] overflow-y-auto clay-card animate-in zoom-in-95 duration-150 flex flex-col items-center text-center gap-3"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-11 h-11 rounded-2xl bg-[#FCD9D7] text-[#852C28] flex items-center justify-center">

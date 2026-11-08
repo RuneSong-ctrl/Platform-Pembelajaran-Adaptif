@@ -252,7 +252,7 @@ function ConfirmSheet({ title, body, action, busy, onCancel, onConfirm }: {
   return (
     <div className="fixed inset-0 z-[70] bg-black/30 flex items-end md:items-center justify-center md:p-4" onClick={onCancel}>
       <div role="alertdialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}
-        className="clay-card clay-white w-full md:max-w-sm rounded-b-none md:rounded-[28px] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:pb-5 space-y-3">
+        className="clay-card clay-white w-full md:max-w-sm rounded-b-none md:rounded-[26px] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:pb-5 space-y-3">
         <h2 className="text-base font-black text-[#1C1E26]">{title}</h2>
         <p className="text-sm text-[#5A5E70]">{body}</p>
         <div className="flex gap-2">

@@ -99,7 +99,7 @@ export default function TeacherRAGPage() {
             {/* Header */}
             <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">Materi Ajar</h1>
+                <h1 className="text-2xl sm:text-3xl font-black text-[#1C1E26] tracking-tight">Materi Ajar</h1>
                 <p className="text-sm text-[#5A5E70] mt-1 flex items-center gap-1.5">
                   <Lock className="w-3.5 h-3.5 shrink-0" />
                   Materi hanya bisa dibuka oleh siswa di kelas tujuannya.
@@ -108,7 +108,7 @@ export default function TeacherRAGPage() {
               {myClasses.length > 0 && (
                 <button
                   onClick={openUpload}
-                  className="clay-btn clay-btn-dark px-5 py-2.5 text-xs font-black flex items-center gap-2 self-start sm:self-auto cursor-pointer"
+                  className="clay-btn clay-btn-dark whitespace-nowrap px-5 py-2.5 text-xs font-black flex items-center gap-2 shrink-0 self-start sm:self-auto cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Unggah materi</span>
@@ -157,7 +157,7 @@ export default function TeacherRAGPage() {
                               <FileText className="w-5 h-5" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h3 className="text-sm font-black text-[#010105] truncate">{doc.title}</h3>
+                              <h3 className="text-sm font-black text-[#1C1E26] truncate">{doc.title}</h3>
                               <p className="text-xs text-[#5A5E70] truncate">
                                 {className(doc.classroomId)} · {new Date(doc.uploadedAt).toLocaleDateString("id-ID")}
                               </p>
@@ -199,7 +199,7 @@ export default function TeacherRAGPage() {
                             ) : (
                               <button
                                 onClick={() => setConfirmDeleteId(doc.id)}
-                                className="clay-btn clay-btn-white w-9 h-9 rounded-xl text-[#ba1a1a] flex items-center justify-center cursor-pointer shrink-0"
+                                className="clay-btn clay-btn-white w-9 h-9 rounded-xl text-[#852C28] flex items-center justify-center cursor-pointer shrink-0"
                                 title="Hapus materi"
                                 aria-label={`Hapus ${doc.title}`}
                               >
@@ -228,7 +228,7 @@ export default function TeacherRAGPage() {
 
       {/* Upload modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1C1E26]/25">
           <div className="clay-card clay-white w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 sm:p-8 rounded-3xl border border-black/10 shadow-2xl space-y-5 animate-in zoom-in-95">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-black text-[#1C1E26]">Unggah materi</h3>
@@ -264,7 +264,7 @@ export default function TeacherRAGPage() {
                     type="button"
                     onClick={() => setMode(m)}
                     className={`py-2 rounded-xl text-xs font-black cursor-pointer ${
-                      mode === m ? "bg-white text-[#010105] shadow-xs" : "text-[#5A5E70]"
+                      mode === m ? "bg-white text-[#1C1E26] shadow-xs" : "text-[#5A5E70]"
                     }`}
                   >
                     {m === "file" ? "Dari file" : "Tulis / tempel teks"}
@@ -368,7 +368,7 @@ function Empty({ title, children }: { title: string; children: React.ReactNode }
   return (
     <div className="clay-card clay-white p-8 text-center space-y-2">
       <BookOpen className="w-8 h-8 text-[#9195A8] mx-auto" />
-      <h3 className="text-sm font-black text-[#010105]">{title}</h3>
+      <h3 className="text-sm font-black text-[#1C1E26]">{title}</h3>
       <p className="text-xs text-[#5A5E70] max-w-sm mx-auto">{children}</p>
     </div>
   );

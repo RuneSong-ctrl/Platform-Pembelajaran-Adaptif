@@ -109,7 +109,7 @@ export const AccordionItem = React.forwardRef<HTMLDivElement, AccordionItemProps
         <div
           ref={ref}
           className={cn(
-            "rounded-[22px] overflow-hidden transition-all duration-200",
+            "rounded-[26px] overflow-hidden transition-all duration-200",
             variantStyles[variant] || variantStyles.default,
             isOpen && "shadow-md",
             className

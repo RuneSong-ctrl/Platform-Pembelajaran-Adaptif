@@ -243,7 +243,7 @@ export default function AuditoryLearnSection({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div className="flex items-start gap-4 min-w-0">
             {/* Tactile Squircle Icon Box */}
-            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-[20px] clay-card bg-white text-[#4B3B7A] flex flex-col items-center justify-center shrink-0 shadow-2xs border border-white/90">
+            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-[18px] clay-card bg-white text-[#4B3B7A] flex flex-col items-center justify-center shrink-0 shadow-2xs border border-white/90">
               <Headphones className="w-8 h-8 sm:w-9 sm:h-9" strokeWidth={2.2} />
               {/* Subtle Status Light */}
               <span
@@ -330,7 +330,7 @@ export default function AuditoryLearnSection({
           }}
           className={`clay-btn ${
             activeTab === "player" ? "clay-btn-lavender" : "clay-btn-white"
-          } rounded-[20px] p-3 sm:p-4 flex items-center gap-3 text-left`}
+          } rounded-[18px] p-3 sm:p-4 flex items-center gap-3 text-left`}
         >
           <span
             className={`w-10 h-10 shrink-0 rounded-[12px] flex items-center justify-center text-[#4B3B7A] ${
@@ -359,7 +359,7 @@ export default function AuditoryLearnSection({
           }}
           className={`clay-btn ${
             activeTab === "playlist" ? "clay-btn-lavender" : "clay-btn-white"
-          } rounded-[20px] p-3 sm:p-4 flex items-center gap-3 text-left`}
+          } rounded-[18px] p-3 sm:p-4 flex items-center gap-3 text-left`}
         >
           <span
             className={`w-10 h-10 shrink-0 rounded-[12px] flex items-center justify-center text-[#4B3B7A] ${

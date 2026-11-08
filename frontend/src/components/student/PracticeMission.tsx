@@ -121,7 +121,7 @@ export default function PracticeMission({ documentId, preview, sources, onStageC
 
       {allDone && !active && !justDone ? (
         <div className="clay-mint rounded-[26px] p-5 text-center space-y-2">
-          <span className="mx-auto w-12 h-12 rounded-[14px] bg-white flex items-center justify-center"><Trophy className="w-6 h-6" /></span>
+          <span className="mx-auto w-12 h-12 rounded-[12px] bg-white flex items-center justify-center"><Trophy className="w-6 h-6" /></span>
           <p className="font-bold text-[16px]">Misi selesai! Total {progress?.xp ?? 0} XP.</p>
           <p className="text-[13px]">Kamu boleh mengulang tahap mana pun untuk berlatih. XP dihitung dari percobaan pertama.</p>
         </div>

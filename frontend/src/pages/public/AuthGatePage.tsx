@@ -189,7 +189,7 @@ export default function AuthGatePage() {
   };
 
   return (
-    <div className="app-shell bg-[#F7F6FA] text-[#1C1E26] flex flex-col relative overflow-hidden select-none">
+    <div className="app-shell bg-[#F8F9FD] text-[#1C1E26] flex flex-col relative overflow-hidden select-none">
       {/* Top Clean Header */}
       <header className="w-full shrink-0 bg-white border-b border-[rgba(28,30,38,0.06)] pb-2.5 sm:pb-3.5 pt-[calc(0.625rem+env(safe-area-inset-top))] sm:pt-[calc(0.875rem+env(safe-area-inset-top))] px-4 sm:px-8 relative z-10 shadow-xs">
         <div className="max-w-6xl mx-auto flex items-center justify-between">

@@ -124,6 +124,18 @@ body {
   min-height: 100dvh;
 }
 
+/* Home Screen app on a notched iPhone: black-translucent draws the page under the status bar,
+   so paint that strip charcoal for the white clock/battery. env() is 0 in browsers, so this is invisible there. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: env(safe-area-inset-top);
+  background: #1C1E26;
+  z-index: 100;
+  pointer-events: none;
+}
+
 /* App-shell pages scroll only inside <main>; the page itself must never move or rubber-band */
 html:has(.app-shell),
 html:has(.app-shell) body {

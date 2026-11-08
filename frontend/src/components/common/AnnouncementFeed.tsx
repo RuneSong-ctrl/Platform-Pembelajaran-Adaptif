@@ -113,7 +113,7 @@ export default function AnnouncementFeed({ classroomId, canPost = false }: { cla
                 <button
                   onClick={() => remove(a.id)}
                   aria-label="Hapus pengumuman"
-                  className="p-2 rounded-xl text-[#9195A8] hover:text-[#ba1a1a] hover:bg-[#FDE8E8] cursor-pointer"
+                  className="p-2 rounded-xl text-[#9195A8] hover:text-[#852C28] hover:bg-[#FDE8E8] cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

@@ -120,7 +120,7 @@ export default function StudentPassportPage() {
 
         {/* Passport Ledger Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="p-5 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs">
+          <Card className="p-5 clay-card">
             <span className="text-mini font-bold text-[#9195A8] uppercase">Total Sertifikat Kredensial</span>
             <p className="text-2xl font-bold text-[#1C1E26] mt-1">{total} Sertifikat</p>
             <p className="text-mini text-[#1D5E4D] font-medium mt-1">
@@ -128,7 +128,7 @@ export default function StudentPassportPage() {
             </p>
           </Card>
 
-          <Card className="p-5 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs">
+          <Card className="p-5 clay-card">
             <span className="text-mini font-bold text-[#9195A8] uppercase">Rerata Skor Kompetensi</span>
             <p className="text-2xl font-bold text-[#1C1E26] mt-1">
               {avgScore === null ? "–" : `${avgScore}%`}
@@ -138,7 +138,7 @@ export default function StudentPassportPage() {
             </p>
           </Card>
 
-          <Card className="p-5 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs">
+          <Card className="p-5 clay-card">
             <span className="text-mini font-bold text-[#9195A8] uppercase">Integritas Ledger</span>
             <p className={`text-2xl font-bold mt-1 ${integrity.color}`}>{integrity.label}</p>
             <p className="text-mini text-[#5A5E70] font-medium mt-1">{integrity.note}</p>
@@ -166,7 +166,7 @@ export default function StudentPassportPage() {
           {studentCreds.map((cred) => (
             <Card
               key={cred.id}
-              className="p-6 bg-white rounded-3xl border border-[rgba(28,30,38,0.06)] shadow-xs space-y-4"
+              className="p-6 clay-card space-y-4"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[rgba(28,30,38,0.06)]">
                 <div className="flex items-center gap-3">

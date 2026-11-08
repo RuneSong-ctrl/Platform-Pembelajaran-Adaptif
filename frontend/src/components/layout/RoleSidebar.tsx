@@ -6,6 +6,8 @@ import { audioSynth } from "@/services/audioSynth";
 export interface SidebarLink {
   href: string;
   label: string;
+  /** label for the narrow mobile tab bar, when `label` does not fit */
+  short?: string;
   icon: React.ComponentType<{ className?: string }>;
   active: boolean;
 }
@@ -100,7 +102,7 @@ export default function RoleSidebar({ title, storageKey, links }: { title: strin
               <span className={`px-3 py-1 rounded-full ${item.active ? "bg-[#E3DBF8] text-[#4B3B7A]" : ""}`}>
                 <Icon className="w-5 h-5" />
               </span>
-              <span className="truncate max-w-full px-1">{item.label}</span>
+              <span className="truncate max-w-full px-1">{item.short ?? item.label}</span>
             </Link>
           );
         })}

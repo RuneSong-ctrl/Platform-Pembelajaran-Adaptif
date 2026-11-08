@@ -69,7 +69,7 @@ export default function GradeDialog({ submission, onClose }: { submission: Assig
 
   return (
     <Dialog open={!!submission} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg p-6 bg-white rounded-3xl border-2 border-white shadow-2xl">
+      <DialogContent className="max-w-lg p-6 clay-card">
         {submission && (
           <>
             <DialogHeader>

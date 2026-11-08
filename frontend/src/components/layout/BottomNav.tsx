@@ -63,8 +63,8 @@ export default function BottomNav() {
           <Link
             to="/student/ai"
             onClick={() => audioSynth.playClickSound()}
-            className={`w-12 h-12 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_10px_22px_rgba(59,130,246,0.4)] border-2 border-white transition-all transform hover:scale-110 active:scale-95 cursor-pointer bg-[#2563EB] text-white ${
-              pathname.startsWith("/student/ai") ? "ring-3 ring-[#3B82F6]/50" : ""
+            className={`w-12 h-12 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_8px_18px_rgba(28,30,38,0.22)] border-2 border-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 cursor-pointer bg-[#1C1E26] text-white ${
+              pathname.startsWith("/student/ai") ? "ring-3 ring-[#E3DBF8]" : ""
             }`}
             title="Asisten Belajar AI"
           >

@@ -595,7 +595,7 @@ export default function StudentProfilePage() {
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-in fade-in duration-150">
           <div
-            className="w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white rounded-3xl p-5 sm:p-6 shadow-[0_20px_50px_rgba(28,30,38,0.25)] border border-[rgba(28,30,38,0.08)] space-y-4 animate-in zoom-in-95 duration-150"
+            className="w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto clay-card p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-12 h-12 rounded-2xl clay-card clay-butter text-[#785308] flex items-center justify-center mx-auto shadow-xs">

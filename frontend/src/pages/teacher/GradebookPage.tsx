@@ -102,17 +102,17 @@ export default function GradebookPage() {
           <div className="max-w-6xl mx-auto space-y-6">
             <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">Buku Nilai</h1>
+                <h1 className="text-2xl sm:text-3xl font-black text-[#1C1E26] tracking-tight">Buku Nilai</h1>
                 <p className="text-sm text-[#5A5E70] mt-1">
                   {toGrade > 0 ? `${toGrade} tugas menunggu nilai. Klik sel kuning untuk menilai.` : "Nilai semua tugas dan kuis per siswa."}
                 </p>
               </div>
               {cls && students.length > 0 && (
-                <div className="flex gap-2 self-start sm:self-auto">
+                <div className="flex flex-wrap gap-2 self-start sm:self-auto">
                   <button
                     onClick={exportCsv}
                     disabled={classTasks.length === 0}
-                    className="clay-btn clay-btn-white px-4 py-2.5 text-xs font-black flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="clay-btn clay-btn-white whitespace-nowrap px-4 py-2.5 text-xs font-black flex items-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     <Download className="w-4 h-4" /> Unduh (CSV)
                   </button>
@@ -122,7 +122,7 @@ export default function GradebookPage() {
                       setMintResult(null);
                       setCertOpen(true);
                     }}
-                    className="clay-btn clay-btn-dark px-4 py-2.5 text-xs font-black flex items-center gap-2 cursor-pointer"
+                    className="clay-btn clay-btn-dark whitespace-nowrap px-4 py-2.5 text-xs font-black flex items-center gap-2 cursor-pointer"
                   >
                     <ShieldCheck className="w-4 h-4" /> Terbitkan sertifikat
                   </button>
@@ -189,7 +189,7 @@ export default function GradebookPage() {
                             <th className="font-black px-3 py-3 text-center min-w-20">Rata-rata</th>
                             {classTasks.map((t) => (
                               <th key={t.id} className="font-bold px-3 py-3 text-center min-w-27.5 max-w-35 align-bottom">
-                                <span className="block truncate text-[#010105]" title={t.title}>{t.title}</span>
+                                <span className="block truncate text-[#1C1E26]" title={t.title}>{t.title}</span>
                                 <span className="block text-mini font-medium text-[#9195A8]">
                                   {taskKindLabel(t)}
                                   {taskDeadline(t) && ` · ${taskDeadline(t)!.toLocaleDateString("id-ID", { day: "numeric", month: "short" })}`}
@@ -212,7 +212,7 @@ export default function GradebookPage() {
                               <tr key={st.id} className="border-b border-[rgba(28,30,38,0.05)] last:border-0">
                                 <td className="sticky left-0 bg-white z-10 px-4 py-2.5">
                                   <span className="flex items-center gap-2">
-                                    <span className="font-black text-[#010105] truncate">{st.name}</span>
+                                    <span className="font-black text-[#1C1E26] truncate">{st.name}</span>
                                     {hasCert(st.id) && (
                                       <span title="Sertifikat kelas sudah terbit">
                                         <ShieldCheck className="w-3.5 h-3.5 text-[#1D5E4D] shrink-0" />
@@ -220,7 +220,7 @@ export default function GradebookPage() {
                                     )}
                                   </span>
                                 </td>
-                                <td className={`px-3 py-2.5 text-center font-black ${a != null && a < 70 ? "text-[#852C28]" : "text-[#010105]"}`}>
+                                <td className={`px-3 py-2.5 text-center font-black ${a != null && a < 70 ? "text-[#852C28]" : "text-[#1C1E26]"}`}>
                                   {a ?? "–"}
                                 </td>
                                 {classTasks.map((t) => {
@@ -247,7 +247,7 @@ export default function GradebookPage() {
                                             ? "clay-butter text-[#785308]"
                                             : sub.grade < 70
                                               ? "text-[#852C28] hover:bg-[#FDF0EF]"
-                                              : "text-[#010105] hover:bg-[#F1F2F7]"
+                                              : "text-[#1C1E26] hover:bg-[#F1F2F7]"
                                         }`}
                                       >
                                         {sub.grade ?? "Nilai"}
@@ -276,9 +276,9 @@ export default function GradebookPage() {
       <GradeDialog submission={grading} onClose={() => setGrading(null)} />
 
       <Dialog open={certOpen} onOpenChange={(o) => !minting && setCertOpen(o)}>
-        <DialogContent className="max-w-md p-6 bg-white rounded-3xl border-2 border-white shadow-2xl">
+        <DialogContent className="max-w-md p-6 clay-card">
           <DialogHeader>
-            <DialogTitle className="text-base font-black text-[#010105]">Terbitkan sertifikat {cls?.name}</DialogTitle>
+            <DialogTitle className="text-base font-black text-[#1C1E26]">Terbitkan sertifikat {cls?.name}</DialogTitle>
             <DialogDescription className="text-xs text-[#5A5E70]">
               Sertifikat berisi rata-rata nilai siswa dan bisa dicek keasliannya oleh siapa saja lewat halaman verifikasi.
               Setelah terbit, sertifikat tidak bisa diubah atau ditarik.
@@ -292,7 +292,7 @@ export default function GradebookPage() {
             <ul className="max-h-56 overflow-y-auto divide-y divide-[rgba(28,30,38,0.06)] text-xs">
               {certReady.map((s) => (
                 <li key={s.id} className="flex justify-between py-2">
-                  <span className="font-bold text-[#010105]">{s.name}</span>
+                  <span className="font-bold text-[#1C1E26]">{s.name}</span>
                   <span className="font-black">{studentAvg(s.id)}</span>
                 </li>
               ))}

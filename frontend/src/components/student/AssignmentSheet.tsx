@@ -61,7 +61,7 @@ export default function AssignmentSheet({ task, submission, onClose }: {
         aria-modal="true"
         aria-label={task.title}
         onClick={(e) => e.stopPropagation()}
-        className="clay-card clay-white w-full md:max-w-lg max-h-[92dvh] overflow-y-auto rounded-b-none md:rounded-[28px] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:pb-6 space-y-4"
+        className="clay-card clay-white w-full md:max-w-lg max-h-[92dvh] overflow-y-auto rounded-b-none md:rounded-[26px] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:pb-6 space-y-4"
       >
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">

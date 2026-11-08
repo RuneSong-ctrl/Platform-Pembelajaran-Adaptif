@@ -1,11 +1,12 @@
 // Service Worker for EduAdapt PWA
-const CACHE_NAME = "eduadapt-pwa-v2";
+const CACHE_NAME = "eduadapt-pwa-v3";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
   "/manifest.json",
   "/brand/icon-192.png",
-  "/brand/icon-512.png"
+  "/brand/icon-512.png",
+  "/brand/logo-256.png"
 ];
 
 // Install Event: Cache Core Static Assets

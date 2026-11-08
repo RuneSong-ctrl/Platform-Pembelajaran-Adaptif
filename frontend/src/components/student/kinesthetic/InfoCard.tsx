@@ -10,7 +10,7 @@ export default function InfoCard({ left, top, bottom, width, maxHeight, badge, t
       style={{ left, top, bottom, width, maxHeight }} role="note" aria-live="polite" onPointerDown={event => event.stopPropagation()}>
       <style>{`
         @keyframes kin-card { from { transform: scale(.6) translateY(8px); opacity: 0 } to { transform: none; opacity: 1 } }
-        .kin-card { animation: kin-card .32s cubic-bezier(.2,1.4,.4,1) both; transform-origin: top center; }
+        .kin-card { animation: kin-card .32s cubic-bezier(.16,1,.3,1) both; transform-origin: top center; }
       `}</style>
       <div className="flex items-start justify-between gap-2">
         {badge ? <span className="text-mini font-bold uppercase tracking-wider text-[#785308] bg-[#FEE7B3] rounded-[8px] px-2 py-0.5">{badge}</span> : <span />}

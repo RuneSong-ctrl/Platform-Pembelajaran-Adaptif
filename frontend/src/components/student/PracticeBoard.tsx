@@ -220,7 +220,7 @@ function DragCard({ card, selected, onTap }: { card: Card; selected: boolean; on
   return (
     <button ref={setNodeRef} type="button" {...attributes} {...listeners} onClick={onTap} aria-pressed={selected}
       style={{ transform: CSS.Translate.toString(transform), touchAction: "none" }}
-      className={`px-3 py-2 rounded-[14px] text-[13px] font-semibold cursor-grab text-left break-words max-w-full ${
+      className={`px-3 py-2 rounded-[12px] text-[13px] font-semibold cursor-grab text-left break-words max-w-full ${
         isDragging ? "z-10 relative" : ""} ${selected ? "clay-sky ring-2 ring-[#21518A]/40" : "clay-white"}`}>
       {card.label}
     </button>
@@ -241,7 +241,7 @@ function DropSlot({ id, state, label, hint, prefix, disabled, armed, onTap }: {
   return (
     <button ref={setNodeRef} type="button" onClick={onTap} disabled={disabled}
       aria-label={state === "locked" ? `Tepat: ${label}` : label ? `Terisi: ${label}. Ketuk untuk mengembalikan` : "Tempat kosong"}
-      className={`w-full min-h-[48px] rounded-[14px] border-2 px-3 py-2 text-[13px] text-left font-semibold break-words transition-colors ${tone} ${
+      className={`w-full min-h-[48px] rounded-[12px] border-2 px-3 py-2 text-[13px] text-left font-semibold break-words transition-colors ${tone} ${
         isOver || (armed && state !== "locked") ? "ring-2 ring-[#21518A]/35" : ""}`}>
       {prefix}
       {state === "locked" && <Check className="inline w-4 h-4 mr-1 -mt-0.5" strokeWidth={3} />}

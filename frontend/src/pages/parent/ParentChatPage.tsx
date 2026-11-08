@@ -53,7 +53,7 @@ function ChildMessages({ child }: { child: User }) {
                 {c.teacherName.charAt(0).toUpperCase()}
               </span>
               <span className="flex-1 min-w-0">
-                <span className="block text-sm font-black text-[#010105] truncate">{c.teacherName}</span>
+                <span className="block text-sm font-black text-[#1C1E26] truncate">{c.teacherName}</span>
                 <span className="block text-xs text-[#5A5E70] truncate">{c.name}</span>
               </span>
               {unread(c.id) > 0 && (
@@ -73,7 +73,7 @@ function ChildMessages({ child }: { child: User }) {
               <ArrowLeft className="w-4 h-4" />
             </button>
             <div className="min-w-0">
-              <h2 className="text-sm font-black text-[#010105] truncate">{active.teacherName}</h2>
+              <h2 className="text-sm font-black text-[#1C1E26] truncate">{active.teacherName}</h2>
               <p className="text-xs text-[#5A5E70] truncate">
                 {active.name} · tentang {child.name.split(" ")[0]} · hanya Anda dan guru yang bisa membaca
               </p>

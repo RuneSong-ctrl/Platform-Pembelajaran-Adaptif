@@ -67,7 +67,7 @@ export default function TeacherDashboardPage() {
             {/* Greeting */}
             <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-black text-[#1C1E26] tracking-tight">
                   Halo{firstName ? `, ${firstName}` : ""}
                 </h1>
                 <p className="text-sm text-[#5A5E70] mt-1">
@@ -97,18 +97,18 @@ export default function TeacherDashboardPage() {
               ].map((m) => (
                 <div key={m.label} className="clay-card clay-white px-4 py-3">
                   <dt className="text-xs font-bold text-[#9195A8]">{m.label}</dt>
-                  <dd className="text-2xl font-black text-[#010105]">{m.value}</dd>
+                  <dd className="text-2xl font-black text-[#1C1E26]">{m.value}</dd>
                 </div>
               ))}
             </dl>
 
             {/* Classes */}
             <section className="space-y-3">
-              <h2 className="text-lg font-black text-[#010105]">Kelas saya</h2>
+              <h2 className="text-lg font-black text-[#1C1E26]">Kelas saya</h2>
               {classrooms.length === 0 ? (
                 <div className="clay-card clay-white p-8 text-center space-y-2">
                   <School className="w-8 h-8 text-[#9195A8] mx-auto" />
-                  <p className="text-sm font-black text-[#010105]">Belum ada kelas</p>
+                  <p className="text-sm font-black text-[#1C1E26]">Belum ada kelas</p>
                   <p className="text-xs text-[#5A5E70]">Buat kelas pertama, lalu bagikan kodenya ke siswa.</p>
                 </div>
               ) : (
@@ -123,7 +123,7 @@ export default function TeacherDashboardPage() {
                         className="clay-card clay-card-hover clay-white overflow-hidden flex flex-col"
                       >
                         <div className={`${tone.card} px-5 py-4 rounded-none`}>
-                          <h3 className="text-base font-black text-[#010105] truncate">{cls.name}</h3>
+                          <h3 className="text-base font-black text-[#1C1E26] truncate">{cls.name}</h3>
                           <p className={`text-xs font-bold ${tone.text}`}>
                             {cls.subject} · Kelas {cls.grade}
                           </p>
@@ -133,7 +133,7 @@ export default function TeacherDashboardPage() {
                             <Users className="w-3.5 h-3.5" /> {cls.studentIds.length} siswa
                           </span>
                           <span>
-                            Kode <b className="font-mono text-[#010105] tracking-wider">{cls.joinCode}</b>
+                            Kode <b className="font-mono text-[#1C1E26] tracking-wider">{cls.joinCode}</b>
                           </span>
                         </div>
                       </Link>
@@ -146,9 +146,9 @@ export default function TeacherDashboardPage() {
             {/* Work to grade */}
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-black text-[#010105]">Perlu dinilai</h2>
+                <h2 className="text-lg font-black text-[#1C1E26]">Perlu dinilai</h2>
                 {submissions.length > 0 && (
-                  <Link to="/teacher/gradebook" className="text-xs font-bold text-[#5A5E70] hover:text-[#010105] flex items-center gap-1">
+                  <Link to="/teacher/gradebook" className="text-xs font-bold text-[#5A5E70] hover:text-[#1C1E26] flex items-center gap-1">
                     Buku nilai <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 )}
@@ -162,7 +162,7 @@ export default function TeacherDashboardPage() {
                   {toGrade.slice(0, 5).map((sub) => (
                     <li key={sub.id} className="px-5 py-3.5 flex items-center gap-3">
                       <span className="flex-1 min-w-0">
-                        <span className="block text-sm font-black text-[#010105] truncate">{sub.studentName}</span>
+                        <span className="block text-sm font-black text-[#1C1E26] truncate">{sub.studentName}</span>
                         <span className="block text-xs text-[#5A5E70] truncate">{sub.taskTitle}</span>
                       </span>
                       <button
@@ -182,7 +182,7 @@ export default function TeacherDashboardPage() {
 
             {/* Student messages */}
             <section className="space-y-3">
-              <h2 className="text-lg font-black text-[#010105]">Pesan masuk</h2>
+              <h2 className="text-lg font-black text-[#1C1E26]">Pesan masuk</h2>
               {threads.length === 0 ? (
                 <p className="clay-card clay-white px-5 py-4 text-xs text-[#5A5E70] flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-[#9195A8]" /> Belum ada pesan. Siswa dan orang tua bisa menghubungi Anda dari akun mereka.
@@ -199,11 +199,11 @@ export default function TeacherDashboardPage() {
                           {(t.parent_name || t.student_name).charAt(0).toUpperCase()}
                         </span>
                         <span className="flex-1 min-w-0">
-                          <span className="block text-sm font-black text-[#010105] truncate">
+                          <span className="block text-sm font-black text-[#1C1E26] truncate">
                             {t.parent_name ? `${t.parent_name} (orang tua ${t.student_name})` : t.student_name}{" "}
                             <span className="font-bold text-xs text-[#9195A8]">· {t.classroom_name}</span>
                           </span>
-                          <span className={`block text-xs truncate ${t.unread ? "text-[#010105] font-bold" : "text-[#5A5E70]"}`}>{t.last_text}</span>
+                          <span className={`block text-xs truncate ${t.unread ? "text-[#1C1E26] font-bold" : "text-[#5A5E70]"}`}>{t.last_text}</span>
                         </span>
                         <span className="text-mini text-[#9195A8] shrink-0">
                           {utcDate(t.last_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
@@ -225,9 +225,9 @@ export default function TeacherDashboardPage() {
 
       {/* CREATE CLASS MODAL */}
       <Dialog open={createClassModalOpen} onOpenChange={setCreateClassModalOpen}>
-        <DialogContent className="max-w-md p-6 bg-white rounded-3xl border-2 border-white shadow-2xl">
+        <DialogContent className="max-w-md p-6 clay-card">
           <DialogHeader>
-            <DialogTitle className="text-base font-black text-[#010105]">
+            <DialogTitle className="text-base font-black text-[#1C1E26]">
               Buat kelas baru
             </DialogTitle>
             <DialogDescription className="text-xs text-[#5A5E70]">
@@ -237,7 +237,7 @@ export default function TeacherDashboardPage() {
 
           <div className="space-y-3.5 my-3">
             <div>
-              <label className="block text-xs font-bold text-[#010105] mb-1">
+              <label className="block text-xs font-bold text-[#1C1E26] mb-1">
                 Nama kelas
               </label>
               <Input
@@ -249,7 +249,7 @@ export default function TeacherDashboardPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#010105] mb-1">
+              <label className="block text-xs font-bold text-[#1C1E26] mb-1">
                 Mata pelajaran
               </label>
               <Input
@@ -261,7 +261,7 @@ export default function TeacherDashboardPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#010105] mb-1">
+              <label className="block text-xs font-bold text-[#1C1E26] mb-1">
                 Kelas (angka)
               </label>
               <Input
@@ -294,11 +294,11 @@ export default function TeacherDashboardPage() {
       <GradeDialog submission={grading} onClose={() => setGrading(null)} />
 
       <Dialog open={!!openThread} onOpenChange={(o) => !o && setOpenThread(null)}>
-        <DialogContent className="max-w-md p-6 bg-white rounded-3xl border-2 border-white shadow-2xl">
+        <DialogContent className="max-w-md p-6 clay-card">
           {openThread && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-base font-black text-[#010105]">{openThread.parent_name || openThread.student_name}</DialogTitle>
+                <DialogTitle className="text-base font-black text-[#1C1E26]">{openThread.parent_name || openThread.student_name}</DialogTitle>
                 <DialogDescription className="text-xs text-[#5A5E70]">
                   {openThread.parent_name ? `Orang tua ${openThread.student_name} · ` : ""}
                   {openThread.classroom_name} · pesan pribadi

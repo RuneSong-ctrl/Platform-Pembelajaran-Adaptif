@@ -29,13 +29,13 @@ export default function ParentShell({ title, children: body }: { title: string; 
           <div className="max-w-5xl mx-auto space-y-6">
             {!child ? (
               <div className="clay-card clay-white p-6 space-y-4 max-w-md mx-auto mt-6">
-                <h1 className="text-xl font-black text-[#010105]">Hubungkan akun anak</h1>
+                <h1 className="text-xl font-black text-[#1C1E26]">Hubungkan akun anak</h1>
                 <LinkChildForm />
               </div>
             ) : (
               <>
                 <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-                  <h1 className="text-2xl sm:text-3xl font-black text-[#010105] tracking-tight">{title}</h1>
+                  <h1 className="text-2xl sm:text-3xl font-black text-[#1C1E26] tracking-tight">{title}</h1>
                   <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mb-1 max-w-full" role="tablist" aria-label="Pilih anak">
                     {children.length > 1 &&
                       children.map((c) => (
@@ -67,9 +67,9 @@ export default function ParentShell({ title, children: body }: { title: string; 
       </div>
 
       <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
-        <DialogContent className="max-w-md p-6 bg-white rounded-3xl border-2 border-white shadow-2xl">
+        <DialogContent className="max-w-md p-6 clay-card">
           <DialogHeader>
-            <DialogTitle className="text-base font-black text-[#010105]">Tambah anak</DialogTitle>
+            <DialogTitle className="text-base font-black text-[#1C1E26]">Tambah anak</DialogTitle>
           </DialogHeader>
           <LinkChildForm onLinked={() => setLinkOpen(false)} />
         </DialogContent>
